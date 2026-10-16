@@ -35,13 +35,13 @@
   - [x] `src/components/encyclopedia/VisualAlmanac.tsx`, `SkillConstellation.tsx`, `ContextualQuizCard.tsx`
   - [x] Verification: `npx tsc --noEmit` passes.
 
-- [ ] **Milestone 6: 6-Step Interview Workbench & Adversarial Staff AI Interviewer**
-  - [ ] `src/engine/aiClient.ts` (3-Tier AI: BYOK Cloud + WebGPU WebLLM + Deterministic Offline Heuristic Architect)
-  - [ ] `src/components/workbench/BoECalculator.tsx` (Back-of-the-Envelope capacity calculator synced to canvas)
-  - [ ] `src/components/workbench/ApiContractBuilder.tsx` & `DataModelDesigner.tsx`
-  - [ ] `src/components/workbench/SocraticInterviewer.tsx` (Voice mode + 45-min rubric grading L4-L7)
-  - [ ] `src/components/workbench/DesignWorkbench.tsx`
-  - [ ] Verification: `npx tsc --noEmit` passes.
+- [x] **Milestone 6: 6-Step Interview Workbench & Adversarial Staff AI Interviewer**
+  - [x] `src/engine/aiClient.ts` (3-Tier AI: BYOK Cloud + WebGPU WebLLM + Deterministic Offline Heuristic Architect)
+  - [x] `src/components/workbench/BoECalculator.tsx` (Back-of-the-Envelope capacity calculator synced to canvas)
+  - [x] `src/components/workbench/ApiContractBuilder.tsx` & `DataModelDesigner.tsx`
+  - [x] `src/components/workbench/SocraticInterviewer.tsx` (Voice mode + 45-min rubric grading L4-L7)
+  - [x] `src/components/workbench/DesignWorkbench.tsx`
+  - [x] Verification: `npx tsc --noEmit` passes.
 
 - [ ] **Milestone 7: Observability Drawer, Time-Travel DVR, Post-Mortem RCA & IaC Compilers**
   - [ ] `src/engine/iacCompiler.ts` & `dslParser.ts` (Terraform, Docker Compose, K8s, Mermaid & RFC Markdown export)
