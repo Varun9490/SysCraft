@@ -30,10 +30,10 @@
   - [x] `src/components/canvas/SystemCanvas.tsx`
   - [x] Verification: `npx tsc --noEmit` passes.
 
-- [ ] **Milestone 5: Internal Algorithm Micro-Simulators & Visual Almanac**
-  - [ ] `src/components/canvas/InternalSimModal.tsx` (Interactive B-Tree vs LSM-Tree, Raft Consensus election, Consistent Hashing ring, Token Bucket)
-  - [ ] `src/components/encyclopedia/VisualAlmanac.tsx`, `SkillConstellation.tsx`, `ContextualQuizCard.tsx`
-  - [ ] Verification: `npx tsc --noEmit` passes.
+- [x] **Milestone 5: Internal Algorithm Micro-Simulators & Visual Almanac**
+  - [x] `src/components/canvas/InternalSimModal.tsx` (Interactive B-Tree vs LSM-Tree, Raft Consensus election, Consistent Hashing ring, Token Bucket)
+  - [x] `src/components/encyclopedia/VisualAlmanac.tsx`, `SkillConstellation.tsx`, `ContextualQuizCard.tsx`
+  - [x] Verification: `npx tsc --noEmit` passes.
 
 - [ ] **Milestone 6: 6-Step Interview Workbench & Adversarial Staff AI Interviewer**
   - [ ] `src/engine/aiClient.ts` (3-Tier AI: BYOK Cloud + WebGPU WebLLM + Deterministic Offline Heuristic Architect)
