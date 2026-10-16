@@ -8,12 +8,12 @@
   - [x] `src/data/regionLatency.ts` (Cross-region submarine fiber latency matrix)
   - [x] Verification: `npx tsc --noEmit` passes.
 
-- [ ] **Milestone 2: Seed Databases (28 Primitives, 19 Encyclopedia Modules, 16 Guided Labs, 20 Chaos Drills)**
-  - [ ] `src/data/seedResources.ts` (All 28 Web, Storage, Messaging, Security & Agentic AI primitives)
-  - [ ] `src/data/encyclopediaData.ts` (19 deep-dive modules + trade-off matrices + quizzes)
-  - [ ] `src/data/guidedLabs.ts` (16 multi-stage labs: Bitly, YouTube, WhatsApp, BookMyShow, Razorpay, DynamoDB, Agentic RAG, etc.)
-  - [ ] `src/data/chaosScenarios.ts` (20 timed outage scenarios with budgets & SLAs)
-  - [ ] Verification: `npx tsc --noEmit` passes.
+- [x] **Milestone 2: Seed Databases (28 Primitives, 19 Encyclopedia Modules, 16 Guided Labs, 20 Chaos Drills)**
+  - [x] `src/data/seedResources.ts` (All 28 Web, Storage, Messaging, Security & Agentic AI primitives)
+  - [x] `src/data/encyclopediaData.ts` (19 deep-dive modules + trade-off matrices + quizzes)
+  - [x] `src/data/guidedLabs.ts` (16 multi-stage labs: Bitly, YouTube, WhatsApp, BookMyShow, Razorpay, DynamoDB, Agentic RAG, etc.)
+  - [x] `src/data/chaosScenarios.ts` (20 timed outage scenarios with budgets & SLAs)
+  - [x] Verification: `npx tsc --noEmit` passes.
 
 - [ ] **Milestone 3: Simulation Core, Web Worker, OpenTelemetry Traces & Local Stores**
   - [ ] `src/engine/simulationCore.ts` (8-Pass Damped Gauss-Seidel cyclic solver + node physics)
