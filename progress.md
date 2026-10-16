@@ -15,12 +15,12 @@
   - [x] `src/data/chaosScenarios.ts` (20 timed outage scenarios with budgets & SLAs)
   - [x] Verification: `npx tsc --noEmit` passes.
 
-- [ ] **Milestone 3: Simulation Core, Web Worker, OpenTelemetry Traces & Local Stores**
-  - [ ] `src/engine/simulationCore.ts` (8-Pass Damped Gauss-Seidel cyclic solver + node physics)
-  - [ ] `src/workers/simulation.worker.ts` (20Hz worker loop with fallback)
-  - [ ] `src/engine/traceGenerator.ts` (OpenTelemetry hop-by-hop waterfall span generator)
-  - [ ] `src/store/db.ts`, `useCanvasStore.ts`, `useSimStore.ts`, `useWorkbenchStore.ts`, `useLearningStore.ts`
-  - [ ] Verification: `npx tsc --noEmit` passes.
+- [x] **Milestone 3: Simulation Core, Web Worker, OpenTelemetry Traces & Local Stores**
+  - [x] `src/engine/simulationCore.ts` (8-Pass Damped Gauss-Seidel cyclic solver + node physics)
+  - [x] `src/workers/simulation.worker.ts` (20Hz worker loop with fallback)
+  - [x] `src/engine/traceGenerator.ts` (OpenTelemetry hop-by-hop waterfall span generator)
+  - [x] `src/store/db.ts`, `useCanvasStore.ts`, `useSimStore.ts`, `useWorkbenchStore.ts`, `useLearningStore.ts`
+  - [x] Verification: `npx tsc --noEmit` passes.
 
 - [ ] **Milestone 4: Interactive Excalidraw-Style Canvas, Semantic Zoom & 60 FPS Particle Engine**
   - [ ] `src/components/canvas/ResourceNode.tsx` (Rough.js memoized sketchy mode + Semantic Zoom levels 1/2/3)
