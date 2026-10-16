@@ -50,8 +50,8 @@
   - [x] `src/components/games/GuidedLabRunner.tsx` & `IncidentArena.tsx`
   - [x] Verification: `npx tsc --noEmit` passes.
 
-- [ ] **Milestone 8: Unified Workspace, Procedural Audio, Unit Tests & Production Static Build**
-  - [ ] `src/engine/soundEngine.ts` (Web Audio API tactile clicks, harmonic load hum, error alerts)
-  - [ ] `src/app/page.tsx` & `src/app/layout.tsx` (Client-only dynamic shell + `Cmd+K` Command Palette)
-  - [ ] `src/engine/__tests__/queuingMath.test.ts` & `simulationCore.test.ts`
-  - [ ] Final Verification: `npm run typecheck && npm run test && npm run build` exits with code `0`.
+- [x] **Milestone 8: Unified Workspace, Procedural Audio, Unit Tests & Production Static Build**
+  - [x] `src/engine/soundEngine.ts` (Web Audio API tactile clicks, harmonic load hum, error alerts)
+  - [x] `src/app/page.tsx` & `src/app/layout.tsx` (Client-only dynamic shell + `Cmd+K` Command Palette)
+  - [x] `src/engine/__tests__/queuingMath.test.ts` & `simulationCore.test.ts`
+  - [x] Final Verification: `npm run typecheck && npm run test && npm run build` exits with code `0`.
