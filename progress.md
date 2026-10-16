@@ -22,13 +22,13 @@
   - [x] `src/store/db.ts`, `useCanvasStore.ts`, `useSimStore.ts`, `useWorkbenchStore.ts`, `useLearningStore.ts`
   - [x] Verification: `npx tsc --noEmit` passes.
 
-- [ ] **Milestone 4: Interactive Excalidraw-Style Canvas, Semantic Zoom & 60 FPS Particle Engine**
-  - [ ] `src/components/canvas/ResourceNode.tsx` (Rough.js memoized sketchy mode + Semantic Zoom levels 1/2/3)
-  - [ ] `src/components/canvas/RegionGroupNode.tsx` (AWS/GCP/Azure multi-region zones)
-  - [ ] `src/components/canvas/TrafficParticleLayer.tsx` (Decoupled 60 FPS HTML5 Canvas packet renderer)
-  - [ ] `src/components/canvas/FloatingToolbar.tsx` (Single-key shortcuts, Chaos Monkey bar, Auto-Layout)
-  - [ ] `src/components/canvas/SystemCanvas.tsx`
-  - [ ] Verification: `npx tsc --noEmit` passes.
+- [x] **Milestone 4: Interactive Excalidraw-Style Canvas, Semantic Zoom & 60 FPS Particle Engine**
+  - [x] `src/components/canvas/ResourceNode.tsx` (Rough.js memoized sketchy mode + Semantic Zoom levels 1/2/3)
+  - [x] `src/components/canvas/RegionGroupNode.tsx` (AWS/GCP/Azure multi-region zones)
+  - [x] `src/components/canvas/TrafficParticleLayer.tsx` (Decoupled 60 FPS HTML5 Canvas packet renderer)
+  - [x] `src/components/canvas/FloatingToolbar.tsx` (Single-key shortcuts, Chaos Monkey bar, Auto-Layout)
+  - [x] `src/components/canvas/SystemCanvas.tsx`
+  - [x] Verification: `npx tsc --noEmit` passes.
 
 - [ ] **Milestone 5: Internal Algorithm Micro-Simulators & Visual Almanac**
   - [ ] `src/components/canvas/InternalSimModal.tsx` (Interactive B-Tree vs LSM-Tree, Raft Consensus election, Consistent Hashing ring, Token Bucket)
