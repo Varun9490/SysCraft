@@ -43,12 +43,12 @@
   - [x] `src/components/workbench/DesignWorkbench.tsx`
   - [x] Verification: `npx tsc --noEmit` passes.
 
-- [ ] **Milestone 7: Observability Drawer, Time-Travel DVR, Post-Mortem RCA & IaC Compilers**
-  - [ ] `src/engine/iacCompiler.ts` & `dslParser.ts` (Terraform, Docker Compose, K8s, Mermaid & RFC Markdown export)
-  - [ ] `src/components/telemetry/TelemetryDrawer.tsx`, `TraceWaterfallModal.tsx`, `TimeTravelScrubber.tsx`, `PostMortemModal.tsx`
-  - [ ] `src/components/studio/CustomResourceStudio.tsx` & `IaCExportModal.tsx`
-  - [ ] `src/components/games/GuidedLabRunner.tsx` & `IncidentArena.tsx`
-  - [ ] Verification: `npx tsc --noEmit` passes.
+- [x] **Milestone 7: Observability Drawer, Time-Travel DVR, Post-Mortem RCA & IaC Compilers**
+  - [x] `src/engine/iacCompiler.ts` & `dslParser.ts` (Terraform, Docker Compose, K8s, Mermaid & RFC Markdown export)
+  - [x] `src/components/telemetry/TelemetryDrawer.tsx`, `TraceWaterfallModal.tsx`, `TimeTravelScrubber.tsx`, `PostMortemModal.tsx`
+  - [x] `src/components/studio/CustomResourceStudio.tsx` & `IaCExportModal.tsx`
+  - [x] `src/components/games/GuidedLabRunner.tsx` & `IncidentArena.tsx`
+  - [x] Verification: `npx tsc --noEmit` passes.
 
 - [ ] **Milestone 8: Unified Workspace, Procedural Audio, Unit Tests & Production Static Build**
   - [ ] `src/engine/soundEngine.ts` (Web Audio API tactile clicks, harmonic load hum, error alerts)

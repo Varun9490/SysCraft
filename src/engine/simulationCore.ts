@@ -1,5 +1,6 @@
 import { SEED_RESOURCES } from "@/data/seedResources";
 import { getOneWayLatencyMs } from "@/data/regionLatency";
+import { getCustomResource } from "@/store/customResourceRegistry";
 import type { ResourceCategory, StorageEngine } from "@/types/resource";
 import {
   CYCLE_DAMPING_BASE,
@@ -79,6 +80,16 @@ const META_CACHE = new Map<string, ResourceMeta>();
 export function getResourceMeta(resourceId: string): ResourceMeta {
   const cached = META_CACHE.get(resourceId);
   if (cached) return cached;
+  const custom = getCustomResource(resourceId);
+  if (custom) {
+    const meta: ResourceMeta = {
+      category: custom.category,
+      storageEngine: custom.storageEngine,
+      costPerHourUsd: custom.costPerHourUsd,
+    };
+    META_CACHE.set(resourceId, meta);
+    return meta;
+  }
   const fallback: ResourceMeta = {
     category: "compute",
     storageEngine: "none",

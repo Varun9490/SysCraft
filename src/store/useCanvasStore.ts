@@ -12,6 +12,7 @@ import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from
 import { SEED_RESOURCES } from "@/data/seedResources";
 import type { ResourceNodeData, ResourceOverrides } from "@/types/resource";
 import type { GraphNode, GraphTopology } from "@/types/simulation";
+import { getCustomResource } from "./customResourceRegistry";
 import { loadBlueprint as loadBlueprintRecord } from "./db";
 
 /**
@@ -304,6 +305,7 @@ export const useCanvasStore = create<CanvasState>()(
         const graphNodes: GraphNode[] = nodes.map((node) => {
           const resourceId = String(node.data.resourceId ?? "rest_service");
           const base = seedDefaultsById.get(resourceId);
+          const custom = base ? undefined : getCustomResource(resourceId);
           const overrides = node.data.overrides ?? {};
           return {
             id: node.id,
@@ -311,19 +313,19 @@ export const useCanvasStore = create<CanvasState>()(
             position: { x: node.position.x, y: node.position.y },
             clientRps:
               overrides.clientRps ?? ((indegree.get(node.id) ?? 0) === 0 ? STARTER_ENTRY_RPS : 0),
-            replicationFactor: overrides.replicationFactor ?? base?.replicationFactor ?? 1,
-            baseThroughputRps: overrides.baseThroughputRps ?? base?.baseThroughputRps ?? 1000,
-            maxConcurrency: overrides.maxConcurrency ?? base?.maxConcurrency ?? 500,
-            cacheHitRate: overrides.cacheHitRate ?? base?.cacheHitRate ?? 0,
-            rateLimitRps: overrides.rateLimitRps ?? base?.rateLimitRps ?? 10000,
-            writeRatio: overrides.writeRatio ?? base?.writeRatio ?? 0.2,
+            replicationFactor: overrides.replicationFactor ?? base?.replicationFactor ?? custom?.replicationFactor ?? 1,
+            baseThroughputRps: overrides.baseThroughputRps ?? base?.baseThroughputRps ?? custom?.baseThroughputRps ?? 1000,
+            maxConcurrency: overrides.maxConcurrency ?? base?.maxConcurrency ?? custom?.maxConcurrency ?? 500,
+            cacheHitRate: overrides.cacheHitRate ?? base?.cacheHitRate ?? custom?.cacheHitRate ?? 0,
+            rateLimitRps: overrides.rateLimitRps ?? base?.rateLimitRps ?? custom?.rateLimitRps ?? 10000,
+            writeRatio: overrides.writeRatio ?? base?.writeRatio ?? custom?.writeRatio ?? 0.2,
             vramGbPerReplica: overrides.vramGbPerReplica ?? base?.vramGbPerReplica ?? 0,
             avgPromptTokens: overrides.avgPromptTokens ?? base?.avgPromptTokens ?? 1024,
             avgOutputTokens: overrides.avgOutputTokens ?? base?.avgOutputTokens ?? 256,
-            baseP50Ms: base?.baseP50Ms ?? 5,
-            baseP95Ms: base?.baseP95Ms ?? 15,
-            baseP99Ms: base?.baseP99Ms ?? 40,
-            region: overrides.region ?? base?.region ?? "us-east-1",
+            baseP50Ms: base?.baseP50Ms ?? custom?.baseP50Ms ?? 5,
+            baseP95Ms: base?.baseP95Ms ?? custom?.baseP95Ms ?? 15,
+            baseP99Ms: base?.baseP99Ms ?? custom?.baseP99Ms ?? 40,
+            region: overrides.region ?? base?.region ?? custom?.region ?? "us-east-1",
             loadBalancer: "round_robin",
           };
         });

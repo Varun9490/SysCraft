@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { SEED_RESOURCES } from "@/data/seedResources";
 import type { ResourceCategory, ResourceNodeData } from "@/types/resource";
+import { getCustomResource } from "@/store/customResourceRegistry";
 import { useSimStore } from "@/store/useSimStore";
 
 /**
@@ -91,11 +92,12 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
   const telemetry = useSimStore((s) => s.nodeTelemetry[id]);
 
   const seed = seedById.get(String(data.resourceId));
-  const category: ResourceCategory = seed?.category ?? "compute";
-  const strokeColor = seed?.strokeColor ?? "#38bdf8";
+  const custom = seed ? undefined : getCustomResource(String(data.resourceId));
+  const category: ResourceCategory = seed?.category ?? custom?.category ?? "compute";
+  const strokeColor = seed?.strokeColor ?? custom?.strokeColor ?? "#38bdf8";
   const fillStyle = data.roughEnabled === false ? "solid" : (seed?.fillStyle ?? "hachure");
   const Icon = CATEGORY_ICON[category] ?? Cpu;
-  const label = String(data.label ?? seed?.name ?? data.resourceId ?? "Node");
+  const label = String(data.label ?? custom?.name ?? seed?.name ?? data.resourceId ?? "Node");
   const zoom = data.semanticZoomLevel ?? 2;
   const roughEnabled = data.roughEnabled !== false;
 

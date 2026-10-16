@@ -16,6 +16,7 @@ import { TrafficParticleLayer } from "./TrafficParticleLayer";
 import { FloatingToolbar } from "./FloatingToolbar";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSimStore } from "@/store/useSimStore";
+import { hydrateCustomResourcesFromDb } from "@/store/customResourceRegistry";
 
 /**
  * Main infinite canvas: semantic zoom, region zones, 60fps particle overlay.
@@ -35,6 +36,7 @@ function CanvasInner() {
   const onEdgesChange = useCanvasStore((s) => s.onEdgesChange);
 
   useEffect(() => {
+    void hydrateCustomResourcesFromDb();
     useSimStore.getState().startSimulation(() => useCanvasStore.getState().toGraphTopology());
     return () => {
       useSimStore.getState().stopSimulation();
