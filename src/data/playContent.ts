@@ -93,7 +93,7 @@ export const PLAY_MODES: PlayMode[] = [
     trains: 'Capacity planning & backpressure',
     minutes: 10,
     kind: 'link',
-    href: '/labs/url-shortener',
+    href: '/labs/bitly-url-shortener',
     hrefLabel: 'Open the URL shortener lab and push load',
     seedNote: 'Runs on the live simulator in the lab workspace',
   },

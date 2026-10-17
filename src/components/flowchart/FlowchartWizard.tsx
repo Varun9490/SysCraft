@@ -291,7 +291,8 @@ function LeafPanel({
       </div>
 
       <p className="mt-4 text-[11px] leading-relaxed text-zinc-600">
-        Share links carry the whole topology in the URL fragment and open read-only on the{' '}
+        Opening a preset replaces your current canvas — <kbd className="rounded border border-zinc-700 px-1">Ctrl/⌘ Z</kbd>{' '}
+        restores it. Share links carry the whole topology in the URL fragment and open read-only on the{' '}
         <Link href="/s" className="text-zinc-400 underline decoration-dotted hover:text-zinc-200">
           share viewer
         </Link>{' '}
