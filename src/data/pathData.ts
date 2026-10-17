@@ -1,5 +1,5 @@
 /**
- * The full SysCanvas learning path: 19 modules across 3 parts, 137 lessons,
+ * The full SysCraft learning path: 19 modules across 3 parts, 137 lessons,
  * sequenced in the order a growing application needs them — from a single
  * server to globally distributed systems.
  */

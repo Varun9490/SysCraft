@@ -1,7 +1,7 @@
 import type { ResourceDefinition } from "@/types/resource";
 
 /**
- * Seed catalog of all 32 SysCanvas canvas primitives (28 cloud services +
+ * Seed catalog of all 32 SysCraft canvas primitives (28 cloud services +
  * 4 Kubernetes / container orchestration primitives).
  * Every entry carries production-realistic queuing defaults, FinOps cost,
  * hardened-security score, and a self-contained encyclopedia article so the

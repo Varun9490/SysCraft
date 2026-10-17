@@ -56,6 +56,12 @@ interface CanvasState {
   abBaseline: ScenePayload | null;
   /** Bumped whenever a whole scene is swapped in, so the canvas can re-fit. */
   fitViewNonce: number;
+  /** Accessible Outline Mode: canvas rendered as a keyboard-editable table. */
+  outlineMode: boolean;
+  /** Design Doctor static-linter drawer visibility. */
+  doctorOpen: boolean;
+  /** One-shot request to center the viewport on a node (Doctor / Outline). */
+  focusRequest: { nodeId: string; nonce: number } | null;
 
   onNodesChange: OnNodesChange<CanvasFlowNode>;
   onEdgesChange: OnEdgesChange<CanvasFlowEdge>;
@@ -71,6 +77,10 @@ interface CanvasState {
   setSemanticZoomLevel: (level: 1 | 2 | 3) => void;
   setSelectedNodeId: (nodeId: string | null) => void;
   setSceneName: (name: string) => void;
+  setOutlineMode: (enabled: boolean) => void;
+  setDoctorOpen: (enabled: boolean) => void;
+  focusNode: (nodeId: string) => void;
+  expandToKubernetes: (nodeId: string) => boolean;
   clearCanvas: () => void;
   loadStarterTemplate: () => void;
   loadBlueprintTemplate: (blueprint: Blueprint) => void;
@@ -79,6 +89,8 @@ interface CanvasState {
   captureAbBaseline: () => void;
   toGraphTopology: () => GraphTopology;
   serializeScene: () => string;
+  /** Human-readable `.syscraft.json` export (uncompressed, schema-tagged). */
+  exportDesignJson: () => string;
   deserializeScene: (hash: string) => boolean;
   loadBlueprintById: (id: string) => Promise<boolean>;
 }
@@ -167,6 +179,9 @@ export const useCanvasStore = create<CanvasState>()(
       abDiffEnabled: false,
       abBaseline: null,
       fitViewNonce: 0,
+      outlineMode: false,
+      doctorOpen: false,
+      focusRequest: null,
 
       onNodesChange: (changes) => {
         set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) }));
@@ -269,6 +284,63 @@ export const useCanvasStore = create<CanvasState>()(
 
       setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId }),
       setSceneName: (name) => set({ sceneName: name }),
+      setOutlineMode: (enabled) => set({ outlineMode: enabled }),
+      setDoctorOpen: (enabled) => set({ doctorOpen: enabled }),
+
+      focusNode: (nodeId) => {
+        set((state) => ({
+          selectedNodeId: nodeId,
+          focusRequest: { nodeId, nonce: (state.focusRequest?.nonce ?? 0) + 1 },
+        }));
+      },
+
+      /**
+       * K8s View: expand a stateless compute node into a production-shaped
+       * Kubernetes slice — Ingress controller -> Service-fronted Deployment
+       * (3 pods) -> existing downstream, plus a control-plane node anchored
+       * below. Returns false when the node is missing or already expanded.
+       */
+      expandToKubernetes: (nodeId) => {
+        const { nodes, edges } = get();
+        const source = nodes.find((node) => node.id === nodeId);
+        if (!source) return false;
+        const resourceId = String(source.data.resourceId ?? "");
+        if (resourceId === "k8s_deployment" || resourceId === "ingress_controller") return false;
+
+        const base = { x: source.position.x, y: source.position.y };
+        const ingress = buildFlowNode("ingress_controller", { x: base.x - 300, y: base.y }, "Ingress (ai-svc.example.com)");
+        const deployment = buildFlowNode("k8s_deployment", { x: base.x, y: base.y }, `${String(source.data.label ?? "service")}-deploy`);
+        const cluster = buildFlowNode("k8s_cluster", { x: base.x - 150, y: base.y + 220 }, "Control plane (prod)");
+        deployment.data = {
+          ...deployment.data,
+          overrides: { ...source.data.overrides, replicationFactor: 3, multiAz: true },
+        };
+        cluster.data = {
+          ...cluster.data,
+          overrides: { region: (source.data.overrides.region as string | undefined) ?? "us-east-1" },
+        };
+
+        const inbound = edges.filter((edge) => edge.target === nodeId);
+        const outbound = edges.filter((edge) => edge.source === nodeId);
+        const nextEdges: CanvasFlowEdge[] = edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
+
+        nextEdges.push({ id: makeEdgeId(ingress.id, deployment.id), source: ingress.id, target: deployment.id });
+        for (const edge of inbound) {
+          nextEdges.push({ id: makeEdgeId(edge.source, ingress.id), source: edge.source, target: ingress.id });
+        }
+        for (const edge of outbound) {
+          nextEdges.push({ id: makeEdgeId(deployment.id, edge.target), source: deployment.id, target: edge.target });
+        }
+
+        const nextNodes = [...nodes.filter((node) => node.id !== nodeId), ingress, deployment, cluster];
+        set((state) => ({
+          nodes: nextNodes,
+          edges: nextEdges,
+          selectedNodeId: deployment.id,
+          fitViewNonce: state.fitViewNonce + 1,
+        }));
+        return true;
+      },
 
       clearCanvas: () => {
         set((state) => ({
@@ -397,11 +469,31 @@ export const useCanvasStore = create<CanvasState>()(
         return compressToEncodedURIComponent(JSON.stringify(payload));
       },
 
+      exportDesignJson: () => {
+        const { nodes, edges, sceneName } = get();
+        return JSON.stringify(
+          {
+            format: "syscraft.design/1",
+            name: sceneName,
+            exportedAt: new Date().toISOString(),
+            scene: payloadFromState(nodes, edges),
+          },
+          null,
+          2,
+        );
+      },
+
       deserializeScene: (hash) => {
         try {
-          const raw = hash.includes("%") || /^[A-Za-z0-9+\-/_=]+$/.test(hash)
-            ? decompressFromEncodedURIComponent(hash)
-            : hash;
+          // Accept raw JSON, or a compressed payload from lz-string's
+          // URI-safe alphabet (which can contain "+", "-", "_" and "$").
+          const trimmed = hash.trim();
+          let raw: string | null = null;
+          if (trimmed.startsWith("{")) {
+            raw = trimmed;
+          } else {
+            raw = decompressFromEncodedURIComponent(trimmed);
+          }
           if (!raw) return false;
           const parsed = JSON.parse(raw) as ScenePayload;
           if (parsed.version !== SCENE_VERSION || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {

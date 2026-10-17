@@ -67,7 +67,7 @@ function terraformResourceFor(resourceId: string, name: string, replicas: number
     case "vector_db":
       return `resource "aws_opensearchserverless_collection" "${name}" {\n  name = "${name}"\n  type = "VECTORSEARCH"\n}\n`;
     case "observability":
-      return `resource "aws_cloudwatch_log_group" "${name}" {\n  name              = "/syscanvas/${name}"\n  retention_in_days = 90\n  tags = { Region = "${region}" }\n}\n`;
+      return `resource "aws_cloudwatch_log_group" "${name}" {\n  name              = "/syscraft/${name}"\n  retention_in_days = 90\n  tags = { Region = "${region}" }\n}\n`;
     default:
       return `resource "aws_ecs_service" "${name}" {\n${count}  name            = "${name}"\n  desired_count   = ${Math.max(1, Math.floor(replicas))}\n  launch_type     = "FARGATE"\n  tags = { Region = "${region}" }\n}\n`;
   }
@@ -77,7 +77,7 @@ export function compileTerraform(topology: GraphTopology): string {
   const nodes = sortedNodes(topology);
   const monthly = estimateMonthlyCost(topology);
   const header = [
-    `# SysCanvas export — ${nodes.length} resources, ${topology.edges.length} links`,
+    `# SysCraft export — ${nodes.length} resources, ${topology.edges.length} links`,
     `# Estimated burn: $${monthly.toFixed(2)}/mo (seed catalog rates, us-east-1)`,
     `terraform {`,
     `  required_version = ">= 1.6"`,
@@ -136,8 +136,8 @@ export function compileDockerCompose(topology: GraphTopology): string {
     if (deps.has(e.target)) deps.get(e.target)?.push(serviceName.get(e.source) ?? e.source);
   }
   const lines: string[] = [
-    `# SysCanvas export — ${nodes.length} services`,
-    `name: syscanvas`,
+    `# SysCraft export — ${nodes.length} services`,
+    `name: syscraft`,
     `services:`,
   ];
   nodes.forEach((n, i) => {
@@ -175,7 +175,7 @@ export function compileDockerCompose(topology: GraphTopology): string {
 
 export function compileKubernetes(topology: GraphTopology): string {
   const nodes = sortedNodes(topology);
-  const docs: string[] = [`# SysCanvas export — ${nodes.length} workloads (namespace: syscanvas)`];
+  const docs: string[] = [`# SysCraft export — ${nodes.length} workloads (namespace: syscraft)`];
   nodes.forEach((n, i) => {
     const seed = seedById.get(n.resourceId);
     const name = `${slug(n.resourceId)}-${slug(n.id)}`.slice(0, 52);
@@ -186,7 +186,7 @@ export function compileKubernetes(topology: GraphTopology): string {
     docs.push(`kind: Deployment`);
     docs.push(`metadata:`);
     docs.push(`  name: ${name}`);
-    docs.push(`  namespace: syscanvas`);
+    docs.push(`  namespace: syscraft`);
     docs.push(`spec:`);
     docs.push(`  replicas: ${replicas}`);
     docs.push(`  selector:`);
@@ -217,7 +217,7 @@ export function compileKubernetes(topology: GraphTopology): string {
     docs.push(`kind: Service`);
     docs.push(`metadata:`);
     docs.push(`  name: ${name}`);
-    docs.push(`  namespace: syscanvas`);
+    docs.push(`  namespace: syscraft`);
     docs.push(`spec:`);
     docs.push(`  selector:`);
     docs.push(`    app: ${name}`);
@@ -269,7 +269,7 @@ export function compileRfc(topology: GraphTopology, options: RfcOptions = {}): s
   const lines = [
     `# RFC: ${options.title ?? "Untitled system"}`,
     ``,
-    `Author: ${options.author ?? "SysCanvas workbench"} · Date: ${new Date().toISOString().slice(0, 10)}`,
+    `Author: ${options.author ?? "SysCraft workbench"} · Date: ${new Date().toISOString().slice(0, 10)}`,
     ``,
     `## 1. Overview`,
     ``,

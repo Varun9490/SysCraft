@@ -45,7 +45,7 @@ export function ApiContractBuilder() {
         },
       };
     }
-    return JSON.stringify({ openapi: "3.1.0", info: { title: "SysCanvas contract", version: "1.0.0" }, paths }, null, 2);
+    return JSON.stringify({ openapi: "3.1.0", info: { title: "SysCraft contract", version: "1.0.0" }, paths }, null, 2);
   }, [apiRoutes]);
 
   const add = () => {

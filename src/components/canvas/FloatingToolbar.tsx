@@ -5,13 +5,17 @@ import { useReactFlow } from "@xyflow/react";
 import dagre from "dagre";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Box,
   ChevronDown,
   Flame,
+  HelpCircle,
   LayoutGrid,
+  ListChecks,
   PenTool,
   Plus,
   Redo2,
   RotateCcw,
+  Share,
   Trash2,
   Undo2,
 } from "@/components/ui/icons";
@@ -36,6 +40,8 @@ const CHAOS_KINDS: ChaosKind[] = [
   "dependency_down",
   "dns_failure",
 ];
+
+const K8S_EXPANDABLE = new Set(["rest_service", "serverless_function", "background_worker", "service_mesh", "llm_inference"]);
 
 const CHAOS_DEFAULTS: Record<ChaosKind, { capacityPenalty: number; latencyPenaltyMs: number }> = {
   none: { capacityPenalty: 0, latencyPenaltyMs: 0 },
@@ -80,7 +86,51 @@ export function FloatingToolbar() {
   const roughEnabled = useCanvasStore((s) => s.roughEnabled);
   const semanticZoomLevel = useCanvasStore((s) => s.semanticZoomLevel);
   const nodeCount = useCanvasStore((s) => s.nodes.length);
+  const outlineMode = useCanvasStore((s) => s.outlineMode);
+  const doctorOpen = useCanvasStore((s) => s.doctorOpen);
+  const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
   const chaosActive = useSimStore((s) => s.chaos.active);
+  const [k8sNotice, setK8sNotice] = useState<string | null>(null);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
+
+  const shareCanvas = useCallback(() => {
+    const payload = useCanvasStore.getState().serializeScene();
+    if (!payload || payload.length === 0) return;
+    const url = `${window.location.origin}/s#${payload}`;
+    const kb = (url.length / 1024).toFixed(1);
+    const announce = (message: string) => {
+      setShareNotice(message);
+      window.setTimeout(() => setShareNotice(null), 4200);
+    };
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(
+        () => announce(`Share link copied (${kb} KB) — opens read-only on the /s share viewer.`),
+        () => announce(`Share link is ${kb} KB — clipboard was blocked, try again from a focused tab.`),
+      );
+    } else {
+      announce(`Share link is ${kb} KB — clipboard unavailable in this browser.`);
+    }
+  }, []);
+
+  const expandSelectedToK8s = useCallback(() => {
+    const state = useCanvasStore.getState();
+    const selected = selectedNodeId ? state.nodes.find((n) => n.id === selectedNodeId) : undefined;
+    const candidate =
+      selected && K8S_EXPANDABLE.has(String(selected.data.resourceId))
+        ? selected
+        : state.nodes.find((n) => K8S_EXPANDABLE.has(String(n.data.resourceId)));
+    if (!candidate) {
+      setK8sNotice("Select a stateless compute node (or add one) to expand into Kubernetes pods.");
+    } else {
+      const ok = state.expandToKubernetes(candidate.id);
+      setK8sNotice(
+        ok
+          ? `Expanded “${String(candidate.data.label ?? "service")}” into Ingress → Service → 3 Pods + control plane.`
+          : "That node is already part of a Kubernetes slice.",
+      );
+    }
+    window.setTimeout(() => setK8sNotice(null), 3200);
+  }, [selectedNodeId]);
 
   const resourceOptions = useMemo(
     () =>
@@ -162,6 +212,14 @@ export function FloatingToolbar() {
         case "L":
           runAutoLayout();
           break;
+        case "o":
+        case "O":
+          canvas.setOutlineMode(!canvas.outlineMode);
+          break;
+        case "d":
+        case "D":
+          canvas.setDoctorOpen(!canvas.doctorOpen);
+          break;
         case "1":
           canvas.setSemanticZoomLevel(1);
           break;
@@ -190,6 +248,12 @@ export function FloatingToolbar() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [runAutoLayout, toggleRunning]);
+
+  useEffect(() => {
+    const onAutoLayout = () => runAutoLayout();
+    window.addEventListener("syscraft:auto-layout", onAutoLayout);
+    return () => window.removeEventListener("syscraft:auto-layout", onAutoLayout);
+  }, [runAutoLayout]);
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex flex-col items-center gap-2 px-3">
@@ -272,6 +336,50 @@ export function FloatingToolbar() {
           <Trash2 size={14} />
         </button>
       </div>
+
+      <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-xl border border-violet-900/50 bg-zinc-950/90 p-1.5 shadow-2xl backdrop-blur">
+        <button
+          onClick={expandSelectedToK8s}
+          className="flex h-8 items-center gap-1 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:border-sky-600/60 hover:text-sky-300"
+          title="Expand the selected (or first) stateless compute node into Ingress → Service → Pods + control plane"
+        >
+          <Box size={14} /> K8s View
+        </button>
+        <button
+          onClick={() => useCanvasStore.getState().setOutlineMode(!outlineMode)}
+          className={`flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-zinc-800 ${
+            outlineMode ? "border-violet-400/60 text-violet-300" : "border-zinc-800 text-zinc-300"
+          }`}
+          title="Accessible Outline Mode — keyboard & screen-reader editor [o]"
+        >
+          <ListChecks size={14} /> Outline
+        </button>
+        <button
+          onClick={() => useCanvasStore.getState().setDoctorOpen(!doctorOpen)}
+          className={`flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-zinc-800 ${
+            doctorOpen ? "border-amber-400/60 text-amber-300" : "border-zinc-800 text-zinc-300"
+          }`}
+          title="Design Doctor — 14 static architecture rules [d]"
+        >
+          <HelpCircle size={14} /> Doctor
+        </button>
+        <button
+          onClick={shareCanvas}
+          className="flex h-8 items-center gap-1 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:border-sky-600/60 hover:text-sky-300"
+          title="Copy a read-only share link — the whole topology compresses into the URL fragment"
+        >
+          <Share size={14} /> Share
+        </button>
+      </div>
+
+      {(shareNotice ?? k8sNotice) && (
+        <p
+          role="status"
+          className="pointer-events-auto max-w-xl rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-1.5 text-center text-[11.5px] text-zinc-200 shadow-xl"
+        >
+          {shareNotice ?? k8sNotice}
+        </p>
+      )}
 
       <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-xl border border-red-900/50 bg-zinc-950/90 p-1.5 shadow-2xl backdrop-blur">
         <button

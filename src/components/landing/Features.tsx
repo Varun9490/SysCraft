@@ -126,7 +126,7 @@ export function Features() {
   return (
     <section className="section-container py-20 md:py-24">
       <div className="max-w-2xl">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brass">Why SysCanvas</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brass">Why SysCraft</span>
         <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-content md:text-4xl">
           A full engineering workbench, not a video course
         </h2>

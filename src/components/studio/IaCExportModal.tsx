@@ -9,7 +9,7 @@ import { useWorkbenchStore } from "@/store/useWorkbenchStore";
 
 /**
  * Live IaC export: the canvas graph compiles to Terraform, Docker Compose,
- * Kubernetes manifests, Mermaid, RFC Markdown, and the SysCanvas text DSL —
+ * Kubernetes manifests, Mermaid, RFC Markdown, and the SysCraft text DSL —
  * all in sync, with copy/download and a bidirectional DSL editor.
  */
 
@@ -84,7 +84,7 @@ export function IaCExportModal({ open, onClose }: IaCExportModalProps) {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `syscanvas.${ext}`;
+      anchor.download = `syscraft.${ext}`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();

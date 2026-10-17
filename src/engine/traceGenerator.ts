@@ -135,10 +135,10 @@ export function generateTraceWaterfall(
       status: isError ? "error" : "ok",
       httpStatus: isError ? (draw < (tele?.errorRate ?? 0) / 2 ? 503 : 429) : 200,
       attributes: {
-        "syscanvas.node_id": current,
-        "syscanvas.p99_ms": String(tele?.p99Ms ?? 0),
-        "syscanvas.utilization": String(tele?.utilization ?? 0),
-        "syscanvas.queue_depth": String(tele?.queueDepth ?? 0),
+        "syscraft.node_id": current,
+        "syscraft.p99_ms": String(tele?.p99Ms ?? 0),
+        "syscraft.utilization": String(tele?.utilization ?? 0),
+        "syscraft.queue_depth": String(tele?.queueDepth ?? 0),
       },
     });
 

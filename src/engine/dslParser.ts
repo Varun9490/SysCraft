@@ -141,7 +141,7 @@ export function parseDsl(text: string): DslParseResult {
 }
 
 export function serializeDsl(nodes: DslNode[], edges: DslEdge[]): string {
-  const lines = ["# SysCanvas DSL — resourceId \"Label\" @ (x, y) [xREPLICAS] [region]"];
+  const lines = ["# SysCraft DSL — resourceId \"Label\" @ (x, y) [xREPLICAS] [region]"];
   const sorted = [...nodes].sort((a, b) => a.id.localeCompare(b.id));
   for (const n of sorted) {
     const x = Math.round(n.position.x);

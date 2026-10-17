@@ -6,7 +6,7 @@ import type { AiTier } from "@/types/resource";
  *
  * Tier 1 — Cloud BYOK: direct browser REST calls to Gemini / OpenAI /
  *   Anthropic with structured JSON enforcement. Keys live only in
- *   localStorage (`syscanvas.byok`) and are never logged or transmitted
+ *   localStorage (`syscraft.byok`) and are never logged or transmitted
  *   anywhere except the selected provider endpoint.
  * Tier 2 — Browser-local WebGPU via WebLLM (`@mlc-ai/web-llm`, dynamically
  *   imported only after an explicit user gesture + WebGPU capability check).
@@ -67,7 +67,7 @@ export interface ReviewResult {
   summary: string;
 }
 
-const BYOK_STORAGE_KEY = "syscanvas.byok";
+const BYOK_STORAGE_KEY = "syscraft.byok";
 
 function findingId(area: string, index: number): string {
   return `f_${area}_${index}`;

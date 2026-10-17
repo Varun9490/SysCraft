@@ -277,7 +277,7 @@ export function PathPageContent() {
                 Browse the labs
               </Link>
               <Link
-                href="/workspace"
+                href="/canvas"
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-line bg-app/70 px-6 py-3 text-sm font-medium text-content transition-colors hover:border-brass/40 hover:bg-app"
               >
                 Open a blank canvas

@@ -79,7 +79,7 @@ export function TraceWaterfallModal({ open, onClose }: TraceWaterfallModalProps)
                     />
                   </div>
                   <p className="mt-0.5 font-mono text-[10px] text-zinc-500">
-                    p99 {span.attributes["syscanvas.p99_ms"]}ms · ρ {span.attributes["syscanvas.utilization"]} · q {span.attributes["syscanvas.queue_depth"]}
+                    p99 {span.attributes["syscraft.p99_ms"]}ms · ρ {span.attributes["syscraft.utilization"]} · q {span.attributes["syscraft.queue_depth"]}
                   </p>
                 </div>
               );

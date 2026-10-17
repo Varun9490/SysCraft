@@ -2,7 +2,7 @@ import { SiteChrome } from "@/components/nav/SiteChrome";
 import { LabsPageContent } from "@/components/labs/LabsPageContent";
 
 export const metadata = {
-  title: "System Design Labs — SysCanvas",
+  title: "System Design Labs — SysCraft",
   description:
     "Sixteen hands-on labs modeled on real-world architectures: Bitly, YouTube, WhatsApp, Uber, Netflix, Stripe and more.",
 };

@@ -20,7 +20,7 @@ import {
   VolumeX,
 } from "@/components/ui/icons";
 import { Markdown } from "@/components/Markdown";
-import { SystemCanvas } from "@/components/canvas/SystemCanvas";
+import { SysCraftCanvas } from "@/components/canvas/SysCraftCanvas";
 import { gradeRules } from "@/components/games/GuidedLabRunner";
 import { ResourcesPanel } from "@/components/shell/ResourcesPanel";
 import { SoundBridge } from "@/components/shell/SoundBridge";
@@ -415,7 +415,7 @@ export function LabWorkspace({ labId }: { labId: string }) {
         </aside>
 
         <div className="relative min-w-0 flex-1">
-          <SystemCanvas className="h-full w-full" />
+          <SysCraftCanvas className="h-full w-full" />
         </div>
       </div>
     </main>

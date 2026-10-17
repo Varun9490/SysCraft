@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const topic = getTopic(slug);
   return {
-    title: topic ? `${topic.title} — SysCanvas Topics` : "Topic — SysCanvas",
+    title: topic ? `${topic.title} — SysCraft Topics` : "Topic — SysCraft",
     description: topic?.tagline,
   };
 }

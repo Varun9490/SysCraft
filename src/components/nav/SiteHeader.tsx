@@ -7,16 +7,17 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Menu, X } from "@/components/ui/icons";
 
 const NAV_LINKS = [
-  { href: "/path", label: "Path" },
+  { href: "/learn", label: "Learn" },
+  { href: "/wiki", label: "Wiki" },
   { href: "/labs", label: "Labs" },
-  { href: "/topics", label: "Topics" },
-  { href: "/cloud", label: "Cloud" },
-  { href: "/encyclopedia", label: "Encyclopedia" },
-  { href: "/workspace", label: "Workspace" },
+  { href: "/flowchart", label: "Flowchart" },
+  { href: "/play", label: "Play" },
+  { href: "/practice", label: "Review" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/workspace") return pathname.startsWith("/workspace") || pathname.startsWith("/labs/");
+  if (href === "/canvas") return pathname.startsWith("/canvas") || pathname.startsWith("/labs/");
+  if (href === "/wiki") return pathname === "/wiki" || pathname.startsWith("/wiki/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -63,10 +64,10 @@ export function SiteHeader() {
       }`}
     >
       <div className="section-container flex h-14 items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="SysCanvas home">
+        <Link href="/" className="flex items-center gap-2.5" aria-label="SysCraft home">
           <LogoMark />
           <span className="text-[15px] font-semibold tracking-tight text-zinc-100">
-            Sys<span className="text-sky-400">Canvas</span>
+            Sys<span className="text-sky-400">Craft</span>
           </span>
         </Link>
 
@@ -96,7 +97,7 @@ export function SiteHeader() {
 
         <div className="hidden items-center gap-2.5 md:flex">
           <Link
-            href="/workspace"
+            href="/canvas"
             className="group inline-flex items-center gap-1.5 rounded-full bg-brass text-ink shadow-card px-4 py-1.5 text-[13px] font-semibold text-zinc-950 shadow-card transition-transform hover:scale-[1.03]"
           >
             Open Canvas
@@ -152,7 +153,7 @@ export function SiteHeader() {
                 className="mt-2"
               >
                 <Link
-                  href="/workspace"
+                  href="/canvas"
                   className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-brass text-ink shadow-card px-4 py-2.5 text-sm font-semibold text-zinc-950"
                 >
                   Open Canvas

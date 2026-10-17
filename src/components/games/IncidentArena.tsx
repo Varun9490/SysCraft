@@ -31,7 +31,7 @@ const KIND_DEFAULTS: Record<Exclude<ChaosKind, "none">, { capacityPenalty: numbe
   dns_failure: { capacityPenalty: 0.6, latencyPenaltyMs: 0 },
 };
 
-const SCORE_KEY = "syscanvas.incidentScores";
+const SCORE_KEY = "syscraft.incidentScores";
 
 function loadScores(): IncidentScore[] {
   try {

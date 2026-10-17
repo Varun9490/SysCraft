@@ -6,7 +6,7 @@ import { listCustomResources } from "./db";
  * The canvas, simulator, and IaC compilers consult this registry whenever a
  * resourceId is absent from the seed catalog, so custom nodes simulate with
  * their authored physics instead of generic fallbacks. Hydrated from
- * IndexedDB once per session by SystemCanvas.
+ * IndexedDB once per session by SysCraftCanvas.
  */
 
 export interface CustomResourceSpec {

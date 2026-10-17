@@ -38,7 +38,7 @@ export function PathPreview() {
             </dl>
 
             <Link
-              href="/path"
+              href="/learn"
               className="group mt-8 inline-flex items-center gap-2 rounded-full border border-line bg-app px-5 py-2.5 text-sm font-medium text-content transition-colors hover:border-brass/40 hover:bg-app-raised"
             >
               See the full path
@@ -82,7 +82,7 @@ export function PathPreview() {
                       </p>
                     </div>
                     <Link
-                      href="/path"
+                      href="/learn"
                       className="ml-auto hidden shrink-0 items-center gap-1.5 text-[13px] font-medium text-content-secondary transition-colors hover:text-brass sm:inline-flex"
                     >
                       Open

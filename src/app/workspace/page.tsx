@@ -1,9 +1,9 @@
 import { CleanWorkspaceLoader } from "@/components/workspace/CleanWorkspaceLoader";
 
 export const metadata = {
-  title: "Workspace — SysCanvas",
+  title: "Workspace — SysCraft",
   description:
-    "A blank infinite canvas with the full SysCanvas toolkit: 32 primitives, live simulation, telemetry, and IaC export.",
+    "A blank infinite canvas with the full SysCraft toolkit: 32 primitives, live simulation, telemetry, and IaC export.",
 };
 
 export default function WorkspacePage() {

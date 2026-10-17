@@ -4,19 +4,26 @@ import Link from "next/link";
 import { LogoMark } from "./SiteHeader";
 
 const PRODUCT_LINKS = [
-  { href: "/path", label: "Learning Path" },
+  { href: "/learn", label: "Learning Path" },
+  { href: "/wiki", label: "Concept Wiki" },
   { href: "/labs", label: "System Labs" },
-  { href: "/topics", label: "Interactive Topics" },
+  { href: "/flowchart", label: "Design Flowchart" },
+  { href: "/play", label: "Play Modes" },
+  { href: "/practice", label: "FSRS Review" },
+  { href: "/room", label: "Live Rooms" },
+  { href: "/progress", label: "Progress" },
+  { href: "/settings", label: "Settings" },
+  { href: "/canvas", label: "Canvas Workspace" },
   { href: "/cloud", label: "Cloud & Networking" },
-  { href: "/encyclopedia", label: "Encyclopedia" },
-  { href: "/workspace", label: "Canvas Workspace" },
+  { href: "/topics", label: "Interactive Topics" },
 ];
 
 const LIBRARY_LINKS = [
-  { href: "/encyclopedia", label: "28 Infrastructure Primitives" },
+  { href: "/wiki", label: "28 Infrastructure Primitives" },
   { href: "/labs", label: "16 Real-world Systems" },
-  { href: "/path", label: "137 Structured Lessons" },
-  { href: "/workspace", label: "IaC Export" },
+  { href: "/learn", label: "137 Structured Lessons" },
+  { href: "/resources/new", label: "Custom Resource Studio" },
+  { href: "/canvas", label: "IaC Export" },
 ];
 
 export function SiteFooter() {
@@ -28,7 +35,7 @@ export function SiteFooter() {
             <span className="flex items-center gap-2.5">
               <LogoMark size={22} />
               <span className="text-[15px] font-semibold tracking-tight text-content">
-                Sys<span className="text-brass">Canvas</span>
+                Sys<span className="text-brass">Craft</span>
               </span>
             </span>
             <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-content-tertiary">
@@ -65,7 +72,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-line/70 pt-6 sm:flex-row">
-          <p className="text-xs text-content-tertiary">© 2026 SysCanvas. Built for engineers who learn by building.</p>
+          <p className="text-xs text-content-tertiary">© 2026 SysCraft. Built for engineers who learn by building.</p>
           <p className="text-xs text-content-tertiary">100% client-side · Zero backend · Runs in your browser</p>
         </div>
       </div>

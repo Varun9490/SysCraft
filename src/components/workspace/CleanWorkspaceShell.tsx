@@ -12,7 +12,10 @@ import {
   FileCode2,
   FileText,
   FlaskConical,
+  GraduationCap,
+  HelpCircle,
   Layers,
+  ListChecks,
   Menu,
   Pause,
   PenSquare,
@@ -25,9 +28,10 @@ import {
   VolumeX,
   Waves,
 } from "@/components/ui/icons";
-import { SystemCanvas } from "@/components/canvas/SystemCanvas";
+import { SysCraftCanvas } from "@/components/canvas/SysCraftCanvas";
 import { InternalSimModal } from "@/components/canvas/InternalSimModal";
 import { NodeInspector } from "@/components/canvas/NodeInspector";
+import { RoomSession } from "@/components/room/RoomSession";
 import { VisualAlmanac } from "@/components/encyclopedia/VisualAlmanac";
 import { IncidentArena } from "@/components/games/IncidentArena";
 import { LogoMark } from "@/components/nav/SiteHeader";
@@ -65,6 +69,20 @@ const DIFFICULTY_TONE: Record<string, string> = {
   intermediate: "border-sky-500/30 bg-sky-500/10 text-sky-300",
   advanced: "border-amber-500/30 bg-amber-500/10 text-amber-300",
 };
+
+function downloadTextFile(filename: string, text: string, mime = "application/json"): void {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function slugifySceneName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "untitled";
+}
 
 function SimMetrics() {
   const running = useSimStore((s) => s.running);
@@ -152,7 +170,7 @@ function LearnPanel({ onOpenModule }: { onOpenModule: (moduleId: string) => void
 
       <div className="border-t border-zinc-800/70 p-2">
         <Link
-          href="/path"
+          href="/learn"
           className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-zinc-800/70"
         >
           <BookOpen size={14} className="text-violet-300" />
@@ -207,7 +225,32 @@ function ToolsPanel({ onOpenPanel }: { onOpenPanel: (id: PanelId) => void }) {
           </button>
         ))}
       </div>
-      <p className="mt-4 px-1 text-[10.5px] uppercase tracking-[0.14em] text-zinc-600">Learn</p>
+      <p className="mt-4 px-1 text-[10.5px] uppercase tracking-[0.14em] text-zinc-600">Canvas tools</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => useCanvasStore.getState().setDoctorOpen(true)}
+          className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 text-left transition-colors hover:border-amber-500/40 hover:bg-zinc-800/60"
+        >
+          <HelpCircle size={16} className="text-amber-300" />
+          <span>
+            <span className="block text-[12.5px] font-medium text-zinc-200">Design Doctor</span>
+            <span className="mt-0.5 block text-[10.5px] leading-relaxed text-zinc-500">14 static architecture rules [d]</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => useCanvasStore.getState().setOutlineMode(true)}
+          className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 text-left transition-colors hover:border-violet-500/40 hover:bg-zinc-800/60"
+        >
+          <ListChecks size={16} className="text-violet-300" />
+          <span>
+            <span className="block text-[12.5px] font-medium text-zinc-200">Outline Mode</span>
+            <span className="mt-0.5 block text-[10.5px] leading-relaxed text-zinc-500">Keyboard & screen-reader editor [o]</span>
+          </span>
+        </button>
+      </div>
+      <p className="mt-4 px-1 text-[10.5px] uppercase tracking-[0.14em] text-zinc-600">Learn & practice</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <Link
           href="/labs"
@@ -217,11 +260,25 @@ function ToolsPanel({ onOpenPanel }: { onOpenPanel: (id: PanelId) => void }) {
           <span className="text-[12.5px] font-medium text-zinc-200">Guided Labs</span>
         </Link>
         <Link
-          href="/path"
+          href="/learn"
           className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60"
         >
           <BookOpen size={16} className="text-violet-300" />
           <span className="text-[12.5px] font-medium text-zinc-200">Learning Path</span>
+        </Link>
+        <Link
+          href="/practice"
+          className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60"
+        >
+          <GraduationCap size={16} className="text-emerald-300" />
+          <span className="text-[12.5px] font-medium text-zinc-200">Spaced Review</span>
+        </Link>
+        <Link
+          href="/play"
+          className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60"
+        >
+          <Swords size={16} className="text-sky-300" />
+          <span className="text-[12.5px] font-medium text-zinc-200">Play Modes</span>
         </Link>
       </div>
     </div>
@@ -298,7 +355,7 @@ export default function CleanWorkspaceShell() {
         <Link href="/" className="flex items-center gap-2 text-zinc-200 transition-colors hover:text-zinc-50">
           <LogoMark size={20} />
           <span className="text-[13px] font-semibold tracking-tight">
-            Sys<span className="text-sky-400">Canvas</span>
+            Sys<span className="text-sky-400">Craft</span>
           </span>
         </Link>
         <span className="h-4 w-px bg-zinc-800" />
@@ -436,7 +493,8 @@ export default function CleanWorkspaceShell() {
         )}
 
         <div className="relative min-w-0 flex-1">
-          <SystemCanvas className="h-full w-full" />
+          <SysCraftCanvas className="h-full w-full" />
+          <RoomSession />
           <TimeTravelScrubber />
         </div>
 
@@ -464,7 +522,7 @@ export default function CleanWorkspaceShell() {
       <Command.Dialog
         open={paletteOpen}
         onOpenChange={setPaletteOpen}
-        label="SysCanvas command palette"
+        label="SysCraft command palette"
         className="fixed left-1/2 top-24 z-50 w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl"
         overlayClassName="fixed inset-0 z-50 bg-ink/70"
       >
@@ -479,6 +537,69 @@ export default function CleanWorkspaceShell() {
               <PaletteItem key={id} label={`Open ${label}`} onSelect={() => openPanel(id)} />
             ))}
             <PaletteItem label="Run / stop simulation" onSelect={toggleTransport} />
+          </Command.Group>
+          <Command.Group heading="Canvas tools" className="px-2 py-1 text-[11px] uppercase tracking-wider text-zinc-500">
+            <PaletteItem
+              label="Design Doctor — audit the architecture (14 rules)"
+              onSelect={() => {
+                useCanvasStore.getState().setDoctorOpen(true);
+                setPaletteOpen(false);
+              }}
+            />
+            <PaletteItem
+              label="Outline Mode — keyboard & screen-reader editor"
+              onSelect={() => {
+                useCanvasStore.getState().setOutlineMode(true);
+                setPaletteOpen(false);
+              }}
+            />
+            <PaletteItem
+              label="K8s View — expand selected service into pods"
+              onSelect={() => {
+                const state = useCanvasStore.getState();
+                const candidate =
+                  state.nodes.find((n) => n.id === state.selectedNodeId) ??
+                  state.nodes.find((n) => ["rest_service", "serverless_function", "background_worker"].includes(String(n.data.resourceId)));
+                if (candidate) {
+                  state.expandToKubernetes(candidate.id);
+                }
+                setPaletteOpen(false);
+              }}
+            />
+            <PaletteItem
+              label="Auto-layout canvas (dagre)"
+              onSelect={() => {
+                window.dispatchEvent(new CustomEvent("syscraft:auto-layout"));
+                setPaletteOpen(false);
+              }}
+            />
+            <PaletteItem
+              label="Export design (.syscraft.json)"
+              onSelect={() => {
+                const state = useCanvasStore.getState();
+                downloadTextFile(`syscraft-${slugifySceneName(state.sceneName)}.syscraft.json`, state.exportDesignJson());
+                setPaletteOpen(false);
+              }}
+            />
+          </Command.Group>
+          <Command.Group heading="Go to" className="px-2 py-1 text-[11px] uppercase tracking-wider text-zinc-500">
+            {[
+              ["Spaced review queue", "/practice"],
+              ["Play modes", "/play"],
+              ["Bottleneck flowchart", "/flowchart"],
+              ["Encyclopedia (wiki)", "/wiki"],
+              ["Live collaboration room", "/room"],
+              ["Progress & mastery", "/progress"],
+              ["Settings & data control", "/settings"],
+            ].map(([label, href]) => (
+              <PaletteItem
+                key={href}
+                label={label}
+                onSelect={() => {
+                  window.location.href = href;
+                }}
+              />
+            ))}
           </Command.Group>
           <Command.Group heading="Add resource" className="px-2 py-1 text-[11px] uppercase tracking-wider text-zinc-500">
             {SEED_RESOURCES.map((r) => (

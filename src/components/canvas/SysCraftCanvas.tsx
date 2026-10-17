@@ -15,6 +15,8 @@ import { ResourceNode } from "./ResourceNode";
 import { RegionGroupNode } from "./RegionGroupNode";
 import { TrafficParticleLayer } from "./TrafficParticleLayer";
 import { FloatingToolbar } from "./FloatingToolbar";
+import { OutlineMode } from "./OutlineMode";
+import { DesignDoctorPanel } from "./DesignDoctorPanel";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSimStore } from "@/store/useSimStore";
 import { hydrateCustomResourcesFromDb } from "@/store/customResourceRegistry";
@@ -30,13 +32,19 @@ const nodeTypes = { resource: ResourceNode, region: RegionGroupNode };
 
 const SYNC_DEBOUNCE_MS = 250;
 
+const NODE_WIDTH = 232;
+const NODE_HEIGHT = 140;
+
 function CanvasInner({ className }: { className: string }) {
   const nodes = useCanvasStore((s) => s.nodes);
   const edges = useCanvasStore((s) => s.edges);
   const onNodesChange = useCanvasStore((s) => s.onNodesChange);
   const onEdgesChange = useCanvasStore((s) => s.onEdgesChange);
   const fitViewNonce = useCanvasStore((s) => s.fitViewNonce);
-  const { fitView } = useReactFlow();
+  const focusRequest = useCanvasStore((s) => s.focusRequest);
+  const outlineMode = useCanvasStore((s) => s.outlineMode);
+  const doctorOpen = useCanvasStore((s) => s.doctorOpen);
+  const { fitView, setCenter } = useReactFlow();
 
   useEffect(() => {
     void hydrateCustomResourcesFromDb();
@@ -53,6 +61,16 @@ function CanvasInner({ className }: { className: string }) {
     }, 60);
     return () => clearTimeout(timer);
   }, [fitViewNonce, fitView]);
+
+  useEffect(() => {
+    if (!focusRequest) return;
+    const target = useCanvasStore.getState().nodes.find((node) => node.id === focusRequest.nodeId);
+    if (!target) return;
+    void setCenter(target.position.x + NODE_WIDTH / 2, target.position.y + NODE_HEIGHT / 2, {
+      zoom: 1.1,
+      duration: 420,
+    });
+  }, [focusRequest, setCenter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -92,11 +110,15 @@ function CanvasInner({ className }: { className: string }) {
       </ReactFlow>
       <TrafficParticleLayer />
       <FloatingToolbar />
+      {!outlineMode && (
+        <DesignDoctorPanel open={doctorOpen} onClose={() => useCanvasStore.getState().setDoctorOpen(false)} />
+      )}
+      {outlineMode && <OutlineMode />}
     </div>
   );
 }
 
-export function SystemCanvas({
+export function SysCraftCanvas({
   className = "h-[100dvh] w-screen",
 }: {
   className?: string;
