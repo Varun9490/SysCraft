@@ -108,7 +108,6 @@ export function IaCExportModal({ open, onClose }: IaCExportModalProps) {
           resourceId: n.resourceId,
           label: n.label,
           overrides: { replicationFactor: n.replicationFactor, region: n.region },
-          roughEnabled: store.roughEnabled,
           semanticZoomLevel: store.semanticZoomLevel,
         },
       })),

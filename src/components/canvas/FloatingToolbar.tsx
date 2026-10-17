@@ -7,11 +7,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Box,
   ChevronDown,
+  Eraser,
   Flame,
   HelpCircle,
   LayoutGrid,
   ListChecks,
-  PenTool,
   Plus,
   Redo2,
   RotateCcw,
@@ -24,11 +24,13 @@ import { CLOUD_REGIONS } from "@/data/regionLatency";
 import type { ChaosKind } from "@/types/simulation";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSimStore } from "@/store/useSimStore";
+import { CanvasPreferences } from "./CanvasPreferences";
 
 /**
- * Excalidraw-style floating island + chaos bar.
- * Single-key bindings: [r]ough toggle · [l] auto-layout · [1/2/3] semantic
- * zoom · [z]/[y] undo/redo · [space] run/stop. Keys are ignored while typing.
+ * Floating canvas island + chaos bar.
+ * Single-key bindings: [l] auto-layout · [o] outline · [d] doctor ·
+ * [1/2/3] semantic zoom · [z]/[y] undo/redo · [space] run/stop ·
+ * [Delete]/[Backspace] delete selection.
  */
 
 const CHAOS_KINDS: ChaosKind[] = [
@@ -42,6 +44,13 @@ const CHAOS_KINDS: ChaosKind[] = [
 ];
 
 const K8S_EXPANDABLE = new Set(["rest_service", "serverless_function", "background_worker", "service_mesh", "llm_inference"]);
+
+const SEED_REGION_BY_ID = new Map(SEED_RESOURCES.map((r) => [r.id, r.defaults.region]));
+
+function effectiveRegionOf(resourceId: string, overrideRegion: unknown): string {
+  if (typeof overrideRegion === "string" && overrideRegion.length > 0) return overrideRegion;
+  return SEED_REGION_BY_ID.get(resourceId) ?? "us-east-1";
+}
 
 const CHAOS_DEFAULTS: Record<ChaosKind, { capacityPenalty: number; latencyPenaltyMs: number }> = {
   none: { capacityPenalty: 0, latencyPenaltyMs: 0 },
@@ -80,18 +89,43 @@ export function FloatingToolbar() {
   const { screenToFlowPosition } = useReactFlow();
   const [resourceId, setResourceId] = useState(SEED_RESOURCES[0]?.id ?? "rest_service");
   const [chaosKind, setChaosKind] = useState<ChaosKind>("zone_outage");
-  const [chaosRegion, setChaosRegion] = useState("all");
+  const [chaosScope, setChaosScope] = useState("all");
   const [chaosOpen, setChaosOpen] = useState(false);
+  const [clearArmed, setClearArmed] = useState(false);
 
-  const roughEnabled = useCanvasStore((s) => s.roughEnabled);
   const semanticZoomLevel = useCanvasStore((s) => s.semanticZoomLevel);
   const nodeCount = useCanvasStore((s) => s.nodes.length);
   const outlineMode = useCanvasStore((s) => s.outlineMode);
   const doctorOpen = useCanvasStore((s) => s.doctorOpen);
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
+  const selectedCount = useCanvasStore(
+    (s) =>
+      s.nodes.reduce((count, node) => count + (node.selected || node.id === s.selectedNodeId ? 1 : 0), 0) +
+      s.edges.reduce((count, edge) => count + (edge.selected ? 1 : 0), 0),
+  );
   const chaosActive = useSimStore((s) => s.chaos.active);
   const [k8sNotice, setK8sNotice] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [chaosNotice, setChaosNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!clearArmed) return;
+    const timer = window.setTimeout(() => setClearArmed(false), 3200);
+    return () => window.clearTimeout(timer);
+  }, [clearArmed]);
+
+  const handleClear = useCallback(() => {
+    if (!clearArmed) {
+      setClearArmed(true);
+      return;
+    }
+    setClearArmed(false);
+    useCanvasStore.getState().clearCanvas();
+  }, [clearArmed]);
+
+  const deleteSelected = useCallback(() => {
+    useCanvasStore.getState().deleteSelection();
+  }, []);
 
   const shareCanvas = useCallback(() => {
     const payload = useCanvasStore.getState().serializeScene();
@@ -185,16 +219,49 @@ export function FloatingToolbar() {
 
   const fireChaos = useCallback(() => {
     const defaults = CHAOS_DEFAULTS[chaosKind];
-    useSimStore.getState().setChaos({
+    const canvas = useCanvasStore.getState();
+    const sim = useSimStore.getState();
+
+    let targetNodeIds: string[] = [];
+    let targetRegion: string | null = null;
+    let scopeLabel = "every node";
+    if (chaosScope === "selected") {
+      if (selectedNodeId) {
+        targetNodeIds = [selectedNodeId];
+        const label = canvas.nodes.find((node) => node.id === selectedNodeId)?.data.label;
+        scopeLabel = `“${String(label ?? "selected node")}”`;
+      } else {
+        scopeLabel = "every node (nothing selected)";
+      }
+    } else if (chaosScope !== "all") {
+      targetRegion = chaosScope;
+      const regionCount = canvas.nodes.filter(
+        (node) => effectiveRegionOf(String(node.data.resourceId), node.data.overrides?.region) === chaosScope,
+      ).length;
+      scopeLabel = `every node in ${chaosScope} (${regionCount} hit)`;
+    }
+
+    sim.setChaos({
       active: true,
       kind: chaosKind,
       capacityPenalty: defaults.capacityPenalty,
       latencyPenaltyMs: defaults.latencyPenaltyMs,
-      targetNodeIds: [],
-      targetRegion: chaosRegion === "all" ? null : chaosRegion,
-      startedAtTick: useSimStore.getState().tick,
+      targetNodeIds,
+      targetRegion,
+      startedAtTick: sim.tick,
     });
-  }, [chaosKind, chaosRegion]);
+
+    // Chaos is only visible in telemetry while the clock ticks — auto-start
+    // the simulation so the burn is immediately observable.
+    const restarted = !sim.running;
+    if (restarted) {
+      useSimStore.getState().startSimulation(() => useCanvasStore.getState().toGraphTopology());
+    }
+    setChaosNotice(
+      `Injected ${chaosKind.replace(/_/g, " ")} on ${scopeLabel}${restarted ? " — simulation started so you can watch it burn" : ""}.`,
+    );
+    window.setTimeout(() => setChaosNotice(null), 4600);
+  }, [chaosKind, chaosScope, selectedNodeId]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -204,10 +271,6 @@ export function FloatingToolbar() {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       const canvas = useCanvasStore.getState();
       switch (event.key) {
-        case "r":
-        case "R":
-          canvas.setRoughEnabled(!canvas.roughEnabled);
-          break;
         case "l":
         case "L":
           runAutoLayout();
@@ -286,13 +349,12 @@ export function FloatingToolbar() {
           <LayoutGrid size={14} /> Layout
         </button>
         <button
-          onClick={() => useCanvasStore.getState().setRoughEnabled(!roughEnabled)}
-          className={`flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-zinc-800 ${
-            roughEnabled ? "border-amber-400/60 text-amber-300" : "border-zinc-800 text-zinc-400"
-          }`}
-          title="Toggle Excalidraw sketchy mode [r]"
+          onClick={deleteSelected}
+          disabled={selectedCount === 0}
+          className="flex h-8 items-center gap-1 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+          title="Delete the selected node or edge [Delete / Backspace]"
         >
-          <PenTool size={14} /> {roughEnabled ? "Sketch" : "Crisp"}
+          <Trash2 size={14} /> Delete
         </button>
         <div className="flex overflow-hidden rounded-md border border-zinc-800" title="Semantic zoom [1/2/3]">
           {[1, 2, 3].map((level) => (
@@ -329,12 +391,17 @@ export function FloatingToolbar() {
           <RotateCcw size={14} /> Starter
         </button>
         <button
-          onClick={() => useCanvasStore.getState().clearCanvas()}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-800 text-zinc-400 hover:bg-red-950 hover:text-red-300"
-          title="Clear canvas"
+          onClick={handleClear}
+          className={`flex h-8 items-center gap-1 rounded-md border px-2 text-xs ${
+            clearArmed
+              ? "border-red-500/70 bg-red-500/15 text-red-300"
+              : "border-zinc-800 text-zinc-400 hover:bg-red-950 hover:text-red-300"
+          }`}
+          title="Clear the whole canvas — click twice to confirm"
         >
-          <Trash2 size={14} />
+          <Eraser size={14} /> {clearArmed ? "Sure?" : "Clear"}
         </button>
+        <CanvasPreferences />
       </div>
 
       <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-xl border border-violet-900/50 bg-zinc-950/90 p-1.5 shadow-2xl backdrop-blur">
@@ -372,12 +439,12 @@ export function FloatingToolbar() {
         </button>
       </div>
 
-      {(shareNotice ?? k8sNotice) && (
+      {(shareNotice ?? k8sNotice ?? chaosNotice) && (
         <p
           role="status"
           className="pointer-events-auto max-w-xl rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-1.5 text-center text-[11.5px] text-zinc-200 shadow-xl"
         >
-          {shareNotice ?? k8sNotice}
+          {shareNotice ?? k8sNotice ?? chaosNotice}
         </p>
       )}
 
@@ -419,15 +486,16 @@ export function FloatingToolbar() {
                 ))}
               </select>
               <select
-                value={chaosRegion}
-                onChange={(e) => setChaosRegion(e.target.value)}
+                value={chaosScope}
+                onChange={(e) => setChaosScope(e.target.value)}
                 className="h-8 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-200"
                 title="Blast radius"
               >
-                <option value="all">all regions</option>
+                <option value="all">everywhere</option>
+                <option value="selected">selected node</option>
                 {CLOUD_REGIONS.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.id}
+                    region: {r.id}
                   </option>
                 ))}
               </select>

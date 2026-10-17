@@ -3,17 +3,18 @@
 import { useMemo, useState } from "react";
 import {
   ClipboardCopy,
-  Globe,
-  Layers,
-  Server,
+  Cpu,
   Trash2,
   X,
 } from "@/components/ui/icons";
 import { CLOUD_REGIONS, getRegionLatencyMs } from "@/data/regionLatency";
 import { getSeedResource, SEED_RESOURCES } from "@/data/seedResources";
+import { DEFAULT_SEED_MEMORY_GB, DEFAULT_SEED_VCPU, INSTANCE_PRESETS, formatScale, resolveInstanceSizing } from "@/engine/instanceSizing";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { getCustomResource } from "@/store/customResourceRegistry";
-import type { ResourceCategory } from "@/types/resource";
+import { useSimStore } from "@/store/useSimStore";
+import { NODE_DEFAULT_WIDTH, NODE_TIER_HEIGHTS, type ResourceCategory } from "@/types/resource";
+import { resourceIconFor } from "./ResourceNode";
 
 /**
  * Right-hand configuration inspector for the currently selected canvas node.
@@ -21,16 +22,37 @@ import type { ResourceCategory } from "@/types/resource";
  * Edits flow straight into `useCanvasStore` node overrides (structural state),
  * never into `useSimStore` telemetry — so editing config never touches the
  * simulation's hot path or any node besides the one being edited.
+ * (The one deliberate exception: the live "buffer" readout subscribes to this
+ * node's telemetry row only.)
  */
 
 const WRITE_RATIO_CATEGORIES: ResourceCategory[] = ["database", "storage", "cache", "streaming"];
 const RATE_LIMIT_CATEGORIES: ResourceCategory[] = ["api", "edge", "security", "network"];
 const CACHE_CATEGORIES: ResourceCategory[] = ["cache", "edge"];
 
+const SIZE_PRESETS: ReadonlyArray<{ id: string; label: string; width: number; height: number }> = [
+  { id: "s", label: "S", width: 172, height: 84 },
+  { id: "m", label: "M", width: NODE_DEFAULT_WIDTH, height: NODE_TIER_HEIGHTS[2] },
+  { id: "l", label: "L", width: 296, height: 148 },
+];
+
+const ACCENT_SWATCHES: readonly string[] = [
+  "#CDA86A",
+  "#7dd3fc",
+  "#a78bfa",
+  "#34d399",
+  "#f59e0b",
+  "#f87171",
+  "#f472b6",
+  "#e879f9",
+];
+
 interface RefDefault {
   baseThroughputRps: number;
   replicationFactor: number;
   maxConcurrency: number;
+  vcpu: number;
+  memoryGb: number;
   baseP50Ms: number;
   baseP99Ms: number;
   costPerHourUsd: number;
@@ -45,20 +67,6 @@ interface RefDefault {
   avgPromptTokens?: number;
   avgOutputTokens?: number;
   vramGbPerReplica?: number;
-}
-
-function categoryIcon(category: ResourceCategory): typeof Server {
-  switch (category) {
-    case "edge":
-    case "network":
-      return Globe;
-    case "storage":
-    case "database":
-    case "vector_db":
-      return Layers;
-    default:
-      return Server;
-  }
 }
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -149,12 +157,18 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
   const node = useCanvasStore((s) => s.nodes.find((n) => n.id === selectedNodeId));
   const updateNodeOverrides = useCanvasStore((s) => s.updateNodeOverrides);
+  const updateNodeSize = useCanvasStore((s) => s.updateNodeSize);
+  const resetNodeSize = useCanvasStore((s) => s.resetNodeSize);
+  const setNodeAccent = useCanvasStore((s) => s.setNodeAccent);
   const renameNode = useCanvasStore((s) => s.renameNode);
   const duplicateNode = useCanvasStore((s) => s.duplicateNode);
   const removeNode = useCanvasStore((s) => s.removeNode);
   const nodeCount = useCanvasStore((s) => s.nodes.length);
   const edgeCount = useCanvasStore((s) => s.edges.length);
   const [refRegion, setRefRegion] = useState("us-east-1");
+  // Deliberate exception to the telemetry separation rule: the inspector is a
+  // singleton editor panel and only reads THIS node's telemetry row.
+  const telemetry = useSimStore((s) => (selectedNodeId ? s.nodeTelemetry[selectedNodeId] : undefined));
 
   const resourceId = node ? String(node.data.resourceId ?? "") : "";
   const seed = useMemo(() => getSeedResource(resourceId), [resourceId]);
@@ -167,6 +181,8 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
         baseThroughputRps: d.baseThroughputRps,
         replicationFactor: d.replicationFactor,
         maxConcurrency: d.maxConcurrency,
+        vcpu: d.vcpu,
+        memoryGb: d.memoryGb,
         baseP50Ms: d.baseP50Ms,
         baseP99Ms: d.baseP99Ms,
         costPerHourUsd: d.costPerHourUsd,
@@ -188,6 +204,8 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
         baseThroughputRps: custom.baseThroughputRps,
         replicationFactor: custom.replicationFactor,
         maxConcurrency: custom.maxConcurrency,
+        vcpu: custom.vcpu ?? DEFAULT_SEED_VCPU,
+        memoryGb: custom.memoryGb ?? DEFAULT_SEED_MEMORY_GB,
         baseP50Ms: custom.baseP50Ms,
         baseP99Ms: custom.baseP99Ms,
         costPerHourUsd: custom.costPerHourUsd,
@@ -206,13 +224,25 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
   const overrides = node.data.overrides ?? {};
   const label = String(node.data.label ?? "Node");
   const category: ResourceCategory = seed?.category ?? custom?.category ?? "compute";
-  const Icon = categoryIcon(category);
-  const strokeColor = seed?.strokeColor ?? custom?.strokeColor ?? "#CDA86A";
+  const Icon = resourceIconFor(resourceId, category);
+  const strokeColor = node.data.accentColor ?? seed?.strokeColor ?? custom?.strokeColor ?? "#CDA86A";
 
   const region = overrides.region ?? ref?.region ?? "us-east-1";
   const replicationFactor = overrides.replicationFactor ?? ref?.replicationFactor ?? 1;
-  const baseThroughputRps = overrides.baseThroughputRps ?? ref?.baseThroughputRps ?? 1000;
   const multiAz = overrides.multiAz ?? ref?.multiAz ?? false;
+
+  // Per-node compute: vCPU scales throughput, memory scales the in-flight buffer.
+  const sizing = resolveInstanceSizing({
+    overrideVcpu: overrides.vcpu,
+    overrideMemoryGb: overrides.memoryGb,
+    seedVcpu: ref?.vcpu ?? DEFAULT_SEED_VCPU,
+    seedMemoryGb: ref?.memoryGb ?? DEFAULT_SEED_MEMORY_GB,
+    seedThroughputRps: ref?.baseThroughputRps ?? 1000,
+    seedMaxConcurrency: ref?.maxConcurrency ?? 500,
+    explicitThroughputRps: overrides.baseThroughputRps,
+    explicitMaxConcurrency: overrides.maxConcurrency,
+  });
+  const baseThroughputRps = sizing.baseThroughputRps;
 
   const clusterCapacity = Math.round(baseThroughputRps * replicationFactor);
   const rtt = getRegionLatencyMs(refRegion, region);
@@ -294,6 +324,106 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
 
         <Toggle checked={multiAz} onChange={(value) => set({ multiAz: value })} label="Multi-AZ deployment" />
 
+        <div className="space-y-3">
+          <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+            <Cpu size={12} /> Compute instance
+          </p>
+
+          <div className="flex gap-1.5">
+            {INSTANCE_PRESETS.map((preset) => {
+              const active = sizing.vcpu === preset.vcpu && sizing.memoryGb === preset.memoryGb;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => set({ vcpu: preset.vcpu, memoryGb: preset.memoryGb })}
+                  title={`${preset.vcpu} vCPU · ${preset.memoryGb} GiB per replica`}
+                  className={`flex-1 rounded-lg border px-1 py-1.5 text-center transition-colors ${
+                    active
+                      ? "border-brass/60 bg-brass/15 text-zinc-100"
+                      : "border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                  }`}
+                >
+                  <span className="block text-[11px] font-medium">{preset.label}</span>
+                  <span className="block text-[9px] text-zinc-500">
+                    {preset.vcpu}c · {preset.memoryGb}G
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="vCPU" hint={ref ? `stock ${ref.vcpu}` : undefined}>
+              <NumberInput
+                value={overrides.vcpu}
+                placeholder={String(ref?.vcpu ?? DEFAULT_SEED_VCPU)}
+                min={0.25}
+                step={0.5}
+                onCommit={(value) => set({ vcpu: value })}
+              />
+            </Field>
+            <Field label="Memory GiB" hint={ref ? `stock ${ref.memoryGb}` : undefined}>
+              <NumberInput
+                value={overrides.memoryGb}
+                placeholder={String(ref?.memoryGb ?? DEFAULT_SEED_MEMORY_GB)}
+                min={0.25}
+                step={1}
+                onCommit={(value) => set({ memoryGb: value })}
+              />
+            </Field>
+          </div>
+
+          <div className="rounded-lg border border-line/60 bg-app-raised/30 px-3 py-2">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-zinc-500">Throughput vs stock</span>
+              <span className="tabular-nums text-zinc-200">
+                {formatScale(sizing.throughputScale)} → {Math.round(sizing.baseThroughputRps).toLocaleString()} rps/replica
+              </span>
+            </div>
+            <div className="mt-1 flex items-center justify-between text-[11px]">
+              <span className="text-zinc-500">Buffer vs stock</span>
+              <span className="tabular-nums text-zinc-200">
+                {formatScale(sizing.concurrencyScale)} → {sizing.maxConcurrency.toLocaleString()} in-flight
+              </span>
+            </div>
+            {sizing.customized && (
+              <button
+                type="button"
+                onClick={() => set({ vcpu: undefined, memoryGb: undefined })}
+                className="mt-1.5 text-[10.5px] text-sky-300 transition-colors hover:text-sky-200"
+              >
+                Reset to stock shape
+              </button>
+            )}
+
+            {telemetry && (
+              <div className="mt-2 border-t border-line/50 pt-2">
+                <div className="flex items-center justify-between text-[10.5px] text-zinc-500">
+                  <span>Live buffer</span>
+                  <span className="tabular-nums text-zinc-300">
+                    {Math.round(telemetry.queueDepth).toLocaleString()} / {sizing.maxConcurrency.toLocaleString()}
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+                  <div
+                    className={`h-full rounded-full transition-[width] duration-300 ${
+                      telemetry.queueDepth >= sizing.maxConcurrency
+                        ? "bg-red-400"
+                        : telemetry.queueDepth > sizing.maxConcurrency * 0.7
+                          ? "bg-amber-300"
+                          : "bg-emerald-400"
+                    }`}
+                    style={{
+                      width: `${Math.min(100, (telemetry.queueDepth / Math.max(1, sizing.maxConcurrency)) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="space-y-4">
           <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-600">Capacity</p>
 
@@ -306,19 +436,19 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
             />
           </Field>
 
-          <Field label="Per-replica rps" hint={ref ? `default ${ref.baseThroughputRps}` : undefined}>
+          <Field label="Per-replica rps" hint={ref ? `stock ${ref.baseThroughputRps}` : undefined}>
             <NumberInput
               value={overrides.baseThroughputRps}
-              placeholder={String(ref?.baseThroughputRps ?? 1000)}
+              placeholder={String(Math.round(sizing.baseThroughputRps))}
               min={1}
               onCommit={(value) => set({ baseThroughputRps: value })}
             />
           </Field>
 
-          <Field label="Max concurrency" hint={ref ? `default ${ref.maxConcurrency}` : undefined}>
+          <Field label="Max concurrency" hint={ref ? `stock ${ref.maxConcurrency}` : undefined}>
             <NumberInput
               value={overrides.maxConcurrency}
-              placeholder={String(ref?.maxConcurrency ?? 500)}
+              placeholder={String(sizing.maxConcurrency)}
               min={1}
               onCommit={(value) => set({ maxConcurrency: value })}
             />
@@ -339,9 +469,115 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
               {(clusterCapacity / 1000).toFixed(clusterCapacity >= 10000 ? 0 : 1)}k rps
             </p>
             <p className="text-[10.5px] text-zinc-600">
-              {replicationFactor} × {baseThroughputRps.toLocaleString()} rps/replica
+              {replicationFactor} × {Math.round(baseThroughputRps).toLocaleString()} rps/replica
             </p>
           </div>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-600">Appearance</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Width">
+              <div className="flex gap-1.5">
+                {SIZE_PRESETS.map((preset) => {
+                  const activeWidth = node.data.width ?? NODE_DEFAULT_WIDTH;
+                  const active = activeWidth === preset.width;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() =>
+                        updateNodeSize(node.id, {
+                          width: preset.width,
+                          height: node.data.height ?? preset.height,
+                        })
+                      }
+                      title={`${preset.width}px wide`}
+                      className={`flex-1 rounded-lg border px-1 py-1.5 text-[11px] font-medium transition-colors ${
+                        active
+                          ? "border-brass/60 bg-brass/15 text-zinc-100"
+                          : "border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+            <Field label="Height">
+              <div className="flex gap-1.5">
+                {(
+                  [
+                    { id: "compact", label: "Short", h: NODE_TIER_HEIGHTS[1] },
+                    { id: "standard", label: "Mid", h: NODE_TIER_HEIGHTS[2] },
+                    { id: "tall", label: "Tall", h: NODE_TIER_HEIGHTS[3] },
+                  ] as const
+                ).map((preset) => {
+                  const activeHeight = node.data.height ?? NODE_TIER_HEIGHTS[node.data.semanticZoomLevel ?? 2];
+                  const active = activeHeight === preset.h;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() =>
+                        updateNodeSize(node.id, {
+                          width: node.data.width ?? NODE_DEFAULT_WIDTH,
+                          height: preset.h,
+                        })
+                      }
+                      title={`${preset.h}px tall`}
+                      className={`flex-1 rounded-lg border px-1 py-1.5 text-[11px] font-medium transition-colors ${
+                        active
+                          ? "border-brass/60 bg-brass/15 text-zinc-100"
+                          : "border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">Accent</p>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              {ACCENT_SWATCHES.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setNodeAccent(node.id, color)}
+                  title={color}
+                  className={`h-5 w-5 rounded-full border transition-transform hover:scale-110 ${
+                    node.data.accentColor === color ? "border-zinc-100" : "border-zinc-700"
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+              {node.data.accentColor && (
+                <button
+                  type="button"
+                  onClick={() => setNodeAccent(node.id, null)}
+                  className="ml-1 text-[10.5px] text-sky-300 transition-colors hover:text-sky-200"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+
+          {node.data.manualSize && (
+            <button
+              type="button"
+              onClick={() => resetNodeSize(node.id)}
+              className="text-[10.5px] text-sky-300 transition-colors hover:text-sky-200"
+            >
+              Reset to auto size
+            </button>
+          )}
         </div>
 
         {(WRITE_RATIO_CATEGORIES.includes(category) ||

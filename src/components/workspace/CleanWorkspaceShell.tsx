@@ -443,7 +443,7 @@ export default function CleanWorkspaceShell() {
 
       <div className="flex min-h-0 flex-1">
         {railOpen && (
-        <aside className="flex w-[300px] shrink-0 flex-col border-r border-zinc-800/80 bg-zinc-950">
+        <aside className="flex w-[300px] min-h-0 shrink-0 flex-col overflow-hidden border-r border-zinc-800/80 bg-zinc-950">
           <div className="flex gap-1 border-b border-zinc-800/80 p-2">
             {tabs.map(({ id, label, Icon }) => {
               const active = tab === id;
@@ -499,7 +499,7 @@ export default function CleanWorkspaceShell() {
         </div>
 
         {selectedNodeId && inspectorOpen && (
-          <aside className="hidden w-[300px] shrink-0 border-l border-zinc-800/80 bg-zinc-950 lg:block">
+          <aside className="hidden w-[300px] min-h-0 shrink-0 overflow-hidden border-l border-zinc-800/80 bg-zinc-950 lg:block">
             <NodeInspector onClose={() => setInspectorOpen(false)} />
           </aside>
         )}

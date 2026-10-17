@@ -61,8 +61,6 @@ const PROVIDER_META: Array<{ id: Provider; label: string; modelPlaceholder: stri
 
 export function SettingsPanel() {
   const router = useRouter();
-  const roughEnabled = useCanvasStore((s) => s.roughEnabled);
-  const setRoughEnabled = useCanvasStore((s) => s.setRoughEnabled);
   const setOutlineMode = useCanvasStore((s) => s.setOutlineMode);
 
   /* ------------------------------ AI engine ------------------------------ */
@@ -407,16 +405,6 @@ export function SettingsPanel() {
         <div className="mt-4 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[12.5px] font-medium text-zinc-200">Hand-drawn node style</p>
-              <p className="mt-0.5 text-[11.5px] leading-relaxed text-zinc-500">
-                Rough.js sketch rendering. Turn it off for crisp, high-contrast shapes — easier on some screens and
-                with strong magnification.
-              </p>
-            </div>
-            <ToggleSwitch checked={roughEnabled} onToggle={() => setRoughEnabled(!roughEnabled)} label="Hand-drawn node style" />
-          </div>
-          <div className="flex items-start justify-between gap-4">
-            <div>
               <p className="text-[12.5px] font-medium text-zinc-200">Sound effects</p>
               <p className="mt-0.5 text-[11.5px] leading-relaxed text-zinc-500">
                 Simulation and UI feedback tones. All synthesized locally with the Web Audio API.
@@ -535,24 +523,5 @@ function TierCard({ icon, title, note, active }: { icon: React.ReactNode; title:
       </div>
       <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">{note}</p>
     </div>
-  );
-}
-
-function ToggleSwitch({ checked, onToggle, label }: { checked: boolean; onToggle: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={onToggle}
-      className={`relative h-5 w-9 shrink-0 rounded-full border transition ${
-        checked ? 'border-emerald-500/60 bg-emerald-500/30' : 'border-zinc-600 bg-zinc-800'
-      }`}
-    >
-      <span
-        className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-zinc-100 transition-all ${checked ? 'left-[18px]' : 'left-0.5'}`}
-      />
-    </button>
   );
 }

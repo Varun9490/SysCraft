@@ -4,10 +4,56 @@ import { useMemo } from "react";
 
 /**
  * Dependency-free Markdown renderer for encyclopedia articles, lab briefs,
- * and post-mortems. Supports fenced code, headings, pipe tables, ordered /
- * unordered lists, **bold**, and `inline code`. Unknown constructs degrade
- * to plain paragraphs instead of throwing.
+ * and post-mortems. Supports fenced code, headings (with stable anchor ids),
+ * pipe tables, ordered / unordered lists, **bold**, and `inline code`.
+ * Unknown constructs degrade to plain paragraphs instead of throwing.
  */
+
+/** Stable, URL-safe anchor id for a heading, used by readers' table of contents. */
+export function slugifyHeading(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[`*_~]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80) || "section";
+}
+
+export interface MarkdownHeading {
+  id: string;
+  text: string;
+  level: number;
+}
+
+/**
+ * Extract headings (levels 1-3) with the exact ids the renderer assigns.
+ * Reimplements the fence-skipping walk so ToC anchors always resolve.
+ */
+export function extractHeadings(source: string): MarkdownHeading[] {
+  const lines = source.split("\n");
+  const seen = new Map<string, number>();
+  const headings: MarkdownHeading[] = [];
+  let inCode = false;
+  for (const line of lines) {
+    if (line.trim().startsWith("```")) {
+      inCode = !inCode;
+      continue;
+    }
+    if (inCode) continue;
+    const match = line.match(/^(#{1,4})\s+(.*)$/);
+    if (!match) continue;
+    const level = match[1]?.length ?? 1;
+    const text = match[2] ?? "";
+    if (level > 3) continue;
+    const base = slugifyHeading(text);
+    const count = seen.get(base) ?? 0;
+    seen.set(base, count + 1);
+    headings.push({ id: count === 0 ? base : `${base}-${count}`, text, level });
+  }
+  return headings;
+}
 
 function InlineText({ text }: { text: string }) {
   const parts = useMemo(() => {
@@ -44,12 +90,13 @@ export function Markdown({ source }: { source: string }) {
   const blocks = useMemo(() => {
     const lines = source.split("\n");
     type Block =
-      | { kind: "heading"; level: number; text: string }
+      | { kind: "heading"; level: number; text: string; id: string }
       | { kind: "list"; ordered: boolean; items: string[] }
       | { kind: "code"; text: string }
       | { kind: "table"; header: string[]; rows: string[][] }
       | { kind: "para"; text: string };
     const result: Block[] = [];
+    const headingIds = new Map<string, number>();
     let i = 0;
     while (i < lines.length) {
       const line = lines[i] ?? "";
@@ -66,7 +113,16 @@ export function Markdown({ source }: { source: string }) {
       }
       const heading = line.match(/^(#{1,4})\s+(.*)$/);
       if (heading) {
-        result.push({ kind: "heading", level: heading[1]?.length ?? 1, text: heading[2] ?? "" });
+        const text = heading[2] ?? "";
+        const base = slugifyHeading(text);
+        const count = headingIds.get(base) ?? 0;
+        headingIds.set(base, count + 1);
+        result.push({
+          kind: "heading",
+          level: heading[1]?.length ?? 1,
+          text,
+          id: count === 0 ? base : `${base}-${count}`,
+        });
         i += 1;
         continue;
       }
@@ -121,7 +177,7 @@ export function Markdown({ source }: { source: string }) {
         if (block.kind === "heading") {
           const sizes = ["text-lg font-bold text-zinc-50", "text-base font-bold text-zinc-50", "text-sm font-bold text-zinc-100", "text-sm font-semibold text-zinc-200"];
           return (
-            <h4 key={idx} className={sizes[Math.min(block.level, 4) - 1]}>
+            <h4 key={idx} id={block.id} className={`scroll-mt-24 ${sizes[Math.min(block.level, 4) - 1]}`}>
               <InlineText text={block.text} />
             </h4>
           );

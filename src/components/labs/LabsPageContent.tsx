@@ -87,7 +87,7 @@ export function LabsPageContent() {
       </section>
 
       <section className="section-container pb-20 pt-6">
-        <StaggerContainer className="grid gap-5 md:grid-cols-2">
+        <StaggerContainer key={filter} className="grid gap-5 md:grid-cols-2">
           {labs.map((lab) => {
             const brand = getCompanyBrand(lab.id);
             const progress = labProgress[lab.id];

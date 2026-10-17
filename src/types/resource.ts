@@ -60,6 +60,10 @@ export const ResourceDefaultsSchema = z.object({
   replicationFactor: z.number().int().min(1),
   /** Max concurrent in-flight requests per replica (K = maxConcurrency * c). */
   maxConcurrency: z.number().int().min(1),
+  /** vCPUs per replica — the instance shape the throughput profile assumes. */
+  vcpu: z.number().min(0.25).default(2),
+  /** Memory GiB per replica — the instance shape the buffering profile assumes. */
+  memoryGb: z.number().min(0.25).default(4),
   /** Baseline service latencies in ms at zero load. */
   baseP50Ms: z.number().min(0),
   baseP95Ms: z.number().min(0),
@@ -123,6 +127,10 @@ export const ResourceOverridesSchema = z.object({
   replicationFactor: z.number().int().min(1).optional(),
   baseThroughputRps: z.number().min(1).optional(),
   maxConcurrency: z.number().int().min(1).optional(),
+  /** Per-replica vCPUs; scales sustainable throughput vs. the primitive's baseline. */
+  vcpu: z.number().min(0.25).optional(),
+  /** Per-replica memory GiB; scales the queue buffering profile. */
+  memoryGb: z.number().min(0.25).optional(),
   cacheHitRate: z.number().min(0).max(1).optional(),
   rateLimitRps: z.number().min(1).optional(),
   writeRatio: z.number().min(0).max(1).optional(),
@@ -136,21 +144,39 @@ export const ResourceOverridesSchema = z.object({
 
 export type ResourceOverrides = z.infer<typeof ResourceOverridesSchema>;
 
+/** Canvas block metrics shared by the store (defaults, tiers) and the node renderer. */
+export const NODE_DEFAULT_WIDTH = 216;
+export const NODE_TIER_HEIGHTS: Record<1 | 2 | 3, number> = { 1: 76, 2: 104, 3: 140 };
+export const NODE_MIN_WIDTH = 140;
+export const NODE_MAX_WIDTH = 520;
+export const NODE_MIN_HEIGHT = 56;
+export const NODE_MAX_HEIGHT = 320;
+
 /** Data payload carried by every @xyflow/react custom node. */
 export interface ResourceNodeData extends Record<string, unknown> {
   resourceId: string;
   label: string;
   overrides: ResourceOverrides;
-  roughEnabled: boolean;
   semanticZoomLevel: 1 | 2 | 3;
+  /** User-resized node width in px (drag handle / inspector presets). */
+  width?: number;
+  /** User-resized node height in px (drag handle / inspector presets). */
+  height?: number;
+  /** True once the learner manually resized — disables auto tier heights. */
+  manualSize?: boolean;
+  /** Optional accent override that recolours the block chrome. */
+  accentColor?: string;
 }
 
 export const ResourceNodeDataSchema = z.object({
   resourceId: z.string().min(1),
   label: z.string().min(1),
   overrides: ResourceOverridesSchema.default({}),
-  roughEnabled: z.boolean().default(true),
   semanticZoomLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(2),
+  width: z.number().min(140).max(520).optional(),
+  height: z.number().min(56).max(320).optional(),
+  manualSize: z.boolean().optional(),
+  accentColor: z.string().optional(),
 });
 
 /** AI / LLM provider + local model types used by aiClient.ts (Milestone 6). */

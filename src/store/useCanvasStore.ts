@@ -11,7 +11,17 @@ import {
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
 import { SEED_RESOURCES } from "@/data/seedResources";
 import type { Blueprint } from "@/data/blueprints";
-import type { ResourceNodeData, ResourceOverrides } from "@/types/resource";
+import { resolveInstanceSizing } from "@/engine/instanceSizing";
+import {
+  NODE_DEFAULT_WIDTH,
+  NODE_MAX_HEIGHT,
+  NODE_MAX_WIDTH,
+  NODE_MIN_HEIGHT,
+  NODE_MIN_WIDTH,
+  NODE_TIER_HEIGHTS,
+  type ResourceNodeData,
+  type ResourceOverrides,
+} from "@/types/resource";
 import type { GraphNode, GraphTopology } from "@/types/simulation";
 import { getCustomResource } from "./customResourceRegistry";
 import { loadBlueprint as loadBlueprintRecord } from "./db";
@@ -28,6 +38,8 @@ import { loadBlueprint as loadBlueprintRecord } from "./db";
 export const SCENE_VERSION = 1;
 export const STARTER_ENTRY_RPS = 500;
 
+export type CanvasEdgeRouting = "smoothstep" | "bezier" | "straight";
+
 export type CanvasFlowNode = Node<ResourceNodeData, "resource" | "region">;
 export type CanvasFlowEdge = Edge;
 
@@ -37,6 +49,9 @@ interface SceneNodePayload {
   resourceId: string;
   label: string;
   overrides: ResourceOverrides;
+  width?: number;
+  height?: number;
+  accentColor?: string;
 }
 
 interface ScenePayload {
@@ -48,8 +63,9 @@ interface ScenePayload {
 interface CanvasState {
   nodes: CanvasFlowNode[];
   edges: CanvasFlowEdge[];
-  roughEnabled: boolean;
   semanticZoomLevel: 1 | 2 | 3;
+  /** Routing style used by every edge on this canvas. */
+  edgeStyle: CanvasEdgeRouting;
   selectedNodeId: string | null;
   sceneName: string;
   abDiffEnabled: boolean;
@@ -68,12 +84,21 @@ interface CanvasState {
   addNode: (resourceId: string, position: { x: number; y: number }, label?: string) => string;
   updateNodePosition: (nodeId: string, position: { x: number; y: number }) => void;
   updateNodeOverrides: (nodeId: string, partial: Partial<ResourceOverrides>) => void;
+  /** User drag-resize: persist width/height on node data (marks manual size). */
+  updateNodeSize: (nodeId: string, size: { width: number; height: number }) => void;
+  /** Restore the block to tier-driven auto sizing. */
+  resetNodeSize: (nodeId: string) => void;
+  /** Accent colour override for block chrome (hex), null restores the primitive's colour. */
+  setNodeAccent: (nodeId: string, color: string | null) => void;
   renameNode: (nodeId: string, label: string) => void;
   duplicateNode: (nodeId: string) => string | null;
   removeNode: (nodeId: string) => void;
+  /** Removes the currently selected node(s)/edge(s). Returns how many items were removed. */
+  deleteSelection: () => number;
   addEdge: (source: string, target: string) => string | null;
   removeEdge: (edgeId: string) => void;
-  setRoughEnabled: (enabled: boolean) => void;
+  /** Re-route every edge (existing + future) with the chosen style. */
+  setEdgeStyle: (style: CanvasEdgeRouting) => void;
   setSemanticZoomLevel: (level: 1 | 2 | 3) => void;
   setSelectedNodeId: (nodeId: string | null) => void;
   setSceneName: (name: string) => void;
@@ -109,6 +134,11 @@ function makeEdgeId(source: string, target: string): string {
   return `e_${source}_${target}`;
 }
 
+/** Stamp the canvas-wide routing style onto an edge. */
+function routeEdge(edge: CanvasFlowEdge, style: CanvasEdgeRouting): CanvasFlowEdge {
+  return edge.type === style ? edge : { ...edge, type: style };
+}
+
 function buildFlowNode(resourceId: string, position: { x: number; y: number }, label: string): CanvasFlowNode {
   return {
     id: makeNodeId(),
@@ -118,8 +148,10 @@ function buildFlowNode(resourceId: string, position: { x: number; y: number }, l
       resourceId,
       label,
       overrides: {},
-      roughEnabled: true,
       semanticZoomLevel: 2,
+      width: NODE_DEFAULT_WIDTH,
+      height: NODE_TIER_HEIGHTS[2],
+      manualSize: false,
     },
   };
 }
@@ -133,6 +165,10 @@ function payloadFromState(nodes: CanvasFlowNode[], edges: CanvasFlowEdge[]): Sce
       resourceId: String(node.data.resourceId ?? "rest_service"),
       label: String(node.data.label ?? "Node"),
       overrides: { ...(node.data.overrides ?? {}) },
+      ...(typeof node.data.width === "number" && typeof node.data.height === "number"
+        ? { width: node.data.width, height: node.data.height }
+        : {}),
+      ...(typeof node.data.accentColor === "string" ? { accentColor: node.data.accentColor } : {}),
     })),
     edges: edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target })),
   };
@@ -147,8 +183,11 @@ function topologyFromPayload(payload: ScenePayload): { nodes: CanvasFlowNode[]; 
       resourceId: n.resourceId,
       label: n.label,
       overrides: n.overrides ?? {},
-      roughEnabled: true,
       semanticZoomLevel: 2,
+      ...(Number.isFinite(n.width) && Number.isFinite(n.height)
+        ? { width: n.width, height: n.height, manualSize: true }
+        : {}),
+      ...(typeof n.accentColor === "string" ? { accentColor: n.accentColor } : {}),
     },
   }));
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -172,8 +211,8 @@ export const useCanvasStore = create<CanvasState>()(
     (set, get) => ({
       nodes: [],
       edges: [],
-      roughEnabled: true,
       semanticZoomLevel: 2,
+      edgeStyle: "smoothstep",
       selectedNodeId: null,
       sceneName: "Untitled system",
       abDiffEnabled: false,
@@ -213,6 +252,42 @@ export const useCanvasStore = create<CanvasState>()(
         }));
       },
 
+      updateNodeSize: (nodeId, size) => {
+        const width = Math.min(NODE_MAX_WIDTH, Math.max(NODE_MIN_WIDTH, Math.round(size.width)));
+        const height = Math.min(NODE_MAX_HEIGHT, Math.max(NODE_MIN_HEIGHT, Math.round(size.height)));
+        set((state) => ({
+          nodes: state.nodes.map((node) =>
+            node.id === nodeId ? { ...node, data: { ...node.data, width, height, manualSize: true } } : node,
+          ),
+        }));
+      },
+
+      resetNodeSize: (nodeId) => {
+        set((state) => ({
+          nodes: state.nodes.map((node) =>
+            node.id === nodeId
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    width: NODE_DEFAULT_WIDTH,
+                    height: NODE_TIER_HEIGHTS[node.data.semanticZoomLevel ?? 2],
+                    manualSize: false,
+                  },
+                }
+              : node,
+          ),
+        }));
+      },
+
+      setNodeAccent: (nodeId, color) => {
+        set((state) => ({
+          nodes: state.nodes.map((node) =>
+            node.id === nodeId ? { ...node, data: { ...node.data, accentColor: color ?? undefined } } : node,
+          ),
+        }));
+      },
+
       renameNode: (nodeId, label) => {
         set((state) => ({
           nodes: state.nodes.map((node) =>
@@ -247,6 +322,24 @@ export const useCanvasStore = create<CanvasState>()(
         }));
       },
 
+      deleteSelection: () => {
+        const { nodes, edges, selectedNodeId } = get();
+        const selectedNodeIds = new Set(nodes.filter((node) => node.selected).map((node) => node.id));
+        if (selectedNodeId) selectedNodeIds.add(selectedNodeId);
+        const selectedEdgeIds = new Set(edges.filter((edge) => edge.selected).map((edge) => edge.id));
+        if (selectedNodeIds.size === 0 && selectedEdgeIds.size === 0) return 0;
+        const removed = selectedNodeIds.size + selectedEdgeIds.size;
+        set((state) => ({
+          nodes: state.nodes.filter((node) => !selectedNodeIds.has(node.id)),
+          edges: state.edges.filter(
+            (edge) =>
+              !selectedNodeIds.has(edge.source) && !selectedNodeIds.has(edge.target) && !selectedEdgeIds.has(edge.id),
+          ),
+          selectedNodeId: null,
+        }));
+        return removed;
+      },
+
       addEdge: (source, target) => {
         if (source === target) return null;
         const { nodes, edges } = get();
@@ -254,7 +347,7 @@ export const useCanvasStore = create<CanvasState>()(
         if (!ids.has(source) || !ids.has(target)) return null;
         if (edges.some((e) => e.source === source && e.target === target)) return null;
         const id = makeEdgeId(source, target);
-        set((state) => ({ edges: [...state.edges, { id, source, target }] }));
+        set((state) => ({ edges: [...state.edges, { id, source, target, type: state.edgeStyle }] }));
         return id;
       },
 
@@ -262,14 +355,8 @@ export const useCanvasStore = create<CanvasState>()(
         set((state) => ({ edges: state.edges.filter((edge) => edge.id !== edgeId) }));
       },
 
-      setRoughEnabled: (enabled) => {
-        set((state) => ({
-          roughEnabled: enabled,
-          nodes: state.nodes.map((node) => ({
-            ...node,
-            data: { ...node.data, roughEnabled: enabled },
-          })),
-        }));
+      setEdgeStyle: (style) => {
+        set((state) => ({ edgeStyle: style, edges: state.edges.map((edge) => routeEdge(edge, style)) }));
       },
 
       setSemanticZoomLevel: (level) => {
@@ -277,7 +364,11 @@ export const useCanvasStore = create<CanvasState>()(
           semanticZoomLevel: level,
           nodes: state.nodes.map((node) => ({
             ...node,
-            data: { ...node.data, semanticZoomLevel: level },
+            data: {
+              ...node.data,
+              semanticZoomLevel: level,
+              height: node.data.manualSize ? node.data.height : NODE_TIER_HEIGHTS[level],
+            },
           })),
         }));
       },
@@ -335,7 +426,7 @@ export const useCanvasStore = create<CanvasState>()(
         const nextNodes = [...nodes.filter((node) => node.id !== nodeId), ingress, deployment, cluster];
         set((state) => ({
           nodes: nextNodes,
-          edges: nextEdges,
+          edges: nextEdges.map((edge) => routeEdge(edge, state.edgeStyle)),
           selectedNodeId: deployment.id,
           fitViewNonce: state.fitViewNonce + 1,
         }));
@@ -367,7 +458,7 @@ export const useCanvasStore = create<CanvasState>()(
         ];
         set((state) => ({
           nodes,
-          edges,
+          edges: edges.map((edge) => routeEdge(edge, state.edgeStyle)),
           selectedNodeId: null,
           sceneName: "Checkout starter",
           fitViewNonce: state.fitViewNonce + 1,
@@ -397,7 +488,7 @@ export const useCanvasStore = create<CanvasState>()(
         }
         set((state) => ({
           nodes,
-          edges,
+          edges: edges.map((edge) => routeEdge(edge, state.edgeStyle)),
           selectedNodeId: null,
           abBaseline: null,
           sceneName: blueprint.name,
@@ -406,7 +497,12 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       replaceTopology: (nodes, edges) => {
-        set((state) => ({ nodes, edges, selectedNodeId: null, fitViewNonce: state.fitViewNonce + 1 }));
+        set((state) => ({
+          nodes,
+          edges: edges.map((edge) => routeEdge(edge, state.edgeStyle)),
+          selectedNodeId: null,
+          fitViewNonce: state.fitViewNonce + 1,
+        }));
       },
 
       setAbDiffEnabled: (enabled) => set({ abDiffEnabled: enabled }),
@@ -428,6 +524,17 @@ export const useCanvasStore = create<CanvasState>()(
           const base = seedDefaultsById.get(resourceId);
           const custom = base ? undefined : getCustomResource(resourceId);
           const overrides = node.data.overrides ?? {};
+          // Per-node compute: vCPU scales throughput, memory scales buffering.
+          const sizing = resolveInstanceSizing({
+            overrideVcpu: overrides.vcpu,
+            overrideMemoryGb: overrides.memoryGb,
+            seedVcpu: base?.vcpu ?? custom?.vcpu,
+            seedMemoryGb: base?.memoryGb ?? custom?.memoryGb,
+            seedThroughputRps: base?.baseThroughputRps ?? custom?.baseThroughputRps ?? 1000,
+            seedMaxConcurrency: base?.maxConcurrency ?? custom?.maxConcurrency ?? 500,
+            explicitThroughputRps: overrides.baseThroughputRps,
+            explicitMaxConcurrency: overrides.maxConcurrency,
+          });
           return {
             id: node.id,
             resourceId,
@@ -435,8 +542,8 @@ export const useCanvasStore = create<CanvasState>()(
             clientRps:
               overrides.clientRps ?? ((indegree.get(node.id) ?? 0) === 0 ? STARTER_ENTRY_RPS : 0),
             replicationFactor: overrides.replicationFactor ?? base?.replicationFactor ?? custom?.replicationFactor ?? 1,
-            baseThroughputRps: overrides.baseThroughputRps ?? base?.baseThroughputRps ?? custom?.baseThroughputRps ?? 1000,
-            maxConcurrency: overrides.maxConcurrency ?? base?.maxConcurrency ?? custom?.maxConcurrency ?? 500,
+            baseThroughputRps: sizing.baseThroughputRps,
+            maxConcurrency: sizing.maxConcurrency,
             cacheHitRate: overrides.cacheHitRate ?? base?.cacheHitRate ?? custom?.cacheHitRate ?? 0,
             rateLimitRps: overrides.rateLimitRps ?? base?.rateLimitRps ?? custom?.rateLimitRps ?? 10000,
             writeRatio: overrides.writeRatio ?? base?.writeRatio ?? custom?.writeRatio ?? 0.2,
@@ -500,7 +607,12 @@ export const useCanvasStore = create<CanvasState>()(
             return false;
           }
           const { nodes, edges } = topologyFromPayload(parsed);
-          set((state) => ({ nodes, edges, selectedNodeId: null, fitViewNonce: state.fitViewNonce + 1 }));
+          set((state) => ({
+            nodes,
+            edges: edges.map((edge) => routeEdge(edge, state.edgeStyle)),
+            selectedNodeId: null,
+            fitViewNonce: state.fitViewNonce + 1,
+          }));
           return true;
         } catch {
           return false;

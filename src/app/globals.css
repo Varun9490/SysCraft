@@ -192,6 +192,55 @@
     stroke-dasharray: 6 8;
     animation: dashFlow 1.4s linear infinite;
   }
+
+  /* ---- Canvas feel ---- */
+  .syscraft-node-enter {
+    animation: nodeEnter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .syscraft-handle {
+    width: 10px !important;
+    height: 10px !important;
+    border: 2px solid rgb(9 9 11) !important;
+    border-radius: 9999px !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .syscraft-handle:hover {
+    transform: scale(1.35);
+    box-shadow: 0 0 0 3px rgb(125 211 252 / 0.25);
+  }
+
+  /* Live traffic: marching dashes make idle topology read as flowing. */
+  .sim-running .react-flow__edge-path {
+    stroke-dasharray: 2 9;
+    animation: edgeDash 1.5s linear infinite;
+  }
+
+  /* Preferences → Animations = off. */
+  .canvas-no-anim .react-flow__edge-path,
+  .canvas-no-anim .syscraft-node-enter,
+  .canvas-no-anim .animate-pulse {
+    animation: none !important;
+  }
+
+  .canvas-no-anim.sim-running .react-flow__edge-path {
+    stroke-dasharray: none !important;
+  }
+
+  .react-flow__edge-path {
+    transition: stroke 0.15s ease, stroke-width 0.15s ease;
+  }
+
+  .react-flow__edge:hover .react-flow__edge-path {
+    stroke: rgb(125 211 252) !important;
+    stroke-width: 2px !important;
+  }
+
+  .react-flow__edge.selected .react-flow__edge-path {
+    stroke: rgb(205 168 106) !important;
+    stroke-width: 2px !important;
+  }
 }
 
 @keyframes fadeInUp {
@@ -253,6 +302,23 @@
   }
 }
 
+@keyframes edgeDash {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+
+@keyframes nodeEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.965) translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes railGlide {
   0% {
     background-position: 0% -40%;
@@ -262,14 +328,56 @@
   }
 }
 
+/* Wiki reader: sections settle in instead of snapping when the page opens. */
+@keyframes wikiReveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.wiki-reveal {
+  animation: wikiReveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Sidebar / rail scroll areas: slim, always-visible scrollbar affordance. */
+aside .overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent;
+  overscroll-behavior: contain;
+}
+
+aside .overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+aside .overflow-y-auto::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: #3f3f46;
+}
+
+aside .overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
   .animate-float-slow,
   .animate-sheen,
   .animate-dash,
   .animate-fade-in-up,
-  .animate-fade-in {
+  .animate-fade-in,
+  .syscraft-node-enter,
+  .wiki-reveal {
     animation: none !important;
+  }
+  .sim-running .react-flow__edge-path {
+    animation: none !important;
+    stroke-dasharray: none !important;
   }
   .rail-track::after {
     animation: none !important;

@@ -14,6 +14,10 @@ export interface CustomResourceSpec {
   name: string;
   category: ResourceCategory;
   baseThroughputRps: number;
+  /** Per-replica vCPU shape (scales throughput when learners resize the instance). */
+  vcpu?: number;
+  /** Per-replica memory GiB shape (scales buffering when learners resize the instance). */
+  memoryGb?: number;
   baseP50Ms: number;
   baseP95Ms: number;
   baseP99Ms: number;
@@ -73,6 +77,8 @@ export function makeCustomSpec(partial: {
     name: partial.name,
     category: partial.category,
     baseThroughputRps: Math.max(1, partial.baseThroughputRps),
+    vcpu: 2,
+    memoryGb: 4,
     baseP50Ms: Math.max(0, partial.baseP50Ms),
     baseP95Ms: Math.max(0, partial.baseP50Ms * 2.5),
     baseP99Ms: Math.max(0, partial.baseP50Ms * 5),
