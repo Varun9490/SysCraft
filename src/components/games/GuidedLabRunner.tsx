@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from "react";
-import { Award, ChevronRight, FlaskConical, X } from "lucide-react";
+import { Award, ChevronRight, FlaskConical, X } from "@/components/ui/icons";
 import { GUIDED_LABS } from "@/data/guidedLabs";
 import { SEED_RESOURCES } from "@/data/seedResources";
 import type { GradingRule } from "@/types/challenges";
@@ -23,7 +23,7 @@ interface GuidedLabRunnerProps {
   onClose: () => void;
 }
 
-interface RuleVerdict {
+export interface RuleVerdict {
   rule: GradingRule;
   passed: boolean;
   detail: string;
@@ -31,7 +31,7 @@ interface RuleVerdict {
 
 const seedById = new Map(SEED_RESOURCES.map((r) => [r.id, r]));
 
-function gradeRules(ruleSet: GradingRule[]): { verdicts: RuleVerdict[]; score: number } {
+export function gradeRules(ruleSet: GradingRule[]): { verdicts: RuleVerdict[]; score: number } {
   const { nodes } = useCanvasStore.getState();
   const snapshot = simSnapshotRef.current;
   const resourceIds = new Set(nodes.map((n) => String(n.data.resourceId)));
@@ -101,7 +101,7 @@ export function GuidedLabRunner({ open, onClose }: GuidedLabRunnerProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/75 p-3" onClick={onClose}>
       <div
         className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl"
         onClick={(e) => e.stopPropagation()}

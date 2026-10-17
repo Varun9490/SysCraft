@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Brain, Mic, MicOff, Send, Volume2, VolumeX } from "lucide-react";
+import { Brain, Mic, MicOff, Send, Volume2, VolumeX } from "@/components/ui/icons";
 import { SEED_RESOURCES } from "@/data/seedResources";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useWorkbenchStore } from "@/store/useWorkbenchStore";
@@ -243,7 +243,7 @@ export function SocraticInterviewer() {
         <button
           onClick={() => void startSession()}
           disabled={analyzing}
-          className="rounded-md bg-violet-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-400 disabled:opacity-50"
+          className="rounded-md bg-brass px-3 py-1.5 text-xs font-semibold text-ink hover:bg-brass-bright disabled:opacity-50"
         >
           {analyzing ? "Reviewing canvas…" : turns.length > 0 ? "Restart session" : "Start mock interview"}
         </button>
@@ -282,7 +282,7 @@ export function SocraticInterviewer() {
       )}
 
       {current && (
-        <div className="rounded-md border border-violet-500/40 bg-violet-500/5 p-2.5">
+        <div className="rounded-md border border-brass/40 bg-brass/5 p-2.5">
           <p className="text-[11px] uppercase tracking-wider text-violet-300">{current.focusArea} · {current.level}</p>
           <p className="mt-1 text-sm font-medium leading-relaxed text-zinc-50">{current.question}</p>
           <textarea
@@ -295,7 +295,7 @@ export function SocraticInterviewer() {
           <button
             onClick={challenge}
             disabled={answer.trim().length < 3}
-            className="mt-2 flex items-center gap-1.5 rounded-md bg-violet-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-400 disabled:opacity-40"
+            className="mt-2 flex items-center gap-1.5 rounded-md bg-brass px-3 py-1.5 text-xs font-semibold text-ink hover:bg-brass-bright disabled:opacity-40"
           >
             <Send size={13} /> Submit & get challenged
           </button>

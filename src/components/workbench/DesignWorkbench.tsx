@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { CheckSquare, Plus, Square, Trash2, X } from "lucide-react";
+import { CheckSquare, Plus, Square, Trash2, X } from "@/components/ui/icons";
 import { useWorkbenchStore } from "@/store/useWorkbenchStore";
 import type { WorkbenchStep } from "@/types/workbench";
 import { BoECalculator } from "./BoECalculator";

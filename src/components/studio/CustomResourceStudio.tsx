@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { Plus, Sparkles, X } from "lucide-react";
+import { Plus, Sparkles, X } from "@/components/ui/icons";
 import { listCustomResources, saveCustomResource } from "@/store/db";
 import type { CustomResourceRecord } from "@/store/db";
 import { makeCustomSpec, registerCustomResource } from "@/store/customResourceRegistry";
@@ -79,7 +79,7 @@ export function CustomResourceStudio({ open, onClose }: CustomResourceStudioProp
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/75 p-3" onClick={onClose}>
       <div
         className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}

@@ -32,7 +32,7 @@ export interface CustomResourceSpec {
 const registry = new Map<string, CustomResourceSpec>();
 
 export const CATEGORY_COLORS: Record<ResourceCategory, string> = {
-  edge: "#38bdf8",
+  edge: "#CDA86A",
   compute: "#a78bfa",
   api: "#22d3ee",
   storage: "#f59e0b",
@@ -85,7 +85,7 @@ export function makeCustomSpec(partial: {
     rateLimitRps: 10000,
     region: "us-east-1",
     multiAz: false,
-    strokeColor: CATEGORY_COLORS[partial.category] ?? "#38bdf8",
+    strokeColor: CATEGORY_COLORS[partial.category] ?? "#CDA86A",
   };
 }
 

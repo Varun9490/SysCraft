@@ -3,18 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import dagre from "dagre";
+import { AnimatePresence, motion } from "framer-motion";
 import {
+  ChevronDown,
   Flame,
   LayoutGrid,
-  Pause,
   PenTool,
-  Play,
   Plus,
   Redo2,
   RotateCcw,
   Trash2,
   Undo2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { SEED_RESOURCES } from "@/data/seedResources";
 import { CLOUD_REGIONS } from "@/data/regionLatency";
 import type { ChaosKind } from "@/types/simulation";
@@ -75,15 +75,12 @@ export function FloatingToolbar() {
   const [resourceId, setResourceId] = useState(SEED_RESOURCES[0]?.id ?? "rest_service");
   const [chaosKind, setChaosKind] = useState<ChaosKind>("zone_outage");
   const [chaosRegion, setChaosRegion] = useState("all");
+  const [chaosOpen, setChaosOpen] = useState(false);
 
   const roughEnabled = useCanvasStore((s) => s.roughEnabled);
   const semanticZoomLevel = useCanvasStore((s) => s.semanticZoomLevel);
   const nodeCount = useCanvasStore((s) => s.nodes.length);
-  const running = useSimStore((s) => s.running);
   const chaosActive = useSimStore((s) => s.chaos.active);
-  const tick = useSimStore((s) => s.tick);
-  const globalRps = useSimStore((s) => s.globalRps);
-  const globalP99Ms = useSimStore((s) => s.globalP99Ms);
 
   const resourceOptions = useMemo(
     () =>
@@ -274,60 +271,72 @@ export function FloatingToolbar() {
         >
           <Trash2 size={14} />
         </button>
-        <span className="h-6 w-px bg-zinc-800" />
-        <button
-          onClick={toggleRunning}
-          className={`flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-semibold ${
-            running ? "bg-amber-400 text-zinc-950 hover:bg-amber-300" : "bg-emerald-400 text-zinc-950 hover:bg-emerald-300"
-          }`}
-          title="Run/stop 20Hz simulation [space]"
-        >
-          {running ? <Pause size={14} /> : <Play size={14} />} {running ? "Stop" : "Run"}
-        </button>
-        <span className="hidden px-1 text-[11px] tabular-nums text-zinc-400 md:inline">
-          t{tick} · {globalRps >= 1000 ? `${(globalRps / 1000).toFixed(1)}k` : globalRps.toFixed(0)} rps · p99{" "}
-          {globalP99Ms >= 1000 ? `${(globalP99Ms / 1000).toFixed(2)}s` : `${globalP99Ms.toFixed(0)}ms`}
-        </span>
       </div>
 
       <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-xl border border-red-900/50 bg-zinc-950/90 p-1.5 shadow-2xl backdrop-blur">
-        <span className="flex items-center gap-1 px-1 text-xs font-semibold text-red-300">
-          <Flame size={14} /> Chaos
-        </span>
-        <select
-          value={chaosKind}
-          onChange={(e) => setChaosKind(e.target.value as ChaosKind)}
-          className="h-8 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-200"
-        >
-          {CHAOS_KINDS.map((kind) => (
-            <option key={kind} value={kind}>
-              {kind.replace(/_/g, " ")}
-            </option>
-          ))}
-        </select>
-        <select
-          value={chaosRegion}
-          onChange={(e) => setChaosRegion(e.target.value)}
-          className="h-8 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-200"
-          title="Blast radius"
-        >
-          <option value="all">all regions</option>
-          {CLOUD_REGIONS.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.id}
-            </option>
-          ))}
-        </select>
         <button
-          onClick={fireChaos}
-          className="h-8 rounded-md bg-red-500 px-2.5 text-xs font-semibold text-white hover:bg-red-400"
+          onClick={() => setChaosOpen((o) => !o)}
+          className={`flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-semibold transition-colors ${
+            chaosActive ? "animate-pulse text-red-300" : "text-zinc-300 hover:bg-zinc-800"
+          }`}
+          title="Chaos engineering controls"
         >
-          Inject
+          <Flame size={14} className="text-red-400" />
+          Chaos
+          {chaosActive && <span className="h-1.5 w-1.5 rounded-full bg-red-400" />}
+          <motion.span animate={{ rotate: chaosOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDown size={13} className="text-zinc-500" />
+          </motion.span>
         </button>
+
+        <AnimatePresence initial={false}>
+          {chaosOpen && (
+            <motion.div
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="flex items-center gap-1.5 overflow-hidden"
+            >
+              <span className="h-6 w-px bg-zinc-800" />
+              <select
+                value={chaosKind}
+                onChange={(e) => setChaosKind(e.target.value as ChaosKind)}
+                className="h-8 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-200"
+              >
+                {CHAOS_KINDS.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {kind.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={chaosRegion}
+                onChange={(e) => setChaosRegion(e.target.value)}
+                className="h-8 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-200"
+                title="Blast radius"
+              >
+                <option value="all">all regions</option>
+                {CLOUD_REGIONS.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.id}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={fireChaos}
+                className="h-8 rounded-md bg-red-500 px-2.5 text-xs font-semibold text-white hover:bg-red-400"
+              >
+                Inject
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {chaosActive && (
           <button
             onClick={() => useSimStore.getState().clearChaos()}
-            className="h-8 animate-pulse rounded-md border border-red-500 px-2.5 text-xs font-semibold text-red-300 hover:bg-red-950"
+            className="h-8 rounded-md border border-red-500 px-2.5 text-xs font-semibold text-red-300 hover:bg-red-950"
           >
             Clear chaos
           </button>

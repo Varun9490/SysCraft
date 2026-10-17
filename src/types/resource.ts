@@ -107,7 +107,7 @@ export const ResourceDefinitionSchema = z.object({
   icon: z.string().min(1),
   defaults: ResourceDefaultsSchema,
   /** Excalidraw-mode stroke/fill used by the memoized Rough.js renderer. */
-  strokeColor: z.string().default("#38bdf8"),
+  strokeColor: z.string().default("#CDA86A"),
   fillStyle: FillStyleSchema.default("hachure"),
   encyclopediaMarkdown: z.string().min(1),
   tradeOffs: z.array(TradeOffRowSchema).default([]),

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from "react";
-import { History, Radio } from "lucide-react";
+import { History, Radio } from "@/components/ui/icons";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSimStore } from "@/store/useSimStore";
 

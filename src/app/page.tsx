@@ -1,16 +1,24 @@
-"use client";
+import { CTASection } from "@/components/landing/CTASection";
+import { Features } from "@/components/landing/Features";
+import { Hero } from "@/components/landing/Hero";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { LabsPreview } from "@/components/landing/LabsPreview";
+import { PathPreview } from "@/components/landing/PathPreview";
+import { TopicsShowcase } from "@/components/landing/TopicsShowcase";
+import { TrustMarquee } from "@/components/landing/TrustMarquee";
+import { SiteChrome } from "@/components/nav/SiteChrome";
 
-import dynamic from "next/dynamic";
-
-const WorkspaceShell = dynamic(() => import("@/components/WorkspaceShell"), {
-  ssr: false,
-  loading: () => (
-    <main className="flex h-screen w-screen items-center justify-center bg-zinc-950 text-zinc-400">
-      <p className="text-sm tracking-wide">Loading SysCanvas workspace…</p>
-    </main>
-  ),
-});
-
-export default function HomePage() {
-  return <WorkspaceShell />;
+export default function LandingPage() {
+  return (
+    <SiteChrome>
+      <Hero />
+      <TrustMarquee />
+      <Features />
+      <TopicsShowcase />
+      <PathPreview />
+      <LabsPreview />
+      <HowItWorks />
+      <CTASection />
+    </SiteChrome>
+  );
 }

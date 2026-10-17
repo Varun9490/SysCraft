@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus, Trash2 } from "@/components/ui/icons";
 import { useWorkbenchStore } from "@/store/useWorkbenchStore";
 import type { ColumnType, Entity, TableColumn } from "@/types/workbench";
 
@@ -181,7 +181,7 @@ export function DataModelDesigner() {
 
             <details className="mt-2">
               <summary className="cursor-pointer font-mono text-[11px] text-zinc-400">Compiled DDL</summary>
-              <pre className="mt-1 max-h-40 overflow-auto rounded bg-black p-2 font-mono text-[11px] leading-relaxed text-emerald-200">{ddl}</pre>
+              <pre className="mt-1 max-h-40 overflow-auto rounded bg-ink p-2 font-mono text-[11px] leading-relaxed text-emerald-200">{ddl}</pre>
             </details>
           </div>
         );

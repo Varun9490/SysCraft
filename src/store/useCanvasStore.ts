@@ -10,6 +10,7 @@ import {
 } from "@xyflow/react";
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
 import { SEED_RESOURCES } from "@/data/seedResources";
+import type { Blueprint } from "@/data/blueprints";
 import type { ResourceNodeData, ResourceOverrides } from "@/types/resource";
 import type { GraphNode, GraphTopology } from "@/types/simulation";
 import { getCustomResource } from "./customResourceRegistry";
@@ -53,6 +54,8 @@ interface CanvasState {
   sceneName: string;
   abDiffEnabled: boolean;
   abBaseline: ScenePayload | null;
+  /** Bumped whenever a whole scene is swapped in, so the canvas can re-fit. */
+  fitViewNonce: number;
 
   onNodesChange: OnNodesChange<CanvasFlowNode>;
   onEdgesChange: OnEdgesChange<CanvasFlowEdge>;
@@ -70,6 +73,7 @@ interface CanvasState {
   setSceneName: (name: string) => void;
   clearCanvas: () => void;
   loadStarterTemplate: () => void;
+  loadBlueprintTemplate: (blueprint: Blueprint) => void;
   replaceTopology: (nodes: CanvasFlowNode[], edges: CanvasFlowEdge[]) => void;
   setAbDiffEnabled: (enabled: boolean) => void;
   captureAbBaseline: () => void;
@@ -162,6 +166,7 @@ export const useCanvasStore = create<CanvasState>()(
       sceneName: "Untitled system",
       abDiffEnabled: false,
       abBaseline: null,
+      fitViewNonce: 0,
 
       onNodesChange: (changes) => {
         set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) }));
@@ -266,7 +271,14 @@ export const useCanvasStore = create<CanvasState>()(
       setSceneName: (name) => set({ sceneName: name }),
 
       clearCanvas: () => {
-        set({ nodes: [], edges: [], selectedNodeId: null, abBaseline: null });
+        set((state) => ({
+          nodes: [],
+          edges: [],
+          selectedNodeId: null,
+          abBaseline: null,
+          sceneName: "Untitled system",
+          fitViewNonce: state.fitViewNonce + 1,
+        }));
       },
 
       loadStarterTemplate: () => {
@@ -281,11 +293,48 @@ export const useCanvasStore = create<CanvasState>()(
           { id: makeEdgeId(service.id, cache.id), source: service.id, target: cache.id },
           { id: makeEdgeId(service.id, dbNode.id), source: service.id, target: dbNode.id },
         ];
-        set({ nodes, edges, selectedNodeId: null, sceneName: "Checkout starter" });
+        set((state) => ({
+          nodes,
+          edges,
+          selectedNodeId: null,
+          sceneName: "Checkout starter",
+          fitViewNonce: state.fitViewNonce + 1,
+        }));
+      },
+
+      loadBlueprintTemplate: (blueprint) => {
+        const nodes = blueprint.nodes.map((node) =>
+          buildFlowNode(node.resourceId, { x: node.x, y: node.y }, node.label),
+        );
+        nodes.forEach((flowNode, index) => {
+          const overrides = blueprint.nodes[index]?.overrides;
+          if (overrides && Object.keys(overrides).length > 0) {
+            flowNode.data = { ...flowNode.data, overrides: { ...overrides } };
+          }
+        });
+        const seen = new Set<string>();
+        const edges: CanvasFlowEdge[] = [];
+        for (const [sourceIndex, targetIndex] of blueprint.edges) {
+          const source = nodes[sourceIndex];
+          const target = nodes[targetIndex];
+          if (!source || !target) continue;
+          const key = `${source.id}->${target.id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          edges.push({ id: makeEdgeId(source.id, target.id), source: source.id, target: target.id });
+        }
+        set((state) => ({
+          nodes,
+          edges,
+          selectedNodeId: null,
+          abBaseline: null,
+          sceneName: blueprint.name,
+          fitViewNonce: state.fitViewNonce + 1,
+        }));
       },
 
       replaceTopology: (nodes, edges) => {
-        set({ nodes, edges, selectedNodeId: null });
+        set((state) => ({ nodes, edges, selectedNodeId: null, fitViewNonce: state.fitViewNonce + 1 }));
       },
 
       setAbDiffEnabled: (enabled) => set({ abDiffEnabled: enabled }),
@@ -359,7 +408,7 @@ export const useCanvasStore = create<CanvasState>()(
             return false;
           }
           const { nodes, edges } = topologyFromPayload(parsed);
-          set({ nodes, edges, selectedNodeId: null });
+          set((state) => ({ nodes, edges, selectedNodeId: null, fitViewNonce: state.fitViewNonce + 1 }));
           return true;
         } catch {
           return false;

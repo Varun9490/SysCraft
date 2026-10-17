@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Flame, Trophy, X } from "lucide-react";
+import { Flame, Trophy, X } from "@/components/ui/icons";
 import { CHAOS_SCENARIOS } from "@/data/chaosScenarios";
 import type { ChaosKind } from "@/types/simulation";
 import type { IncidentScore } from "@/types/challenges";
@@ -149,7 +149,7 @@ export function IncidentArena({ open, onClose }: IncidentArenaProps) {
   const mmss = `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/75 p-3" onClick={onClose}>
       <div
         className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl"
         onClick={(e) => e.stopPropagation()}

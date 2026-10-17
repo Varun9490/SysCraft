@@ -18,7 +18,7 @@ import {
   Sparkles,
   Zap,
   type LucideIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { SEED_RESOURCES } from "@/data/seedResources";
 import type { ResourceCategory, ResourceNodeData } from "@/types/resource";
 import { getCustomResource } from "@/store/customResourceRegistry";
@@ -41,7 +41,7 @@ const NODE_HEIGHT_COMPACT = 76;
 const NODE_HEIGHT_STANDARD = 128;
 const NODE_HEIGHT_EXPANDED = 168;
 
-const CATEGORY_ICON: Record<ResourceCategory, LucideIcon> = {
+export const CATEGORY_ICON: Record<ResourceCategory, LucideIcon> = {
   edge: Globe,
   compute: Server,
   api: Network,
@@ -94,7 +94,7 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
   const seed = seedById.get(String(data.resourceId));
   const custom = seed ? undefined : getCustomResource(String(data.resourceId));
   const category: ResourceCategory = seed?.category ?? custom?.category ?? "compute";
-  const strokeColor = seed?.strokeColor ?? custom?.strokeColor ?? "#38bdf8";
+  const strokeColor = seed?.strokeColor ?? custom?.strokeColor ?? "#CDA86A";
   const fillStyle = data.roughEnabled === false ? "solid" : (seed?.fillStyle ?? "hachure");
   const Icon = CATEGORY_ICON[category] ?? Cpu;
   const label = String(data.label ?? custom?.name ?? seed?.name ?? data.resourceId ?? "Node");
@@ -158,7 +158,7 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded"
             style={{ backgroundColor: `${strokeColor}26`, color: strokeColor }}
           >
-            <Icon size={16} strokeWidth={2.2} />
+            <Icon size={16} weight="bold" />
           </span>
           <div className="min-w-0">
             <p className="truncate text-[13px] font-semibold leading-tight text-zinc-100">{label}</p>
@@ -194,6 +194,13 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
       {telemetry && telemetry.utilization >= 1 && (
         <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
           !
+        </span>
+      )}
+
+      {zoom >= 2 && (data.overrides?.region || data.overrides?.multiAz) && (
+        <span className="pointer-events-none absolute -top-2 left-2 flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900 px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-wide text-zinc-300">
+          {data.overrides?.region && <span>{data.overrides.region}</span>}
+          {data.overrides?.multiAz && <span className="text-brass">· multi-AZ</span>}
         </span>
       )}
     </div>

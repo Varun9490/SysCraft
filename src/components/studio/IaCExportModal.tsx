@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from "react";
-import { ClipboardCopy, Download, FileCode2, X } from "lucide-react";
+import { ClipboardCopy, Download, FileCode2, X } from "@/components/ui/icons";
 import { compileAll, estimateMonthlyCost, type IacFormat } from "@/engine/iacCompiler";
 import { parseDsl, serializeDsl, type DslEdge, type DslNode } from "@/engine/dslParser";
 import { useCanvasStore } from "@/store/useCanvasStore";
@@ -118,7 +118,7 @@ export function IaCExportModal({ open, onClose }: IaCExportModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/75 p-3" onClick={onClose}>
       <div
         className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -161,7 +161,7 @@ export function IaCExportModal({ open, onClose }: IaCExportModalProps) {
                 onChange={(e) => setDslDraft(e.target.value)}
                 rows={18}
                 spellCheck={false}
-                className="w-full rounded-md border border-zinc-800 bg-black p-2.5 font-mono text-[12px] leading-relaxed text-zinc-100"
+                className="w-full rounded-md border border-zinc-800 bg-ink p-2.5 font-mono text-[12px] leading-relaxed text-zinc-100"
               />
               {dslErrors.length > 0 && (
                 <div className="mt-2 space-y-1">
@@ -175,7 +175,7 @@ export function IaCExportModal({ open, onClose }: IaCExportModalProps) {
               </button>
             </div>
           ) : (
-            <pre className="overflow-auto rounded-md border border-zinc-800 bg-black p-3 font-mono text-[11px] leading-relaxed text-emerald-200">
+            <pre className="overflow-auto rounded-md border border-zinc-800 bg-ink p-3 font-mono text-[11px] leading-relaxed text-emerald-200">
               {currentText}
             </pre>
           )}

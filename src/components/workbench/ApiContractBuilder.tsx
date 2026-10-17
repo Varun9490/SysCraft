@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "@/components/ui/icons";
 import { useWorkbenchStore } from "@/store/useWorkbenchStore";
 import type { ApiRoute, HttpMethod } from "@/types/workbench";
 

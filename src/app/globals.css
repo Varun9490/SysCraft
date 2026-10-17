@@ -1,3 +1,281 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm charcoal canvas — never pure black */
+    --ink: 12 11 9;
+    --surface: 20 19 16;
+    --surface-raised: 32 30 25;
+    --surface-overlay: 44 42 35;
+    --line: 44 41 34;
+    --line-strong: 70 65 54;
+
+    /* Warm ivory text */
+    --content: 238 234 227;
+    --content-secondary: 168 162 150;
+    --content-tertiary: 122 116 104;
+
+    /* Single desaturated accent — brass */
+    --accent: 205 168 106;
+    --accent-bright: 219 187 134;
+    --accent-deep: 154 118 66;
+
+    /* Muted status */
+    --success: 132 158 108;
+    --warning: 200 132 78;
+    --danger: 190 95 88;
+    --info: 118 150 170;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: rgb(var(--ink));
+  }
+
+  ::selection {
+    background-color: rgb(var(--accent) / 0.28);
+    color: rgb(var(--content));
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--line-strong)) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--line-strong));
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--accent-deep));
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent) / 0.75);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply border border-zinc-800/70 bg-zinc-950/70 backdrop-blur-xl;
+  }
+
+  .glass-raised {
+    @apply border border-zinc-800/70 bg-zinc-900/60 backdrop-blur-xl;
+  }
+
+  /* Warm brass gradient, never purple */
+  .gradient-text {
+    @apply bg-gradient-to-r from-[#e6cc9f] via-[#cda86a] to-[#9a7642] bg-clip-text text-transparent;
+  }
+
+  .accent-text {
+    color: rgb(var(--accent));
+  }
+
+  .section-container {
+    @apply mx-auto w-full max-w-6xl px-6;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-zinc-700/70 bg-zinc-900/60 px-3.5 py-1 text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-300;
+  }
+
+  /* Vertical rail with a travelling brass signal */
+  .rail-track::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent, rgb(var(--accent-bright) / 0.9), transparent);
+    background-size: 100% 32%;
+    background-repeat: no-repeat;
+    animation: railGlide 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  /* Hairline divider with a soft brass center */
+  .hairline {
+    @apply h-px w-full border-0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--line-strong)) 20%,
+      rgb(var(--accent) / 0.5) 50%,
+      rgb(var(--line-strong)) 80%,
+      transparent
+    );
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .dot-grid {
+    background-image: radial-gradient(rgb(var(--content-tertiary) / 0.16) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+
+  .line-grid {
+    background-image: linear-gradient(rgb(var(--line) / 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--line) / 0.5) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  /* ---- 3D helpers (CSS 3D + isometric) ---- */
+  .perspective-near {
+    perspective: 900px;
+  }
+
+  .perspective-far {
+    perspective: 1600px;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  .iso-stage {
+    transform: rotateX(56deg) rotateZ(-45deg);
+    transform-style: preserve-3d;
+  }
+
+  /* ---- Motion ---- */
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out both;
+  }
+
+  .animate-marquee {
+    animation: marquee 42s linear infinite;
+  }
+
+  .animate-float-slow {
+    animation: floatY 7s ease-in-out infinite;
+  }
+
+  .animate-sheen {
+    animation: sheen 3.4s ease-in-out infinite;
+  }
+
+  .animate-dash {
+    stroke-dasharray: 6 8;
+    animation: dashFlow 1.4s linear infinite;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes sheen {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(220%);
+    opacity: 0;
+  }
+}
+
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+@keyframes railGlide {
+  0% {
+    background-position: 0% -40%;
+  }
+  100% {
+    background-position: 0% 140%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-float-slow,
+  .animate-sheen,
+  .animate-dash,
+  .animate-fade-in-up,
+  .animate-fade-in {
+    animation: none !important;
+  }
+  .rail-track::after {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}

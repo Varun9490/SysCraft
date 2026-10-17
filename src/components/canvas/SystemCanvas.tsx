@@ -8,6 +8,7 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  useReactFlow,
   type Connection,
 } from "@xyflow/react";
 import { ResourceNode } from "./ResourceNode";
@@ -29,11 +30,13 @@ const nodeTypes = { resource: ResourceNode, region: RegionGroupNode };
 
 const SYNC_DEBOUNCE_MS = 250;
 
-function CanvasInner() {
+function CanvasInner({ className }: { className: string }) {
   const nodes = useCanvasStore((s) => s.nodes);
   const edges = useCanvasStore((s) => s.edges);
   const onNodesChange = useCanvasStore((s) => s.onNodesChange);
   const onEdgesChange = useCanvasStore((s) => s.onEdgesChange);
+  const fitViewNonce = useCanvasStore((s) => s.fitViewNonce);
+  const { fitView } = useReactFlow();
 
   useEffect(() => {
     void hydrateCustomResourcesFromDb();
@@ -42,6 +45,14 @@ function CanvasInner() {
       useSimStore.getState().stopSimulation();
     };
   }, []);
+
+  useEffect(() => {
+    if (fitViewNonce === 0) return;
+    const timer = setTimeout(() => {
+      void fitView({ padding: 0.2, duration: 400 });
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [fitViewNonce, fitView]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -59,7 +70,7 @@ function CanvasInner() {
   };
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-zinc-950">
+    <div className={`relative overflow-hidden bg-zinc-950 ${className}`}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -85,10 +96,14 @@ function CanvasInner() {
   );
 }
 
-export function SystemCanvas() {
+export function SystemCanvas({
+  className = "h-[100dvh] w-screen",
+}: {
+  className?: string;
+} = {}) {
   return (
     <ReactFlowProvider>
-      <CanvasInner />
+      <CanvasInner className={className} />
     </ReactFlowProvider>
   );
 }

@@ -128,7 +128,7 @@ export function Markdown({ source }: { source: string }) {
         }
         if (block.kind === "code") {
           return (
-            <pre key={idx} className="overflow-x-auto rounded-md border border-zinc-800 bg-black p-2.5 font-mono text-[12px] leading-relaxed text-emerald-200">
+            <pre key={idx} className="overflow-x-auto rounded-md border border-zinc-800 bg-ink p-2.5 font-mono text-[12px] leading-relaxed text-emerald-200">
               {block.text}
             </pre>
           );

@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { Globe2 } from "lucide-react";
+import { Globe2 } from "@/components/ui/icons";
 import { CLOUD_REGIONS, getRegionLatencyMs } from "@/data/regionLatency";
 
 /**

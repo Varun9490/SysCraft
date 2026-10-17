@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, RotateCcw, X } from "lucide-react";
+import { Pause, Play, RotateCcw, X } from "@/components/ui/icons";
 import { compactionSpike, writeAmplification } from "@/engine/queuingMath";
 import type { VisualKind } from "@/types/encyclopedia";
 
@@ -410,7 +410,7 @@ function HashRingSim() {
     return { keys: current, remapped };
   }, [physicalCount, previousCount]);
 
-  const palette = ["#38bdf8", "#34d399", "#f59e0b", "#f472b6", "#a78bfa", "#f87171", "#22d3ee", "#a3e635"];
+  const palette = ["#CDA86A", "#34d399", "#f59e0b", "#f472b6", "#a78bfa", "#f87171", "#22d3ee", "#a3e635"];
   const size = 300;
   const center = size / 2;
   const radius = size / 2 - 18;
@@ -648,7 +648,7 @@ export function InternalSimModal({ open, initialTab, onClose }: InternalSimModal
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/75 p-3" onClick={onClose}>
       <div
         className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}

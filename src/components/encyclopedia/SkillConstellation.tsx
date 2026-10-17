@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from "react";
-import { Lock, Map as MapIcon } from "lucide-react";
+import { Lock, Map as MapIcon } from "@/components/ui/icons";
 import { useLearningStore } from "@/store/useLearningStore";
 
 /**
@@ -131,7 +131,7 @@ export function SkillConstellation({ onSelectModule }: SkillConstellationProps) 
                 disabled={!isUnlocked}
                 className={`absolute w-36 -translate-x-1/2 -translate-y-1/2 rounded-lg border p-2 text-center transition-colors ${
                   isUnlocked
-                    ? "border-violet-400/60 bg-violet-500/10 hover:bg-violet-500/20"
+                    ? "border-brass/50 bg-brass/10 hover:bg-brass/20"
                     : "cursor-not-allowed border-zinc-800 bg-zinc-900/70 opacity-60"
                 }`}
                 style={{ left: skill.position.x, top: skill.position.y }}

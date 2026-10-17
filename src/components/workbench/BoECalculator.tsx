@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRightLeft } from "lucide-react";
+import { ArrowRightLeft } from "@/components/ui/icons";
 import { useWorkbenchStore } from "@/store/useWorkbenchStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 

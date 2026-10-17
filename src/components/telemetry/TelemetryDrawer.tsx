@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from "react";
-import { Activity, X } from "lucide-react";
+import { Activity, X } from "@/components/ui/icons";
 import type { SimTickSnapshot } from "@/types/simulation";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSimStore } from "@/store/useSimStore";
@@ -90,7 +90,7 @@ export function TelemetryDrawer({ open, onClose }: TelemetryDrawerProps) {
         </button>
       </div>
       <div className="grid gap-2 px-4 pb-3 md:grid-cols-4">
-        <Sparkline values={series.rps} color="#38bdf8" label="Global RPS" format={fmtRps} />
+        <Sparkline values={series.rps} color="#CDA86A" label="Global RPS" format={fmtRps} />
         <Sparkline values={series.p99} color="#a78bfa" label="Global p99" format={fmtMs} />
         <Sparkline values={series.err} color="#f87171" label="Error burn" format={fmtPct} />
         <Sparkline values={series.cost} color="#34d399" label="Burn rate" format={fmtUsd} />

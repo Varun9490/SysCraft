@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, FlaskConical, Search, X } from "lucide-react";
+import { BookOpen, FlaskConical, Search, X } from "@/components/ui/icons";
 import { ENCYCLOPEDIA_MODULES } from "@/data/encyclopediaData";
 import type { AlmanacDifficulty, EncyclopediaModule } from "@/types/encyclopedia";
 import { useLearningStore } from "@/store/useLearningStore";
@@ -65,7 +65,7 @@ export function VisualAlmanac({ open, initialModuleId, onClose }: VisualAlmanacP
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/75 p-3" onClick={onClose}>
       <div
         className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -148,7 +148,7 @@ export function VisualAlmanac({ open, initialModuleId, onClose }: VisualAlmanacP
                   {selected.interactiveVisual !== "none" && (
                     <button
                       onClick={() => setSimOpen(true)}
-                      className="mt-2 flex items-center gap-1.5 rounded-md bg-violet-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-400"
+                      className="mt-2 flex items-center gap-1.5 rounded-md bg-brass px-3 py-1.5 text-xs font-semibold text-ink hover:bg-brass-bright"
                     >
                       <FlaskConical size={14} /> Launch interactive sandbox
                     </button>

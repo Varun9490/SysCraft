@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, RotateCcw, XCircle } from "lucide-react";
+import { CheckCircle2, RotateCcw, XCircle } from "@/components/ui/icons";
 import type { QuizQuestion } from "@/types/encyclopedia";
 import type { FsrsRating } from "@/engine/fsrsScheduler";
 import { useLearningStore } from "@/store/useLearningStore";
