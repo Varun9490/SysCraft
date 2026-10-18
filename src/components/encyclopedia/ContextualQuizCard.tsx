@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, RotateCcw, XCircle } from "@/components/ui/icons";
 import type { QuizQuestion } from "@/types/encyclopedia";
 import type { FsrsRating } from "@/engine/fsrsScheduler";
+import { quizCardModuleId } from "@/data/encyclopediaData";
 import { useLearningStore } from "@/store/useLearningStore";
 
 /**
@@ -15,6 +16,8 @@ import { useLearningStore } from "@/store/useLearningStore";
 
 interface ContextualQuizCardProps {
   question: QuizQuestion;
+  /** Owning module id — beats the heuristic resolution for card bookkeeping. */
+  moduleId?: string;
   onAnswered?: (correct: boolean) => void;
 }
 
@@ -25,13 +28,17 @@ const GRADES: Array<{ rating: FsrsRating; label: string; hint: string }> = [
   { rating: 4, label: "Easy", hint: "trivial" },
 ];
 
-export function ContextualQuizCard({ question, onAnswered }: ContextualQuizCardProps) {
+export function ContextualQuizCard({ question, moduleId, onAnswered }: ContextualQuizCardProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [graded, setGraded] = useState<string | null>(null);
   const review = useLearningStore((s) => s.review);
   const ensureCard = useLearningStore((s) => s.ensureCard);
 
   const cardId = useMemo(() => `quiz-${question.id}`, [question.id]);
+  const resolvedModuleId = useMemo(
+    () => moduleId ?? quizCardModuleId(question.conceptTag),
+    [moduleId, question.conceptTag],
+  );
   const revealed = selectedId !== null;
   const correctOption = question.options.find((o) => o.correct);
   const wasCorrect = selectedId !== null && selectedId === correctOption?.id;
@@ -39,7 +46,7 @@ export function ContextualQuizCard({ question, onAnswered }: ContextualQuizCardP
   const choose = (optionId: string) => {
     if (revealed) return;
     setSelectedId(optionId);
-    ensureCard(cardId, question.conceptTag || "general");
+    ensureCard(cardId, resolvedModuleId);
     onAnswered?.(optionId === correctOption?.id);
   };
 
@@ -86,7 +93,7 @@ export function ContextualQuizCard({ question, onAnswered }: ContextualQuizCardP
       </div>
 
       {revealed && (
-        <div className="mt-2 rounded-md bg-zinc-950 p-2.5">
+        <div className="animate-fade-in mt-2 rounded-md bg-zinc-950 p-2.5">
           <p className={`text-xs font-semibold ${wasCorrect ? "text-emerald-300" : "text-amber-300"}`}>
             {wasCorrect ? "Correct." : `Not quite — answer: ${correctOption?.text ?? "see explanation"}.`}
           </p>

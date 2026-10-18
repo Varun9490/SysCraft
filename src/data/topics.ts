@@ -6,7 +6,7 @@ export type TopicKind =
   | "sharding"
   | "cdn";
 
-export type TopicCategory = "Distributed" | "Networking" | "Data" | "Reliability";
+export type TopicCategory = "Fundamentals" | "Distributed" | "Networking" | "Data" | "Reliability";
 
 export interface TopicParamChoice {
   value: string;
@@ -685,6 +685,367 @@ export const TOPICS: Topic[] = [
       { id: "failures", label: "Simulated failures", kind: "range", min: 0, max: 3, step: 1, default: 1 },
     ],
   },
+  {
+    slug: "client-server",
+    title: "Client–server request lifecycle",
+    tagline: "Follow one request from a tap on a screen to a byte landing in a database and back.",
+    category: "Fundamentals",
+    idea:
+      "Every system you will ever design is, at heart, a client asking a server for something. The whole discipline is deciding how that request travels, who is allowed to serve it, how long it may take, and what happens when any hop fails.",
+    howItWorks: [
+      {
+        title: "Resolve the name",
+        body: "The client turns a hostname into an address through DNS. That lookup is itself a distributed system with caches at every layer, and it can fail or return a stale answer.",
+      },
+      {
+        title: "Open a connection",
+        body: "TCP (or QUIC) handshakes establish a reliable channel. TLS adds the certificate exchange that proves the server's identity. Connection setup is latency you pay before any work happens.",
+      },
+      {
+        title: "The server decides",
+        body: "A load balancer or gateway picks a healthy backend. The backend runs the handler, talks to databases and caches, and produces a response — or a timeout, which is a valid design outcome, not a bug.",
+      },
+      {
+        title: "Render and repeat",
+        body: "The client parses the response and paints. The round trip you just measured (DNS + connect + queue + compute + serialise) is the number every optimisation is trying to shrink.",
+      },
+    ],
+    tradeoffs: [
+      { pro: "One mental model scales from a laptop demo to a global platform", con: "It hides a dozen failure points that only surface under real traffic" },
+      { pro: "Clear separation of who initiates and who owns data", con: "Every hop adds latency and a new place a request can be dropped" },
+    ],
+    cloud: [
+      { provider: "AWS", service: "Route 53 + CloudFront + ALB", note: "Name resolution, edge termination, and L7 balancing as separate layers" },
+      { provider: "Cloudflare", service: "DNS + CDN + Workers", note: "The whole first half of the path can run at the edge" },
+      { provider: "GCP", service: "Cloud DNS + Cloud Load Balancing", note: "Global anycast means the nearest POP answers first" },
+    ],
+    params: [],
+  },
+  {
+    slug: "latency-numbers",
+    title: "Latency numbers every engineer should know",
+    tagline: "The orders of magnitude that decide your architecture before you write a line of code.",
+    category: "Fundamentals",
+    idea:
+      "Performance intuition is mostly memory of a few numbers. A cache read is a hundred times faster than an SSD read, which is thousands of times faster than a cross-continent round trip. Know the ratios and the design choices make themselves.",
+    howItWorks: [
+      {
+        title: "Inside one machine",
+        body: "L1 cache is roughly a nanosecond, main memory around 100 ns, an SSD read about 100 microseconds, and a spinning-disk seek around 10 milliseconds — an eternity by comparison.",
+      },
+      {
+        title: "Across the network",
+        body: "A same-datacentre round trip is ~0.5 ms, same-continent ~30 ms, and cross-continent ~150 ms. Light in fibre takes ~67 ms to cross the Atlantic one way; physics sets the floor.",
+      },
+      {
+        title: "The multiplying factor",
+        body: "Because these differ by orders of magnitude, the goal is usually to replace a slow hop with a fast one — serve from memory, keep data near the user, batch instead of looping.",
+      },
+      {
+        title: "Budget backwards",
+        body: "Start from the user's expectation (say 200 ms to first paint) and subtract each hop. What is left is your compute and query budget, and it is almost always smaller than you think.",
+      },
+    ],
+    tradeoffs: [
+      { pro: "Lets you estimate feasibility and cost in your head, on the spot", con: "Real numbers vary with hardware, contention, and load — treat them as tiers, not truths" },
+      { pro: "Explains instantly why a cache or a CDN is worth the complexity", con: "Over-optimising a hop that was never the bottleneck wastes effort" },
+    ],
+    cloud: [
+      { provider: "AWS", service: "ElastiCache / CloudFront", note: "Push hot reads into microseconds and bytes to the edge" },
+      { provider: "GCP", service: "Memorystore / Cloud CDN", note: "Same two moves: memory for hot data, edge for distance" },
+      { provider: "Azure", service: "Azure Cache for Redis / Front Door", note: "Managed cache plus a global entry point" },
+    ],
+    params: [],
+  },
+  {
+    slug: "vertical-vs-horizontal-scaling",
+    title: "Vertical vs horizontal scaling",
+    tagline: "Make the box bigger, or add more boxes — each buys a different kind of headroom.",
+    category: "Fundamentals",
+    idea:
+      "Vertical scaling means buying a larger machine; horizontal scaling means running more of them. Vertical is simpler and works until the biggest machine is not enough; horizontal is unlimited in principle but forces you to distribute state.",
+    howItWorks: [
+      {
+        title: "Scale up",
+        body: "Swap in more vCPU, RAM, or a faster disk. No code change, no distributed-systems tax — but there is a ceiling, prices rise super-linearly, and a single machine is still a single point of failure.",
+      },
+      {
+        title: "Scale out",
+        body: "Run N copies behind a load balancer. Capacity grows almost linearly and failures are survivable, provided every copy is interchangeable.",
+      },
+      {
+        title: "The catch: state",
+        body: "Stateless services scale out trivially. Anything holding session or data state must be externalised (cache, database) or partitioned, which is where most of the complexity lives.",
+      },
+      {
+        title: "Do both, in order",
+        body: "The usual path is to scale up first for instant relief, then scale out as you hit the ceiling — and to keep the stateful tier deliberately small and boring.",
+      },
+    ],
+    tradeoffs: [
+      { pro: "Vertical needs no code change and no coordination", con: "Hard ceiling, rising cost, and still one machine to lose" },
+      { pro: "Horizontal gives near-limitless capacity and fault tolerance", con: "Forces you to make services stateless and data partitionable" },
+    ],
+    cloud: [
+      { provider: "AWS", service: "EC2 instance types vs Auto Scaling groups", note: "Up-size an instance or add instances; the latter pairs with ELB" },
+      { provider: "GCP", service: "Machine families vs Managed Instance Groups", note: "Autoscaling groups add capacity automatically under load" },
+      { provider: "Azure", service: "VM sizes vs Virtual Machine Scale Sets", note: "Scale sets give you identical, replaceable members" },
+    ],
+    params: [],
+  },
+  {
+    slug: "stateless-vs-stateful",
+    title: "Stateless vs stateful services",
+    tagline: "The single property that decides whether your service can be scaled, deployed, and replaced freely.",
+    category: "Fundamentals",
+    idea:
+      "A stateless service keeps nothing between requests; any replica can serve any request. A stateful service remembers something locally, so requests must find the right replica. Almost all scaling pain comes from accidental state.",
+    howItWorks: [
+      {
+        title: "Where state hides",
+        body: "In-memory sessions, local file uploads, sticky routing, scheduled job locks, and long-lived websockets are all state. Each one pins a client to a machine.",
+      },
+      {
+        title: "Externalise it",
+        body: "Move sessions to Redis, files to object storage, and locks to a coordination service. Now every replica is interchangeable and can be killed at will.",
+      },
+      {
+        title: "Own it on purpose",
+        body: "Some state is irreducible: a database leader, a Kafka partition, a game server holding the match. Those get explicit ownership, replication, and failover.",
+      },
+      {
+        title: "Deploy like cattle",
+        body: "Stateless tiers can be rolled, restarted, and scaled with no coordination. Stateful tiers need leader election and careful, ordered handovers.",
+      },
+    ],
+    tradeoffs: [
+      { pro: "Stateless tiers scale, deploy, and recover with almost no coordination", con: "Every request pays to fetch state from an external store" },
+      { pro: "Stateful tiers can be dramatically faster and simpler to reason about", con: "They need replication and failover, and are hard to resize" },
+    ],
+    cloud: [
+      { provider: "AWS", service: "Lambda / ECS Fargate vs RDS", note: "Serverless compute is stateless by construction; RDS is where state lives" },
+      { provider: "GCP", service: "Cloud Run vs Cloud SQL", note: "Cloud Run scales to zero, which only works if it holds no state" },
+      { provider: "Azure", service: "Container Apps vs Azure SQL", note: "Same split: ephemeral compute in front of durable state" },
+    ],
+    params: [],
+  },
+  {
+    slug: "availability-nines",
+    title: "Availability and the nines",
+    tagline: "What 99.9% actually costs you in downtime — and how reliability is bought.",
+    category: "Reliability",
+    idea:
+      "Availability is the fraction of time a service answers correctly. Each additional nine roughly multiplies both the engineering effort and the cost, so you target the level the business actually needs, not the highest one.",
+    howItWorks: [
+      {
+        title: "Count the downtime",
+        body: "99% allows ~3.65 days a year, 99.9% ~8.8 hours, 99.99% ~52 minutes, and 99.999% about 5 minutes. The jump from four nines to five is brutal.",
+      },
+      {
+        title: "Buy redundancy",
+        body: "Remove single points of failure: multiple replicas, multiple availability zones, health-checked load balancers. Redundant components fail, but the service does not.",
+      },
+      {
+        title: "Limit the blast radius",
+        body: "Bulkheads, circuit breakers, and cell-based architecture keep one bad dependency or one hot tenant from taking the whole system down with it.",
+      },
+      {
+        title: "Measure honestly",
+        body: "Define SLIs the user feels (success rate, latency), set an SLO below the theoretical maximum, and spend the error budget deliberately on shipping.",
+      },
+    ],
+    tradeoffs: [
+      { pro: "Each nine makes failures survivable and incidents boring", con: "Cost and complexity climb faster than the nine does" },
+      { pro: "An SLO with an error budget stops reliability and delivery fighting", con: "Requires real measurement; a made-up number helps no one" },
+    ],
+    cloud: [
+      { provider: "AWS", service: "Multi-AZ RDS + Route 53 health checks", note: "Survive an AZ loss and steer around unhealthy regions" },
+      { provider: "GCP", service: "Regional Managed Instance Groups", note: "Spread replicas across zones automatically" },
+      { provider: "Azure", service: "Availability Zones + Traffic Manager", note: "Zone-redundant services plus global failover routing" },
+    ],
+    params: [],
+  },
+  {
+    slug: "idempotency",
+    title: "Idempotency and safe retries",
+    tagline: "Retries are unavoidable — make sure doing something twice is the same as doing it once.",
+    category: "Reliability",
+    idea:
+      "Networks drop responses, so a client that times out cannot know whether its write landed. An idempotent operation produces the same result whether it runs once or five times, which is what makes retrying safe.",
+    howItWorks: [
+      {
+        title: "Free idempotency",
+        body: "Reads and 'set to this value' writes are naturally idempotent. 'Add 1' and 'append' are not, because repeating them changes the outcome.",
+      },
+      {
+        title: "Idempotency keys",
+        body: "The client sends a unique key with each logical write. The server records the key and its result; a replay returns the stored result instead of charging or creating again.",
+      },
+      {
+        title: "Make operations commutative",
+        body: "Where a key is awkward, express the write as a state assignment or attach a version, so a late or duplicated message cannot corrupt the final value.",
+      },
+      {
+        title: "Design for at-least-once",
+        body: "Assume every queue and network delivers at least once, and pair that with idempotent handlers. Exactly-once is a property you build, not one you buy.",
+      },
+    ],
+    tradeoffs: [
+      { pro: "Turns an unreliable network into a reliable API surface", con: "Requires storing keys and results, and a sensible expiry policy" },
+      { pro: "Makes retries, replays, and message redelivery harmless", con: "Only works if every write path is designed for it consistently" },
+    ],
+    cloud: [
+      { provider: "AWS", service: "SQS FIFO + Lambda", note: "Deduplication IDs suppress duplicate sends within a window" },
+      { provider: "Azure", service: "Service Bus", note: "Built-in duplicate detection on message IDs" },
+      { provider: "GCP", service: "Pub/Sub", note: "Exactly-once delivery is opt-in per subscription; still keep handlers idempotent" },
+    ],
+    params: [],
+  },
+  {
+    slug: "backpressure",
+    title: "Backpressure and load shedding",
+    tagline: "When demand exceeds capacity, choose what to drop on purpose instead of collapsing.",
+    category: "Reliability",
+    idea:
+      "If requests arrive faster than a service can finish them, unbounded queuing turns a slowdown into an outage. Backpressure slows the producer; load shedding rejects excess; both protect the capacity you still have.",
+    howItWorks: [
+      {
+        title: "Bounded queues",
+        body: "A queue with no limit just moves the failure later and deeper. A bounded queue makes overload visible immediately, while the system is still healthy enough to react.",
+      },
+      {
+        title: "Slow the producer",
+        body: "Backpressure pushes the signal upstream: stop reading, return a busy signal, or apply TCP flow control so the sender naturally slows to match.",
+      },
+      {
+        title: "Shed the right requests",
+        body: "When dropping is unavoidable, drop cheapest-to-retry first, keep the paying or interactive traffic, and shed by priority, not arrival order.",
+      },
+      {
+        title: "Keep latency honest",
+        body: "Fast failures are kinder than slow timeouts. A quick 503 lets the client retry elsewhere; a 30-second hang ties up capacity and cascades.",
+      },
+    ],
+    tradeoffs: [
+      { pro: "Keeps the system responsive under overload instead of melting down", con: "Some users get rejected; the craft is choosing which" },
+      { pro: "Bounded buffers give a clear, early overload signal", con: "Too-small buffers waste capacity and reject bursts that were survivable" },
+    ],
+    cloud: [
+      { provider: "AWS", service: "API Gateway throttling + SQS", note: "Token-bucket limits in front, bounded queues behind" },
+      { provider: "Cloudflare", service: "Rate limiting + Waiting Room", note: "Queue users at the edge before they reach origin" },
+      { provider: "GCP", service: "Cloud Endpoints quotas + Pub/Sub", note: "Per-key quotas and a flow-controlled pull" },
+    ],
+    params: [],
+  },
+  {
+    slug: "acid-vs-base",
+    title: "ACID vs BASE",
+    tagline: "Strong guarantees or high availability — the trade you make every time you pick a datastore.",
+    category: "Data",
+    idea:
+      "ACID databases give you transactions that are atomic, consistent, isolated, and durable. BASE systems give up immediate consistency for availability and scale, settling for eventual agreement. Neither is better; they fit different problems.",
+    howItWorks: [
+      {
+        title: "Atomic and durable",
+        body: "ACID means a transaction either fully applies or not at all, and once committed survives a crash. This is what money, inventory, and bookings require.",
+      },
+      {
+        title: "Isolated",
+        body: "Concurrent transactions behave as if run in some serial order. Strong isolation prevents the anomalies (dirty reads, lost updates) that quietly corrupt data.",
+      },
+      {
+        title: "Basically available",
+        body: "BASE stores prefer to keep answering under partition, reconcile conflicts afterwards, and accept that a read may briefly return stale data.",
+      },
+      {
+        title: "Pick per workload",
+        body: "Most real systems are polyglot: a strongly-consistent store for the ledger, an eventually-consistent store for feeds, likes, and telemetry.",
+      },
+    ],
+    tradeoffs: [
+      { pro: "ACID removes whole classes of correctness bugs", con: "Distributed ACID costs coordination, so writes are slower and harder to scale" },
+      { pro: "BASE scales out cheaply and stays available through partitions", con: "Application code must tolerate and resolve staleness and conflicts" },
+    ],
+    cloud: [
+      { provider: "AWS", service: "Aurora (ACID) vs DynamoDB (BASE)", note: "Choose per table by what a stale read would cost" },
+      { provider: "GCP", service: "Spanner (ACID) vs Firestore (BASE)", note: "Spanner buys global consistency with TrueTime waits" },
+      { provider: "Azure", service: "SQL Database vs Cosmos DB", note: "Cosmos exposes five consistency levels you can tune per request" },
+    ],
+    params: [],
+  },
+  {
+    slug: "api-styles",
+    title: "REST, gRPC, and GraphQL",
+    tagline: "Three ways to expose a service — and the traffic pattern each one is built for.",
+    category: "Networking",
+    idea:
+      "The interface style decides how much the client must know, how chatty the wire is, and how easily you evolve it. REST is resource-oriented and cacheable, gRPC is typed and fast between services, GraphQL is a query language for screens that need many things at once.",
+    howItWorks: [
+      {
+        title: "REST",
+        body: "Model resources, use HTTP verbs, and lean on status codes and caching. It is universally understood, cache-friendly, and ideal for public CRUD APIs.",
+      },
+      {
+        title: "gRPC",
+        body: "Define a protobuf contract and get typed stubs and streaming. Binary framing and HTTP/2 make it compact and fast, which is why it dominates service-to-service calls.",
+      },
+      {
+        title: "GraphQL",
+        body: "Clients ask for exactly the fields they need in one round trip. Great for aggregating many sources behind a mobile screen; the server must guard against expensive queries.",
+      },
+      {
+        title: "Match the caller",
+        body: "Public and cacheable: REST. Internal and latency-sensitive: gRPC. Screen-shaped and aggregation-heavy: GraphQL — often behind a BFF rather than exposed directly.",
+      },
+    ],
+    tradeoffs: [
+      { pro: "REST is simple, cacheable, and needs no special tooling", con: "Over- and under-fetching; many round trips for a rich screen" },
+      { pro: "gRPC is fast, typed, and streams natively", con: "Binary payloads are hard to inspect; poor fit for browsers without a proxy" },
+      { pro: "GraphQL gives clients exactly the data they ask for", con: "Query cost is unbounded unless you add depth limits and persisted queries" },
+    ],
+    cloud: [
+      { provider: "AWS", service: "API Gateway (REST/HTTP) + AppSync (GraphQL)", note: "Both styles managed, with HTTP/2 and streaming support" },
+      { provider: "GCP", service: "Cloud Endpoints + API Gateway", note: "OpenAPI and gRPC transcoding in one front door" },
+      { provider: "Cloudflare", service: "Workers + GraphQL gateway", note: "Aggregate and shape responses at the edge" },
+    ],
+    params: [],
+  },
+  {
+    slug: "replication-basics",
+    title: "Primary–replica replication",
+    tagline: "Keep copies of your data so reads scale and a machine loss is not a data loss.",
+    category: "Data",
+    idea:
+      "Replication writes the same data to more than one node. A primary takes writes and streams them to replicas, which serve reads and stand ready to take over. It is the most common way to scale reads and survive failure.",
+    howItWorks: [
+      {
+        title: "Stream the log",
+        body: "The primary records every change and ships it to replicas, which replay it. Asynchronous replicas lag; synchronous ones add write latency but lose nothing.",
+      },
+      {
+        title: "Read from replicas",
+        body: "Because replicas are read-only copies, you can fan reads out across many and scale read throughput far past a single machine.",
+      },
+      {
+        title: "Expect replica lag",
+        body: "An asynchronous replica can be milliseconds behind. A read straight after a write may miss it — the classic 'I saved it but it is gone' bug.",
+      },
+      {
+        title: "Plan the failover",
+        body: "Promoting a replica must pick the most up-to-date one and repoint clients. Without fencing, two primaries can accept writes and diverge.",
+      },
+    ],
+    tradeoffs: [
+      { pro: "Scales reads horizontally and gives a hot standby for failover", con: "Replica lag makes read-your-writes tricky to guarantee" },
+      { pro: "Synchronous replicas guarantee no data loss on failover", con: "Every write waits for the slowest replica, raising latency" },
+    ],
+    cloud: [
+      { provider: "AWS", service: "RDS read replicas + Aurora", note: "Managed streaming, promotion, and multi-AZ failover" },
+      { provider: "GCP", service: "Cloud SQL read replicas", note: "Cross-region replicas for read locality and DR" },
+      { provider: "Azure", service: "Azure SQL geo-replicas", note: "Readable secondaries with controlled failover groups" },
+    ],
+    params: [],
+  },
 ];
 
 export const TOPIC_MAP = new Map(TOPICS.map((topic) => [topic.slug, topic]));
@@ -693,4 +1054,10 @@ export function getTopic(slug: string): Topic | undefined {
   return TOPIC_MAP.get(slug);
 }
 
-export const TOPIC_CATEGORIES: TopicCategory[] = ["Distributed", "Networking", "Data", "Reliability"];
+export const TOPIC_CATEGORIES: TopicCategory[] = [
+  "Fundamentals",
+  "Distributed",
+  "Networking",
+  "Data",
+  "Reliability",
+];

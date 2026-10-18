@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Menu, X } from "@/components/ui/icons";
 
 const NAV_LINKS = [
+  { href: "/start", label: "Start" },
   { href: "/learn", label: "Learn" },
   { href: "/wiki", label: "Wiki" },
   { href: "/labs", label: "Labs" },
@@ -98,7 +99,7 @@ export function SiteHeader() {
         <div className="hidden items-center gap-2.5 md:flex">
           <Link
             href="/canvas"
-            className="group inline-flex items-center gap-1.5 rounded-full bg-brass text-ink shadow-card px-4 py-1.5 text-[13px] font-semibold text-zinc-950 shadow-card transition-transform hover:scale-[1.03]"
+            className="group inline-flex items-center gap-1.5 rounded-full bg-brass px-4 py-1.5 text-[13px] font-semibold text-zinc-950 shadow-card transition-transform hover:scale-[1.03]"
           >
             Open Canvas
             <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
@@ -154,7 +155,7 @@ export function SiteHeader() {
               >
                 <Link
                   href="/canvas"
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-brass text-ink shadow-card px-4 py-2.5 text-sm font-semibold text-zinc-950"
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-brass px-4 py-2.5 text-sm font-semibold text-zinc-950 shadow-card"
                 >
                   Open Canvas
                   <ArrowRight size={14} />

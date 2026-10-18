@@ -123,18 +123,23 @@ export function KnowledgeGraph() {
             />
           ))}
 
-          {placed.map(({ module, x, y }) => {
+          {placed.map(({ module, x, y }, i) => {
             const mastery = masteryOf(module, cards, cardModule);
             const fill = mastery === 0 ? 'rgba(63,63,70,0.85)' : mastery < 0.6 ? 'rgba(217,153,68,0.85)' : 'rgba(52,211,153,0.85)';
             return (
-              <g key={module.id} transform={`translate(${x},${y})`}>
+              <g
+                key={module.id}
+                className="wiki-graph-node"
+                style={{ animationDelay: `${120 + i * 40}ms`, '--gx': `${x}px`, '--gy': `${y}px` } as React.CSSProperties}
+              >
                 <Link href={`/wiki/${module.id}`} aria-label={`Open ${module.title} concept page`}>
-                  <circle r={NODE_R} fill={fill} stroke="rgba(113,113,122,0.7)" strokeWidth={1.2} className="cursor-pointer transition-opacity hover:opacity-80" />
+                  <circle r={NODE_R} fill={fill} stroke="rgba(113,113,122,0.7)" strokeWidth={1.2} className="cursor-pointer" />
+                  <title>{`${module.title} — click to read`}</title>
                   <text
                     y={NODE_R + 16}
                     textAnchor="middle"
                     style={{ fontSize: 12.5 }}
-                    className="pointer-events-none fill-zinc-300"
+                    className="wiki-graph-label pointer-events-none fill-zinc-300"
                   >
                     {module.title.length > 22 ? `${module.title.slice(0, 21)}…` : module.title}
                   </text>

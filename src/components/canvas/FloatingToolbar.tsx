@@ -8,6 +8,7 @@ import {
   Box,
   ChevronDown,
   Eraser,
+  FileText,
   Flame,
   HelpCircle,
   LayoutGrid,
@@ -63,6 +64,55 @@ const CHAOS_DEFAULTS: Record<ChaosKind, { capacityPenalty: number; latencyPenalt
   dns_failure: { capacityPenalty: 0.6, latencyPenaltyMs: 0 },
 };
 
+/**
+ * The three archetypal failures of the build-run-break loop, as one-click
+ * presets so a learner can break a design without configuring chaos by hand.
+ */
+const QUICK_BREAKS: Array<{
+  id: string;
+  label: string;
+  kind: ChaosKind;
+  scope: "selected" | "all";
+  capacityPenalty: number;
+  latencyPenaltyMs: number;
+  hint: string;
+}> = [
+  {
+    id: "kill-node",
+    label: "Fail a node",
+    kind: "dependency_down",
+    scope: "selected",
+    capacityPenalty: 0.9,
+    latencyPenaltyMs: 0,
+    hint: "Take the selected node (or every node) down to ~10% capacity.",
+  },
+  {
+    id: "spike",
+    label: "Traffic spike",
+    kind: "traffic_surge",
+    scope: "all",
+    capacityPenalty: 0,
+    latencyPenaltyMs: 0,
+    hint: "A flash crowd hits every node at once.",
+  },
+  {
+    id: "region",
+    label: "Region outage",
+    kind: "zone_outage",
+    scope: "all",
+    capacityPenalty: 0.34,
+    latencyPenaltyMs: 0,
+    hint: "Loses a third of compute/cache replicas.",
+  },
+];
+
+/** Bridge to the workspace shell so canvas controls can open its panels. */
+function openWorkspacePanel(panel: string): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("syscraft:open-panel", { detail: { panel } }));
+}
+
+
 function undoCanvas(): void {
   const store = useCanvasStore as unknown as {
     temporal: { getState: () => { undo: () => void; redo: () => void } };
@@ -104,9 +154,11 @@ export function FloatingToolbar() {
       s.edges.reduce((count, edge) => count + (edge.selected ? 1 : 0), 0),
   );
   const chaosActive = useSimStore((s) => s.chaos.active);
+  const activeChaos = useSimStore((s) => s.chaos);
   const [k8sNotice, setK8sNotice] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
   const [chaosNotice, setChaosNotice] = useState<string | null>(null);
+  const [chaosPrompt, setChaosPrompt] = useState(false);
 
   useEffect(() => {
     if (!clearArmed) return;
@@ -217,51 +269,81 @@ export function FloatingToolbar() {
     }
   }, []);
 
-  const fireChaos = useCallback(() => {
-    const defaults = CHAOS_DEFAULTS[chaosKind];
-    const canvas = useCanvasStore.getState();
-    const sim = useSimStore.getState();
+  const injectChaos = useCallback(
+    (
+      kind: ChaosKind,
+      scope: string,
+      penalties?: { capacityPenalty: number; latencyPenaltyMs: number },
+    ) => {
+      const defaults = penalties ?? CHAOS_DEFAULTS[kind];
+      const canvas = useCanvasStore.getState();
+      const sim = useSimStore.getState();
 
-    let targetNodeIds: string[] = [];
-    let targetRegion: string | null = null;
-    let scopeLabel = "every node";
-    if (chaosScope === "selected") {
-      if (selectedNodeId) {
-        targetNodeIds = [selectedNodeId];
-        const label = canvas.nodes.find((node) => node.id === selectedNodeId)?.data.label;
-        scopeLabel = `“${String(label ?? "selected node")}”`;
-      } else {
-        scopeLabel = "every node (nothing selected)";
+      let targetNodeIds: string[] = [];
+      let targetRegion: string | null = null;
+      let scopeLabel = "every node";
+      if (scope === "selected") {
+        const fallback = canvas.nodes[0]?.id;
+        const chosen = selectedNodeId ?? fallback;
+        if (chosen) {
+          targetNodeIds = [chosen];
+          const label = canvas.nodes.find((node) => node.id === chosen)?.data.label;
+          scopeLabel = `“${String(label ?? "selected node")}”`;
+        } else {
+          scopeLabel = "every node (canvas empty)";
+        }
+      } else if (scope !== "all") {
+        targetRegion = scope;
+        const regionCount = canvas.nodes.filter(
+          (node) => effectiveRegionOf(String(node.data.resourceId), node.data.overrides?.region) === scope,
+        ).length;
+        scopeLabel = `every node in ${scope} (${regionCount} hit)`;
       }
-    } else if (chaosScope !== "all") {
-      targetRegion = chaosScope;
-      const regionCount = canvas.nodes.filter(
-        (node) => effectiveRegionOf(String(node.data.resourceId), node.data.overrides?.region) === chaosScope,
-      ).length;
-      scopeLabel = `every node in ${chaosScope} (${regionCount} hit)`;
-    }
 
-    sim.setChaos({
-      active: true,
-      kind: chaosKind,
-      capacityPenalty: defaults.capacityPenalty,
-      latencyPenaltyMs: defaults.latencyPenaltyMs,
-      targetNodeIds,
-      targetRegion,
-      startedAtTick: sim.tick,
-    });
+      sim.setChaos({
+        active: true,
+        kind,
+        capacityPenalty: defaults.capacityPenalty,
+        latencyPenaltyMs: defaults.latencyPenaltyMs,
+        targetNodeIds,
+        targetRegion,
+        startedAtTick: sim.tick,
+      });
 
-    // Chaos is only visible in telemetry while the clock ticks — auto-start
-    // the simulation so the burn is immediately observable.
-    const restarted = !sim.running;
-    if (restarted) {
-      useSimStore.getState().startSimulation(() => useCanvasStore.getState().toGraphTopology());
-    }
-    setChaosNotice(
-      `Injected ${chaosKind.replace(/_/g, " ")} on ${scopeLabel}${restarted ? " — simulation started so you can watch it burn" : ""}.`,
-    );
-    window.setTimeout(() => setChaosNotice(null), 4600);
-  }, [chaosKind, chaosScope, selectedNodeId]);
+      // Chaos is only visible in telemetry while the clock ticks — auto-start
+      // the simulation so the burn is immediately observable.
+      const restarted = !sim.running;
+      if (restarted) {
+        useSimStore.getState().startSimulation(() => useCanvasStore.getState().toGraphTopology());
+      }
+      setChaosPrompt(false);
+      setChaosNotice(
+        `Injected ${kind.replace(/_/g, " ")} on ${scopeLabel}${restarted ? " — simulation started so you can watch it burn" : ""}.`,
+      );
+      window.setTimeout(() => setChaosNotice(null), 4600);
+    },
+    [selectedNodeId],
+  );
+
+  const fireChaos = useCallback(() => {
+    injectChaos(chaosKind, chaosScope);
+  }, [chaosKind, chaosScope, injectChaos]);
+
+  const quickBreak = useCallback(
+    (preset: (typeof QUICK_BREAKS)[number]) => {
+      injectChaos(preset.kind, preset.scope, {
+        capacityPenalty: preset.capacityPenalty,
+        latencyPenaltyMs: preset.latencyPenaltyMs,
+      });
+    },
+    [injectChaos],
+  );
+
+  const endChaos = useCallback(() => {
+    useSimStore.getState().clearChaos();
+    setChaosPrompt(true);
+    window.setTimeout(() => setChaosPrompt(false), 9000);
+  }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -448,6 +530,53 @@ export function FloatingToolbar() {
         </p>
       )}
 
+      {chaosActive && (
+        <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-lg border border-red-900/60 bg-zinc-950/90 px-3 py-1 text-[11px] text-red-200 shadow-xl backdrop-blur">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
+          <span className="font-semibold uppercase tracking-[0.12em] text-red-300">Incident live</span>
+          <span className="text-red-200/90">{activeChaos.kind.replace(/_/g, " ")}</span>
+          <span className="text-zinc-500">·</span>
+          <span className="text-zinc-300">
+            {activeChaos.targetRegion
+              ? `region ${activeChaos.targetRegion}`
+              : activeChaos.targetNodeIds.length > 0
+                ? `${activeChaos.targetNodeIds.length} node${activeChaos.targetNodeIds.length > 1 ? "s" : ""}`
+                : "everywhere"}
+          </span>
+          <button
+            type="button"
+            onClick={() => openWorkspacePanel("postmortem")}
+            className="ml-1 flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-0.5 font-semibold text-zinc-200 hover:bg-zinc-800"
+          >
+            <FileText size={12} /> Post-mortem
+          </button>
+        </div>
+      )}
+
+      {chaosPrompt && (
+        <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-1 text-[11.5px] text-zinc-200 shadow-xl">
+          <span>Chaos cleared — review what actually happened.</span>
+          <button
+            type="button"
+            onClick={() => {
+              setChaosPrompt(false);
+              openWorkspacePanel("postmortem");
+            }}
+            className="flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-0.5 font-semibold text-zinc-950 hover:bg-white"
+          >
+            <FileText size={12} /> Open post-mortem
+          </button>
+          <button
+            type="button"
+            onClick={() => setChaosPrompt(false)}
+            className="text-zinc-500 hover:text-zinc-300"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-xl border border-red-900/50 bg-zinc-950/90 p-1.5 shadow-2xl backdrop-blur">
         <button
           onClick={() => setChaosOpen((o) => !o)}
@@ -505,13 +634,33 @@ export function FloatingToolbar() {
               >
                 Inject
               </button>
+              <span className="h-6 w-px bg-zinc-800" />
+              {QUICK_BREAKS.map((preset) => (
+                <button
+                  key={preset.id}
+                  onClick={() => quickBreak(preset)}
+                  title={preset.hint}
+                  className="h-8 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:border-red-600/60 hover:text-red-300"
+                >
+                  {preset.label}
+                </button>
+              ))}
             </motion.div>
           )}
         </AnimatePresence>
 
+        <button
+          type="button"
+          onClick={() => openWorkspacePanel("postmortem")}
+          className="flex h-8 items-center gap-1 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:border-zinc-600 hover:text-zinc-100"
+          title="Open the auto-generated blameless post-mortem"
+        >
+          <FileText size={13} /> Post-mortem
+        </button>
+
         {chaosActive && (
           <button
-            onClick={() => useSimStore.getState().clearChaos()}
+            onClick={endChaos}
             className="h-8 rounded-md border border-red-500 px-2.5 text-xs font-semibold text-red-300 hover:bg-red-950"
           >
             Clear chaos

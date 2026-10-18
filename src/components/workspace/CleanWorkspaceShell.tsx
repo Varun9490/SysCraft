@@ -1,6 +1,7 @@
 'use client';
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Command } from "cmdk";
 import { AnimatePresence, motion } from "framer-motion";
@@ -32,7 +33,6 @@ import { SysCraftCanvas } from "@/components/canvas/SysCraftCanvas";
 import { InternalSimModal } from "@/components/canvas/InternalSimModal";
 import { NodeInspector } from "@/components/canvas/NodeInspector";
 import { RoomSession } from "@/components/room/RoomSession";
-import { VisualAlmanac } from "@/components/encyclopedia/VisualAlmanac";
 import { IncidentArena } from "@/components/games/IncidentArena";
 import { LogoMark } from "@/components/nav/SiteHeader";
 import { BlueprintsPanel } from "@/components/shell/BlueprintsPanel";
@@ -53,7 +53,6 @@ import { useSimStore } from "@/store/useSimStore";
 
 type PanelId =
   | "workbench"
-  | "almanac"
   | "telemetry"
   | "traces"
   | "postmortem"
@@ -131,18 +130,20 @@ function LearnPanel({ onOpenModule }: { onOpenModule: (moduleId: string) => void
   }, [query]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="relative px-3 pb-2">
-        <Search size={14} className="pointer-events-none absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search 19 concept modules…"
-          className="w-full rounded-lg border border-zinc-800 bg-zinc-900/70 py-2 pl-8 pr-3 text-[13px] text-zinc-200 outline-none transition-colors placeholder:text-zinc-600 focus:border-zinc-600"
-        />
+    <div className="h-full overflow-y-auto overscroll-contain bg-zinc-950/60">
+      <div className="sticky top-0 z-10 border-b border-zinc-800/60 bg-zinc-950/90 px-3 py-2 backdrop-blur">
+        <div className="relative">
+          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search 19 concept modules…"
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900/70 py-2 pl-8 pr-3 text-[13px] text-zinc-200 outline-none transition-colors placeholder:text-zinc-600 focus:border-zinc-600"
+          />
+        </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+      <div className="px-2 py-2">
         {filtered.map((module) => (
           <button
             key={module.id}
@@ -168,7 +169,7 @@ function LearnPanel({ onOpenModule }: { onOpenModule: (moduleId: string) => void
         )}
       </div>
 
-      <div className="border-t border-zinc-800/70 p-2">
+      <div className="sticky bottom-0 z-10 border-t border-zinc-800/70 bg-zinc-950/90 p-2 backdrop-blur">
         <Link
           href="/learn"
           className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-zinc-800/70"
@@ -208,7 +209,7 @@ const TOOL_PANELS: Array<{
 
 function ToolsPanel({ onOpenPanel }: { onOpenPanel: (id: PanelId) => void }) {
   return (
-    <div className="h-full overflow-y-auto p-3">
+    <div className="h-full overflow-y-auto overscroll-contain p-3">
       <div className="grid grid-cols-2 gap-2">
         {TOOL_PANELS.map(({ id, label, description, Icon }) => (
           <button
@@ -286,11 +287,11 @@ function ToolsPanel({ onOpenPanel }: { onOpenPanel: (id: PanelId) => void }) {
 }
 
 export default function CleanWorkspaceShell() {
+  const router = useRouter();
   const [tab, setTab] = useState<TabId>("resources");
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
-  const [almanacModuleId, setAlmanacModuleId] = useState<string | undefined>(undefined);
   const [railOpen, setRailOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
@@ -322,9 +323,20 @@ export default function CleanWorkspaceShell() {
     setPaletteOpen(false);
   };
 
+  useEffect(() => {
+    const onOpenPanel = (event: Event) => {
+      const detail = (event as CustomEvent<{ panel?: PanelId }>).detail;
+      if (detail?.panel) {
+        setPanel(detail.panel);
+        setPaletteOpen(false);
+      }
+    };
+    window.addEventListener("syscraft:open-panel", onOpenPanel);
+    return () => window.removeEventListener("syscraft:open-panel", onOpenPanel);
+  }, []);
+
   const openModule = (moduleId: string) => {
-    setAlmanacModuleId(moduleId);
-    setPanel("almanac");
+    router.push(`/wiki/${moduleId}`);
   };
 
   const toggleTransport = () => {
@@ -472,7 +484,7 @@ export default function CleanWorkspaceShell() {
             })}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="relative min-h-0 flex-1 overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={tab}
@@ -480,7 +492,7 @@ export default function CleanWorkspaceShell() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                className="h-full"
+                className="absolute inset-0"
               >
                 {tab === "resources" && <ResourcesPanel />}
                 {tab === "blueprints" && <BlueprintsPanel />}
@@ -506,11 +518,6 @@ export default function CleanWorkspaceShell() {
       </div>
 
       <DesignWorkbench open={panel === "workbench"} onClose={() => setPanel(null)} />
-      <VisualAlmanac
-        open={panel === "almanac"}
-        initialModuleId={almanacModuleId}
-        onClose={() => setPanel(null)}
-      />
       <TelemetryDrawer open={panel === "telemetry"} onClose={() => setPanel(null)} />
       <TraceWaterfallModal open={panel === "traces"} onClose={() => setPanel(null)} />
       <PostMortemModal open={panel === "postmortem"} onClose={() => setPanel(null)} />

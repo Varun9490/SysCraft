@@ -48,10 +48,10 @@ export function Hero() {
             <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               <Magnetic strength={0.3}>
                 <Link
-                  href="/learn"
+                  href="/start"
                   className="group inline-flex items-center gap-2 rounded-full bg-brass px-6 py-3 text-sm font-semibold text-ink shadow-card transition-transform hover:scale-[1.03]"
                 >
-                  Start the learning path
+                  Start the guided path
                   <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </Magnetic>

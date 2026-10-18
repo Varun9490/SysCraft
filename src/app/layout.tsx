@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import { BootRunner } from "@/components/shell/BootRunner";
+import { ThemeBridge } from "@/components/shell/ThemeBridge";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -41,6 +42,7 @@ export default function RootLayout({
     <html lang="en" className={outfit.variable}>
       <body className="bg-ink font-sans text-content antialiased">
         <BootRunner />
+        <ThemeBridge />
         {children}
       </body>
     </html>

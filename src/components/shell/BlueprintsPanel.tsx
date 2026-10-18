@@ -55,8 +55,8 @@ export function BlueprintsPanel() {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="px-3 pb-2">
+    <div className="h-full overflow-y-auto overscroll-contain bg-zinc-950/60">
+      <div className="sticky top-0 z-10 border-b border-zinc-800/60 bg-zinc-950/90 px-3 py-2 backdrop-blur">
         <button
           type="button"
           onClick={() => void handleSave()}
@@ -68,7 +68,7 @@ export function BlueprintsPanel() {
         {notice && <p className="mt-2 text-center text-[11px] text-zinc-400">{notice}</p>}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+      <div className="px-2 py-2">
         {saved.length > 0 && (
           <>
             <p className="px-2.5 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600">

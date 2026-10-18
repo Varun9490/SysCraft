@@ -344,6 +344,124 @@
   animation: wikiReveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Late-entering elements (key-number tiles, connected-concept chips). */
+.wiki-pop,
+.wiki-pop-item {
+  animation: wikiReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ReactBits ShinyText: light sweep riding a text gradient. */
+.shiny-text {
+  background: linear-gradient(
+    120deg,
+    rgb(var(--content-secondary)) 30%,
+    rgb(var(--accent-bright) / 0.95) 48%,
+    rgb(var(--content-secondary)) 66%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shinySweep 3.4s linear infinite;
+}
+
+.shiny-text-off {
+  animation: none;
+  background: none;
+  color: inherit;
+}
+
+@keyframes shinySweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* ReactBits GradientText: slowly cycling brass->ivory sweep for display type. */
+.gradient-text-animated {
+  background: linear-gradient(
+    110deg,
+    rgb(var(--accent)) 10%,
+    rgb(var(--content)) 30%,
+    rgb(var(--accent-bright)) 50%,
+    rgb(var(--content)) 70%,
+    rgb(var(--accent)) 90%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradientDrift 7s ease-in-out infinite;
+}
+
+@keyframes gradientDrift {
+  0%,
+  100% {
+    background-position: 0% 60%;
+  }
+  50% {
+    background-position: 100% 40%;
+  }
+}
+
+/* Knowledge graph nodes pop in with a stagger. */
+@keyframes wikiNodePop {
+  0% {
+    opacity: 0;
+    transform: translate(var(--gx, 0px), var(--gy, 0px)) scale(0.82);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(var(--gx, 0px), var(--gy, 0px)) scale(1);
+  }
+}
+
+.wiki-graph-node {
+  animation: wikiNodePop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.wiki-graph-node circle {
+  transition: stroke 0.2s ease, stroke-width 0.2s ease;
+}
+
+.wiki-graph-node:hover circle {
+  stroke: rgb(var(--accent));
+  stroke-width: 2.4;
+}
+
+.wiki-graph-label {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+.wiki-graph-node:hover .wiki-graph-label,
+.wiki-graph-node:focus-within .wiki-graph-label {
+  opacity: 1;
+}
+
+/* Concept-page table of contents scroll-spy affordance. */
+.toc-link {
+  position: relative;
+  border-left: 2px solid rgb(var(--line));
+  margin-left: -14px;
+  padding-left: 12px !important;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.toc-link:hover {
+  border-left-color: rgb(var(--line-strong));
+}
+
+.toc-link.toc-active {
+  border-left-color: rgb(var(--accent));
+  color: rgb(var(--accent-bright)) !important;
+}
+
 /* Sidebar / rail scroll areas: slim, always-visible scrollbar affordance. */
 aside .overflow-y-auto {
   scrollbar-width: thin;
@@ -364,6 +482,205 @@ aside .overflow-y-auto::-webkit-scrollbar-track {
   background: transparent;
 }
 
+/* ==========================================================================
+   Docs typography system (remocn-style) — the single source of reader type.
+   Generous leading, a ~72ch measure, quiet zinc hierarchy with warm brass
+   accents for emphasis, and motion applied at the block level.
+   ========================================================================== */
+
+.md-prose {
+  max-width: 76ch;
+}
+
+/* remocn-style masked rise: blocks settle in as they enter the viewport. */
+.md-block {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.md-block.md-in {
+  opacity: 1;
+  transform: none;
+}
+
+.md-prose p {
+  text-wrap: pretty;
+}
+
+.md-prose strong.marker-highlight {
+  position: relative;
+  z-index: 0;
+  background-image: linear-gradient(120deg, rgb(var(--accent) / 0.22), rgb(var(--accent-bright) / 0.32));
+  background-repeat: no-repeat;
+  background-position: -2px 62%;
+  background-size: 0% 42%;
+  transition: background-size 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.2s;
+}
+
+.md-prose .md-block.md-in strong.marker-highlight {
+  background-size: calc(100% + 4px) 42%;
+}
+
+/* remocn InkUnderline: links draw their underline from the left. */
+.md-link {
+  position: relative;
+  color: rgb(var(--accent-bright));
+  text-decoration: none;
+  text-underline-offset: 3px;
+  background-image: linear-gradient(90deg, rgb(var(--accent)), rgb(var(--accent-bright)));
+  background-repeat: no-repeat;
+  background-size: 0% 1.5px;
+  background-position: 0 100%;
+  transition: background-size 0.35s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s ease;
+}
+
+.md-link:hover {
+  background-size: 100% 1.5px;
+  color: #e6cc9f;
+}
+
+.inline-code {
+  border-radius: 0.375rem;
+  border: 1px solid rgb(63 63 70 / 0.55);
+  background-color: rgb(9 9 11);
+  padding: 0.05rem 0.35rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.82em;
+  color: rgb(var(--accent-bright));
+}
+
+.md-code {
+  overflow-x: auto;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(39 39 42 / 0.9);
+  background-color: rgb(9 9 11);
+  padding: 0.8rem 0.95rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: rgb(110 231 183);
+}
+
+/* The plain-words analogy: a quiet brass margin bar, slightly ambitious lead. */
+.md-quote {
+  border-left: 3px solid rgb(var(--accent) / 0.6);
+  border-radius: 0 0.5rem 0.5rem 0;
+  background-color: rgb(var(--accent) / 0.06);
+  padding: 0.7rem 1rem;
+}
+
+.md-quote p {
+  color: rgb(228 222 212);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+.md-quote p:first-child {
+  color: rgb(var(--content));
+}
+
+.md-table {
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+}
+
+.md-list {
+  padding-left: 1.4rem;
+}
+
+.md-list li {
+  padding-left: 0.15rem;
+}
+
+.md-list li::marker {
+  color: rgb(var(--accent-deep));
+}
+
+.md-list li + li {
+  margin-top: 0.45rem;
+}
+
+/* Interactive mermaid diagrams: fit the measure, brighten on hover. */
+.mermaid-viewport > .mermaid-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-viewport svg .node rect,
+.mermaid-viewport svg .node path,
+.mermaid-viewport svg .node polygon,
+.mermaid-viewport svg .node circle {
+  transition: stroke 0.2s ease, fill 0.2s ease;
+}
+
+.mermaid-viewport svg .node:hover rect,
+.mermaid-viewport svg .node:hover path,
+.mermaid-viewport svg .node:hover polygon {
+  stroke: rgb(var(--accent-bright));
+}
+
+/* Glossary hover cards: jargon words wear a dotted ink underline, and the
+   card itself rises into place (shadcn/base-UI motion vocabulary). */
+.hovercard-root {
+  text-decoration: inherit;
+}
+
+.hovercard-term {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+}
+
+.hovercard-term .glossary-term,
+.glossary-term {
+  color: rgb(var(--content));
+  text-decoration: underline;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgb(var(--accent) / 0.75);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  transition:
+    color 0.2s ease,
+    text-decoration-color 0.2s ease;
+}
+
+.hovercard-term:hover .glossary-term,
+.hovercard-term:focus-visible .glossary-term {
+  color: rgb(var(--accent-bright));
+  text-decoration-color: rgb(var(--accent-bright));
+}
+
+.hovercard-in {
+  animation: hovercard-rise 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center;
+}
+
+@keyframes hovercard-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Content positioned above the trigger flips origin so the rise reads downward. */
+.hovercard-in[role='tooltip'] {
+  will-change: opacity, transform;
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
   .animate-float-slow,
@@ -372,8 +689,20 @@ aside .overflow-y-auto::-webkit-scrollbar-track {
   .animate-fade-in-up,
   .animate-fade-in,
   .syscraft-node-enter,
-  .wiki-reveal {
+  .wiki-reveal,
+  .wiki-pop,
+  .wiki-pop-item,
+  .wiki-graph-node,
+  .shiny-text,
+  .gradient-text-animated {
     animation: none !important;
+  }
+  .shiny-text,
+  .gradient-text-animated {
+    color: rgb(var(--content)) !important;
+    background: none !important;
+    -webkit-background-clip: initial;
+    background-clip: initial;
   }
   .sim-running .react-flow__edge-path {
     animation: none !important;
@@ -382,6 +711,17 @@ aside .overflow-y-auto::-webkit-scrollbar-track {
   .rail-track::after {
     animation: none !important;
     opacity: 0 !important;
+  }
+  .md-block {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .hovercard-in {
+    animation: none !important;
+  }
+  .md-prose strong.marker-highlight {
+    background-size: calc(100% + 4px) 42% !important;
   }
   html {
     scroll-behavior: auto;

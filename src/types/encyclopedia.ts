@@ -38,6 +38,15 @@ export const FlashcardSchema = z.object({
 
 export type Flashcard = z.infer<typeof FlashcardSchema>;
 
+/** Single memorizable anchor value rendered in the "Numbers to remember" grid. */
+export const KeyNumberSchema = z.object({
+  value: z.string().min(1),
+  label: z.string().min(1),
+  note: z.string().default(""),
+});
+
+export type KeyNumber = z.infer<typeof KeyNumberSchema>;
+
 /** FSRS v4 runtime memory state per card (mirrors fsrsScheduler.ts). */
 export const FsrsCardStateSchema = z.enum(["new", "learning", "review", "relearning"]);
 
@@ -99,6 +108,7 @@ export const EncyclopediaModuleSchema = z.object({
   interactiveVisual: VisualKindSchema.default("none"),
   flashcards: z.array(FlashcardSchema).default([]),
   quiz: z.array(QuizQuestionSchema).default([]),
+  keyNumbers: z.array(KeyNumberSchema).default([]),
   relatedModuleIds: z.array(z.string()).default([]),
 });
 

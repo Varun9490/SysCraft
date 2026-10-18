@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from "react";
-import { RotateCcw, SlidersHorizontal, X } from "@/components/ui/icons";
+import { useEffect, useState } from "react";
+import { Plus, RotateCcw, SlidersHorizontal, X } from "@/components/ui/icons";
 import {
+  ACCENT_THEMES,
+  ACCENT_THEME_IDS,
   useCanvasPrefsStore,
   type CanvasPrefs,
   type EdgeRouting,
   type GridStyle,
 } from "@/store/useCanvasPrefsStore";
+import { useCanvasPresetStore } from "@/store/useCanvasPresetStore";
 
 /**
  * Canvas preferences popover — render-level knobs (particles, grid, snapping,
@@ -83,6 +86,17 @@ export function CanvasPreferences() {
   const prefs = useCanvasPrefsStore();
   const setPref = useCanvasPrefsStore((s) => s.setPref);
   const resetPrefs = useCanvasPrefsStore((s) => s.resetPrefs);
+
+  const presets = useCanvasPresetStore((s) => s.presets);
+  const hydratePresets = useCanvasPresetStore((s) => s.hydrate);
+  const savePreset = useCanvasPresetStore((s) => s.save);
+  const applyPreset = useCanvasPresetStore((s) => s.apply);
+  const removePreset = useCanvasPresetStore((s) => s.remove);
+  const [presetName, setPresetName] = useState("");
+
+  useEffect(() => {
+    hydratePresets();
+  }, [hydratePresets]);
 
   const toggle = (key: keyof CanvasPrefs) => setPref(key, !prefs[key] as never);
 
@@ -217,6 +231,85 @@ export function CanvasPreferences() {
                   {prefs.animations ? "On" : "Off"}
                 </Pill>
               </Row>
+
+              <div>
+                <Row label="Accent theme" hint="recolours brass across the whole app">
+                  <div className="flex items-center gap-1.5">
+                    {ACCENT_THEME_IDS.map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setPref("theme", id)}
+                        title={ACCENT_THEMES[id].label}
+                        aria-label={`${ACCENT_THEMES[id].label} accent`}
+                        aria-pressed={prefs.theme === id}
+                        className={`h-5 w-5 rounded-full ring-offset-2 ring-offset-zinc-950 transition-transform hover:scale-110 ${
+                          prefs.theme === id ? "ring-2 ring-zinc-100" : "ring-1 ring-zinc-700"
+                        }`}
+                        style={{ backgroundColor: ACCENT_THEMES[id].hex }}
+                      />
+                    ))}
+                  </div>
+                </Row>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between py-1.5">
+                  <div className="min-w-0">
+                    <p className="text-[12px] text-zinc-200">Presets</p>
+                    <p className="text-[10.5px] leading-snug text-zinc-500">save + recall this whole setup</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 pb-2">
+                  <input
+                    value={presetName}
+                    onChange={(event) => setPresetName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && presetName.trim()) {
+                        savePreset(presetName);
+                        setPresetName("");
+                      }
+                    }}
+                    placeholder="Preset name"
+                    className="h-7 min-w-0 flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-[11.5px] text-zinc-200 placeholder:text-zinc-600"
+                  />
+                  <button
+                    type="button"
+                    disabled={!presetName.trim()}
+                    onClick={() => {
+                      savePreset(presetName);
+                      setPresetName("");
+                    }}
+                    className="flex h-7 items-center gap-1 rounded-md border border-zinc-800 px-2 text-[11px] font-medium text-zinc-300 hover:border-brass/50 hover:text-brass disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Plus size={12} /> Save
+                  </button>
+                </div>
+                {presets.length > 0 && (
+                  <ul className="flex flex-col gap-1 pb-2">
+                    {presets.map((preset) => (
+                      <li key={preset.id} className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => applyPreset(preset.id)}
+                          className="h-7 min-w-0 flex-1 truncate rounded-md border border-zinc-800 bg-zinc-900/60 px-2 text-left text-[11.5px] text-zinc-300 hover:border-brass/40 hover:text-zinc-100"
+                          title={`Apply “${preset.name}”`}
+                        >
+                          {preset.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removePreset(preset.id)}
+                          aria-label={`Delete ${preset.name}`}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-zinc-800 text-zinc-500 hover:border-red-500/60 hover:text-red-300"
+                        >
+                          <X size={12} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
             <button

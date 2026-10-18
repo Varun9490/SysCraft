@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { LogoMark } from "./SiteHeader";
+import { SEED_RESOURCES } from "@/data/seedResources";
+import { GUIDED_LABS } from "@/data/guidedLabs";
+import { TOTAL_LESSONS, TOTAL_MODULES } from "@/data/pathData";
 
 const PRODUCT_LINKS = [
   { href: "/learn", label: "Learning Path" },
@@ -19,9 +22,9 @@ const PRODUCT_LINKS = [
 ];
 
 const LIBRARY_LINKS = [
-  { href: "/wiki", label: "28 Infrastructure Primitives" },
-  { href: "/labs", label: "16 Real-world Systems" },
-  { href: "/learn", label: "137 Structured Lessons" },
+  { href: "/wiki/primitives", label: `${SEED_RESOURCES.length} Infrastructure Primitives` },
+  { href: "/labs", label: `${GUIDED_LABS.length} Real-world Systems` },
+  { href: "/learn", label: `${TOTAL_LESSONS} Structured Lessons` },
   { href: "/resources/new", label: "Custom Resource Studio" },
   { href: "/canvas", label: "IaC Export" },
 ];
@@ -54,6 +57,9 @@ export function SiteFooter() {
                   </Link>
                 </li>
               ))}
+              <li className="col-span-2 sm:col-span-1 text-[11px] tabular-nums text-content-tertiary">
+                {TOTAL_MODULES} modules · {TOTAL_LESSONS} lessons in the path
+              </li>
             </ul>
           </div>
 

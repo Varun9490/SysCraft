@@ -149,7 +149,7 @@ export function PathPageContent() {
                                   </p>
                                   {article && (
                                     <Link
-                                      href={`/encyclopedia?module=${article.id}`}
+                                      href={`/wiki/${article.id}`}
                                       className="inline-flex items-center gap-1.5 text-[12px] font-medium text-brass transition-colors hover:text-brass-bright"
                                     >
                                       <BookOpen size={13} />

@@ -49,6 +49,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         conceptTag: "consistent-hashing",
       },
     ],
+    keyNumbers: [
+      { value: "1/N", label: "Keys that move on a membership change", note: "Only the arc touching the node reassigns — not the whole keyspace." },
+      { value: "128-256", label: "Virtual nodes per physical node", note: "Averages many small arcs so no server owns a huge slice." },
+      { value: "~1.05x", label: "P99/P50 arc spread at 100 nodes × 256 vnodes", note: "Near-perfect load balance; 1 token per node is 5-10x at 5 nodes." },
+    ],
     relatedModuleIds: ["sharding-partitioning", "gossip-protocol"],
   },
   {
@@ -90,6 +95,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         explanation: "Stronger consistency costs extra replica round trips.",
         conceptTag: "cap",
       },
+    ],
+    keyNumbers: [
+      { value: "R + W > N", label: "The quorum overlap rule", note: "Guarantees at least one live replica saw the latest acknowledged write." },
+      { value: "2 RTTs", label: "QUORUM writes vs 1 for local reads", note: "Every consistency level up costs a replica round trip." },
+      { value: "~80 ms", label: "Cross-region RTT (us-east ↔ eu-west)", note: "Sync replication stalls writes by roughly this much." },
     ],
     relatedModuleIds: ["acid-vs-base", "replication"],
   },
@@ -133,6 +143,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         conceptTag: "raft",
       },
     ],
+    keyNumbers: [
+      { value: "3 of 5", label: "Majority needed to elect or commit", note: "Fail fewer than floor((N-1)/2) nodes and the group keeps running." },
+      { value: "150-300 ms", label: "Randomized election timeout window (etcd)", note: "Too tight causes churn; too loose lengthens failover." },
+      { value: "2 RTTs → 1", label: "Quorum reads vs leader-lease reads", note: "Leases drop one round trip but rely on a bounded clock grant." },
+    ],
     relatedModuleIds: ["cap-theorem", "replication"],
   },
   {
@@ -174,6 +189,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         explanation: "Bloom filters prove a key is absent without disk I/O.",
         conceptTag: "storage-engines",
       },
+    ],
+    keyNumbers: [
+      { value: "3-4", label: "Page reads per B-tree point lookup", note: "P99 lands around 1-10 ms on NVMe — stable but read-bound." },
+      { value: "≈4x", label: "Typical leveled-compaction write amplification", note: "Each byte written is rewritten several times by merges." },
+      { value: "≤2x", label: "LSM space amplification before compaction", note: "Tombstones and overwritten keys linger until merged away." },
     ],
     relatedModuleIds: ["sharding-partitioning", "bloom-filters"],
   },
@@ -217,6 +237,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         conceptTag: "caching",
       },
     ],
+    keyNumbers: [
+      { value: "10x", label: "Backend load cut from 90% → 99% hit ratio", note: "Misses are what backends serve: 0.10 → 0.01." },
+      { value: "+10%", label: "Random TTL jitter added to expirations", note: "Identical TTLs thundering-herd the origin on expiry." },
+      { value: "4x", label: "DB load cut from 80% → 95% hit ratio", note: "0.20 → 0.05 miss rate — linear inverse math." },
+    ],
     relatedModuleIds: ["load-balancing", "sharding-partitioning"],
   },
   {
@@ -258,6 +283,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         explanation: "Age captures user-visible delay; depth alone can mislead.",
         conceptTag: "load-balancing",
       },
+    ],
+    keyNumbers: [
+      { value: "2 probes", label: "Power-of-two-choices per pick", note: "Near-optimal queue-aware balancing at trivial cost." },
+      { value: "10%", label: "Retry budget as a share of total traffic", note: "One edge retry max; un-budgeted retries multiply outages." },
+      { value: "30-90 s", label: "Slow-start ramp for new instances", note: "Cold caches + JIT on full traffic melt fresh backends." },
     ],
     relatedModuleIds: ["caching-strategies", "message-queues"],
   },
@@ -301,6 +331,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         conceptTag: "queues",
       },
     ],
+    keyNumbers: [
+      { value: "30 s", label: "Default visibility timeout (SQS)", note: "Up to 12 h; heartbeat-extend long jobs or they run twice." },
+      { value: "256 KB", label: "Max payload per message", note: "Above that, store the blob in S3 and ship the pointer." },
+      { value: "3-5", label: "Redeliveries before the dead-letter queue", note: "A DLQ without alerting is just a slower way to lose data." },
+    ],
     relatedModuleIds: ["event-streaming", "load-balancing"],
   },
   {
@@ -342,6 +377,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         explanation: "Transactions dedup across retries and partitions.",
         conceptTag: "streaming",
       },
+    ],
+    keyNumbers: [
+      { value: "10k-100k", label: "Messages/s per partition per consumer thread", note: "Payload-dependent; partitions are the scaling unit." },
+      { value: "6-12", label: "Healthy partitions per broker", note: "More parallelism vs slower rebalances and more broker state." },
+      { value: "days × RF", label: "Disk = retention GB/day × days × replication factor", note: "The most commonly underestimated storage plan." },
     ],
     relatedModuleIds: ["message-queues", "sharding-partitioning"],
   },
@@ -385,6 +425,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         conceptTag: "sharding",
       },
     ],
+    keyNumbers: [
+      { value: "<100 GB", label: "Target shard size for fast moves", note: "Small shards reassign, rebuild, and recover quickly." },
+      { value: "10x", label: "Partitions vs physical nodes", note: "Move whole partitions to new nodes instead of splitting data." },
+      { value: "≤3", label: "Scatter-gather fanout that protects p99", note: "Every extra shard multiplies tail latency, not median." },
+    ],
     relatedModuleIds: ["consistent-hashing", "replication"],
   },
   {
@@ -426,6 +471,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         explanation: "Unreplicated tail is lost when the leader dies.",
         conceptTag: "replication",
       },
+    ],
+    keyNumbers: [
+      { value: "W + R > N", label: "Quorum overlap keeping reads fresh", note: "Fewer acks means stale reads become possible." },
+      { value: "1 ack", label: "Semi-sync minimum for no-loss single failure", note: "One synced replica + async tail = no latency cliff, no loss." },
+      { value: "<1 s", label: "In-region replica lag budget", note: "Lag above this surfaces as read-your-writes bugs." },
     ],
     relatedModuleIds: ["cap-theorem", "raft-consensus"],
   },
@@ -469,6 +519,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         conceptTag: "acid",
       },
     ],
+    keyNumbers: [
+      { value: "4", label: "Anomalies serializable eliminates", note: "Dirty reads, non-repeatables, phantoms, write skew." },
+      { value: "N", label: "Saga steps forward ↔ compensations back", note: "Durable, idempotent state machines or nothing." },
+      { value: "1 tx", label: "Outbox: state + event in one local commit", note: "The standard way to avoid 2PC across services." },
+    ],
     relatedModuleIds: ["cap-theorem", "message-queues"],
   },
   {
@@ -510,6 +565,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         explanation: "Filters prune file reads before disk I/O.",
         conceptTag: "bloom",
       },
+    ],
+    keyNumbers: [
+      { value: "10 bits", label: "Per key at ~1% false-positive rate", note: "About 1.2 bytes buys cheap disk-skip guarantees." },
+      { value: "7", label: "Hash functions at 10 bits/key", note: "k = 0.69 × (m/n); more than that wastes probes." },
+      { value: "1.2 MB", label: "Filter for 1M keys at 1% FP", note: "100M keys still fits in ~120MB of RAM." },
     ],
     relatedModuleIds: ["btree-vs-lsm", "merkle-trees"],
   },
@@ -553,6 +613,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         conceptTag: "merkle",
       },
     ],
+    keyNumbers: [
+      { value: "21", label: "Hash comparisons to diff 2M keys", note: "log₂(2M) — a whole-replica check on a tree walk." },
+      { value: "20", label: "Hashes to prove inclusion in a 1M-leaf tree", note: "Proofs are log-sized, so light clients verify cheaply." },
+      { value: "O(log n)", label: "Change detection instead of full sync", note: "Only divergent subtrees transfer — gigabytes to kilobytes." },
+    ],
     relatedModuleIds: ["bloom-filters", "replication"],
   },
   {
@@ -594,6 +659,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         explanation: "Gossip shines at scale without coordinators.",
         conceptTag: "gossip",
       },
+    ],
+    keyNumbers: [
+      { value: "O(log N)", label: "Rounds for one update to reach everyone", note: "Fanout 3 over 1000 nodes ≈ 6-7 rounds, loss-tolerant." },
+      { value: "3-6", label: "Fanout sweet spot per gossip round", note: "Higher converges faster and burns more bandwidth." },
+      { value: ">50", label: "Nodes (or multi-DC) where gossip beats a registry", note: "No coordinator means no coordination SPOF." },
     ],
     relatedModuleIds: ["consistent-hashing", "raft-consensus"],
   },
@@ -637,6 +707,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         conceptTag: "rate-limit",
       },
     ],
+    keyNumbers: [
+      { value: "429", label: "The only correct rejection signal", note: "Complain with Retry-After and RateLimit headers, never 5xx." },
+      { value: "0.8 ×", label: "Capacity derating when deriving limits", note: "Per-node safe RPS × nodes × 0.8, split across tenants." },
+      { value: "2", label: "Windows averaged by the sliding counter", note: "Near-exact limits with tiny memory — the pragmatic default." },
+    ],
     relatedModuleIds: ["load-balancing", "caching-strategies"],
   },
   {
@@ -678,6 +753,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         explanation: "1M * 768 * 4 bytes = ~2.9 GB.",
         conceptTag: "vector",
       },
+    ],
+    keyNumbers: [
+      { value: "≈2.9 GB", label: "RAM for 1M × 768-dim fp32 embeddings", note: "1M × 768 × 4 bytes — before index graph overhead." },
+      { value: "<10 ms", label: "HNSW p99 at high recall targets", note: "The latency/recall champion for serving." },
+      { value: "400-800", label: "Tokens per chunk (≈10% overlap)", note: "Smaller chunks retrieve sharper, larger carry context." },
     ],
     relatedModuleIds: ["llm-systems", "sharding-partitioning"],
   },
@@ -721,6 +801,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         conceptTag: "llm",
       },
     ],
+    keyNumbers: [
+      { value: "0.5-1.5 MB", label: "KV cache per token (70B, fp16)", note: "4k conversation ⇒ hundreds of MB; GQA cuts it several-fold." },
+      { value: "2x", label: "VRAM saved going int8 vs fp16", note: "Near-identical quality for most models; int4 needs calibration." },
+      { value: "#1", label: "Throughput lever: continuous batching", note: "Admit requests every step instead of letting batches drain." },
+    ],
     relatedModuleIds: ["vector-search", "load-balancing"],
   },
   {
@@ -762,6 +847,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         explanation: "Autonomy trades against distributed transactions.",
         conceptTag: "architecture",
       },
+    ],
+    keyNumbers: [
+      { value: "3+", label: "Teams colliding before splitting the monolith", note: "Below that, modular boundaries beat distributed calls." },
+      { value: "800 ms+", label: "Worst-case sync fanout: 10 hops × p99 100ms", note: "Sequential p99 multiplies; parallelize or cache the read model." },
+      { value: "1 DB", label: "Per service — data autonomy is the seam", note: "Shared schemas are the distributed-monolith factory." },
     ],
     relatedModuleIds: ["acid-vs-base", "message-queues"],
   },
@@ -805,6 +895,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
         conceptTag: "observability",
       },
     ],
+    keyNumbers: [
+      { value: "1-10%", label: "Head sample rate on normal traffic", note: "Errors and slow traces get tail-sampled at 100%." },
+      { value: "100%", label: "Tail-sampled error + p99-slow traces", note: "Rare failures keep full visibility at bounded cost." },
+      { value: "RED", label: "The per-service golden triad", note: "Rate, Errors, Duration — alert on symptoms, not causes." },
+    ],
     relatedModuleIds: ["load-balancing", "rate-limiting"],
   },
 ];
@@ -814,6 +909,36 @@ export const ENCYCLOPEDIA_MODULE_IDS: string[] = ENCYCLOPEDIA_MODULES.map((m) =>
 export const ENCYCLOPEDIA_MAP: Record<string, EncyclopediaModule> = Object.fromEntries(
   ENCYCLOPEDIA_MODULES.map((m) => [m.id, m]),
 );
+
+/**
+ * Short quiz conceptTags ("cap", "bloom", "queues"…) are historical aliases of
+ * module ids; resolve them so FSRS cards land under the right module.
+ * Exact matches and explicit overrides win; token containment is the fallback.
+ */
+const CONCEPT_TAG_ALIASES: Record<string, string> = {
+  cap: "cap-theorem",
+  raft: "raft-consensus",
+  "storage-engines": "btree-vs-lsm",
+  caching: "caching-strategies",
+  queues: "message-queues",
+  streaming: "event-streaming",
+  merkle: "merkle-trees",
+  gossip: "gossip-protocol",
+  "rate-limit": "rate-limiting",
+  vector: "vector-search",
+  llm: "llm-systems",
+  architecture: "microservices-monolith",
+};
+
+export function quizCardModuleId(conceptTag: string): string {
+  if (!conceptTag) return "general";
+  if (ENCYCLOPEDIA_MAP[conceptTag]) return conceptTag;
+  const alias = CONCEPT_TAG_ALIASES[conceptTag];
+  if (alias) return alias;
+  const token = new RegExp(`(^|-)${conceptTag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|-)`);
+  const fuzzy = ENCYCLOPEDIA_MODULES.find((m) => token.test(m.id));
+  return fuzzy?.id ?? "general";
+}
 
 export function getEncyclopediaModule(id: string): EncyclopediaModule | undefined {
   return ENCYCLOPEDIA_MAP[id];

@@ -15,6 +15,7 @@ import { ResourceNode } from "./ResourceNode";
 import { RegionGroupNode } from "./RegionGroupNode";
 import { TrafficParticleLayer } from "./TrafficParticleLayer";
 import { FloatingToolbar } from "./FloatingToolbar";
+import { OnboardingOverlay } from "./OnboardingOverlay";
 import { OutlineMode } from "./OutlineMode";
 import { DesignDoctorPanel } from "./DesignDoctorPanel";
 import { useCanvasStore, type CanvasFlowNode } from "@/store/useCanvasStore";
@@ -150,6 +151,7 @@ function CanvasInner({ className }: { className: string }) {
       </ReactFlow>
       <TrafficParticleLayer />
       <FloatingToolbar />
+      {!outlineMode && nodes.length === 0 && <OnboardingOverlay />}
       {!outlineMode && (
         <DesignDoctorPanel open={doctorOpen} onClose={() => useCanvasStore.getState().setDoctorOpen(false)} />
       )}

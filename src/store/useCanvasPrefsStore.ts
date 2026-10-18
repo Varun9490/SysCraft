@@ -10,6 +10,36 @@ import { create } from "zustand";
 
 export type GridStyle = "dots" | "lines" | "cross";
 export type EdgeRouting = "smoothstep" | "bezier" | "straight";
+export type AccentThemeId = "brass" | "copper" | "sage" | "slate" | "plum" | "teal";
+
+/**
+ * Curated accent themes. Every entry is deliberately desaturated so it stays
+ * inside the warm-charcoal design language — no saturated neon, no hue that
+ * fights the status colours. `hex` is only used for the picker swatch.
+ */
+export const ACCENT_THEMES: Record<
+  AccentThemeId,
+  { label: string; accent: string; accentBright: string; accentDeep: string; hex: string }
+> = {
+  brass: { label: "Brass", accent: "205 168 106", accentBright: "219 187 134", accentDeep: "154 118 66", hex: "#CDA86A" },
+  copper: { label: "Copper", accent: "198 132 96", accentBright: "216 158 122", accentDeep: "150 92 60", hex: "#C68460" },
+  sage: { label: "Sage", accent: "148 170 122", accentBright: "174 192 152", accentDeep: "104 126 84", hex: "#94AA7A" },
+  slate: { label: "Slate", accent: "132 160 178", accentBright: "158 184 200", accentDeep: "92 118 136", hex: "#84A0B2" },
+  plum: { label: "Plum", accent: "172 140 168", accentBright: "196 168 192", accentDeep: "128 100 126", hex: "#AC8CA8" },
+  teal: { label: "Teal", accent: "116 168 160", accentBright: "146 192 184", accentDeep: "80 128 122", hex: "#74A8A0" },
+};
+
+export const ACCENT_THEME_IDS: AccentThemeId[] = ["brass", "copper", "sage", "slate", "plum", "teal"];
+
+/** Applies a theme's accent triple to the document root CSS variables. */
+export function applyAccentTheme(id: AccentThemeId): void {
+  if (typeof document === "undefined") return;
+  const theme = ACCENT_THEMES[id] ?? ACCENT_THEMES.brass;
+  const root = document.documentElement;
+  root.style.setProperty("--accent", theme.accent);
+  root.style.setProperty("--accent-bright", theme.accentBright);
+  root.style.setProperty("--accent-deep", theme.accentDeep);
+}
 
 export interface CanvasPrefs {
   /** Master switch for the 60fps packet overlay. */
@@ -26,6 +56,8 @@ export interface CanvasPrefs {
   edgeStyle: EdgeRouting;
   /** When off, CSS animations (dash flow, node enter, pulses) are disabled. */
   animations: boolean;
+  /** Accent theme applied to the whole app. */
+  theme: AccentThemeId;
 }
 
 export const DEFAULT_CANVAS_PREFS: CanvasPrefs = {
@@ -38,6 +70,7 @@ export const DEFAULT_CANVAS_PREFS: CanvasPrefs = {
   snapGridSize: 16,
   edgeStyle: "smoothstep",
   animations: true,
+  theme: "brass",
 };
 
 export const CANVAS_PREFS_KEY = "syscraft.canvas.prefs";
@@ -69,6 +102,9 @@ export function sanitizePrefs(raw: unknown): CanvasPrefs {
   if (typeof input.edgeStyle === "string" && (EDGE_ROUTINGS as readonly string[]).includes(input.edgeStyle)) {
     prefs.edgeStyle = input.edgeStyle as EdgeRouting;
   }
+  if (typeof input.theme === "string" && (ACCENT_THEME_IDS as readonly string[]).includes(input.theme)) {
+    prefs.theme = input.theme as AccentThemeId;
+  }
   return prefs;
 }
 
@@ -95,6 +131,7 @@ function persistPrefs(prefs: CanvasPrefs): void {
 interface CanvasPrefsState extends CanvasPrefs {
   hydrated: boolean;
   setPref: <K extends keyof CanvasPrefs>(key: K, value: CanvasPrefs[K]) => void;
+  applyPrefs: (prefs: Partial<CanvasPrefs>) => void;
   resetPrefs: () => void;
   hydratePrefs: () => void;
 }
@@ -110,6 +147,7 @@ function snapshotPrefs(state: CanvasPrefsState): CanvasPrefs {
     snapGridSize: state.snapGridSize,
     edgeStyle: state.edgeStyle,
     animations: state.animations,
+    theme: state.theme,
   };
 }
 
@@ -119,6 +157,11 @@ export const useCanvasPrefsStore = create<CanvasPrefsState>()((set, get) => ({
 
   setPref: (key, value) => {
     set({ [key]: value } as unknown as Partial<CanvasPrefsState>);
+    persistPrefs(snapshotPrefs(get()));
+  },
+
+  applyPrefs: (partial) => {
+    set(sanitizePrefs({ ...snapshotPrefs(get()), ...partial }) as Partial<CanvasPrefsState>);
     persistPrefs(snapshotPrefs(get()));
   },
 
