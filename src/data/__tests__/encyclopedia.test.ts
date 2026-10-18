@@ -15,8 +15,8 @@ import { PATH_PARTS, TOTAL_LESSONS, TOTAL_MODULES } from "@/data/pathData";
  */
 
 describe("encyclopedia modules", () => {
-  it("ships 28 uniquely-identified modules (19 base + 9 curriculum, 3 IDs duplicate)", () => {
-    expect(ENCYCLOPEDIA_MODULES).toHaveLength(28);
+  it("ships 25 uniquely-identified modules (19 base + 6 curriculum)", () => {
+    expect(ENCYCLOPEDIA_MODULES).toHaveLength(25);
     expect(new Set(ENCYCLOPEDIA_MODULE_IDS).size).toBe(25);
   });
 

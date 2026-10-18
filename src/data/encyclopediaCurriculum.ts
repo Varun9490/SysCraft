@@ -157,30 +157,6 @@ These patterns combine in real architectures: sharding + replication + rate limi
     keyNumbers: [],
   },
   {
-    id: "sharding-partitioning",
-    title: "Sharding & Partition Strategies",
-    difficulty: "advanced",
-    estimatedMinutes: 30,
-    summary: "When and how to split data across nodes: range partitioning, hash partitioning, and composite sharding with resharding events.",
-    bodyMarkdown: `# Sharding and Partition Strategies
-
-Sharding splits a dataset across nodes. Range partitioning puts sorted ranges on nodes; hash partitioning distributes keys uniformly. Composite sharding combines hash and range for multi-dimensional partitioning.
-
-When nodes join or leave, consistent hashing minimizes data movement; range sharding requires splitting or merging ranges. Hot spots occur when one shard carries more load; splitting or adding replicas addresses them.
-`,
-    tradeOffs: [
-      { dimension: "Range vs hash", optionA: "Range (ordered)", optionB: "Hash (even load)", recommendation: "Range for ordered queries; hash for uniform load" },
-      { dimension: "Resharding", optionA: "Online (copy + cutover)", optionB: "Offline (stop + migrate)", recommendation: "Online for zero-downtime" },
-    ],
-    whenToUse: ["Large datasets", "Multi-region replication", "Elastic scaling"],
-    whenNotToUse: ["Small fixed-size datasets"],
-    relatedModuleIds: ["consistent-hashing", "system-design-primer-curriculum"],
-    interactiveVisual: "none",
-    flashcards: [],
-    quiz: [],
-    keyNumbers: [],
-  },
-  {
     id: "replication-consistency",
     title: "Replication & Consistency Levels",
     difficulty: "intermediate",
@@ -198,52 +174,6 @@ Quorum replication balances speed and durability: faster than synchronous but sa
     whenToUse: ["Durable systems", "Multi-region availability", "Consensus-built designs"],
     whenNotToUse: ["Single-node deployments"],
     relatedModuleIds: ["cap-theorem", "raft-consensus"],
-    interactiveVisual: "none",
-    flashcards: [],
-    quiz: [],
-    keyNumbers: [],
-  },
-  {
-    id: "gossip-protocol",
-    title: "Gossip Protocols & Epidemic Broadcast",
-    difficulty: "intermediate",
-    estimatedMinutes: 24,
-    summary: "How nodes share state without central coordination — epidemic broadcast, anti-entropy, and failure detection.",
-    bodyMarkdown: `# Gossip Protocols
-
-Gossip protocols spread information through pairwise exchanges. Each node picks a random peer and shares updates; over time every node learns everything. Anti-entropy compares full state vectors periodically; failure detectors use heartbeat timeouts.
-
-Epidemic broadcast achieves high reliability with minimal coordination but introduces eventual consistency delays. It works well for cluster membership, cache invalidation, and service discovery.
-`,
-    tradeOffs: [
-      { dimension: "Epidemic vs direct", optionA: "Epidemic", optionB: "Direct broadcast", recommendation: "Epidemic for large clusters; direct for small clusters" },
-    ],
-    whenToUse: ["Cluster membership", "Service discovery", "Cache invalidation"],
-    whenNotToUse: ["Strict consistency requirements", "Ordered delivery needs"],
-    relatedModuleIds: ["consistent-hashing", "replication-consistency"],
-    interactiveVisual: "none",
-    flashcards: [],
-    quiz: [],
-    keyNumbers: [],
-  },
-  {
-    id: "rate-limiting",
-    title: "Rate Limiting & Throttling Design",
-    difficulty: "foundations",
-    estimatedMinutes: 20,
-    summary: "Token bucket, leaky bucket, fixed window, and sliding window rate limiters — with design patterns for distributed enforcement.",
-    bodyMarkdown: `# Rate Limiting and Throttling Design
-
-Rate limiters protect downstream systems from overload. Token buckets allow short bursts by accumulating tokens over time; leaky buckets enforce a constant outflow by dropping excess. Sliding window rate limiters provide smoother limits than fixed windows.
-
-Distributed rate limiters share state through a central store (Redis) or approximate with local counters plus periodic sync. Central stores add latency; approximate methods allow some over-limit calls.
-`,
-    tradeOffs: [
-      { dimension: "Token vs leaky", optionA: "Token (burst allowed)", optionB: "Leaky (constant outflow)", recommendation: "Token for user APIs; leaky for pipeline limits" },
-    ],
-    whenToUse: ["API protection", "Resource protection", "Fair scheduling"],
-    whenNotToUse: ["Low-traffic internal services"],
-    relatedModuleIds: ["system-design-primer-curriculum"],
     interactiveVisual: "none",
     flashcards: [],
     quiz: [],
