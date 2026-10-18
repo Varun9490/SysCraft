@@ -102,6 +102,28 @@ export const TradeOffRowSchema = z.object({
 
 export type TradeOffRow = z.infer<typeof TradeOffRowSchema>;
 
+/**
+ * One network surface of a primitive: the port it listens on, what protocol
+ * speaks there, the in-container port mapping, and how it is exposed.
+ * Rendered by the node inspector ("Service ports & mapping"), node chrome,
+ * and the K8s/Docker IaC compilers.
+ */
+export const ServicePortSchema = z.object({
+  /** Human label, e.g. "Client HTTPS", "gRPC API", "etcd peer traffic". */
+  label: z.string().min(1),
+  /** The port other services dial into. */
+  port: z.number().int().min(1).max(65535),
+  protocol: z.enum(["tcp", "udp", "http", "https", "grpc", "kafka", "quic"]),
+  /** The port the container/pod actually listens on (defaults to `port`). */
+  containerPort: z.number().int().min(1).max(65535).optional(),
+  /** How the port is exposed to callers. */
+  expose: z
+    .enum(["cluster", "node", "loadbalancer", "internet"])
+    .default("cluster"),
+});
+
+export type ServicePort = z.infer<typeof ServicePortSchema>;
+
 export const ResourceDefinitionSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -118,6 +140,8 @@ export const ResourceDefinitionSchema = z.object({
   whenToUse: z.array(z.string()).default([]),
   whenNotToUse: z.array(z.string()).default([]),
   scalingNotes: z.string().default(""),
+  /** Network surfaces: which port each service exposes and how it maps. */
+  servicePorts: z.array(ServicePortSchema).optional(),
 });
 
 export type ResourceDefinition = z.infer<typeof ResourceDefinitionSchema>;
@@ -140,6 +164,8 @@ export const ResourceOverridesSchema = z.object({
   region: z.string().optional(),
   multiAz: z.boolean().optional(),
   clientRps: z.number().min(0).optional(),
+  /** User-decided per-replica hourly cost (USD); overrides the primitive default. */
+  costPerHourUsd: z.number().min(0).optional(),
 });
 
 export type ResourceOverrides = z.infer<typeof ResourceOverridesSchema>;

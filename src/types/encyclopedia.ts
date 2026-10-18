@@ -110,6 +110,9 @@ export const EncyclopediaModuleSchema = z.object({
   quiz: z.array(QuizQuestionSchema).default([]),
   keyNumbers: z.array(KeyNumberSchema).default([]),
   relatedModuleIds: z.array(z.string()).default([]),
+  whenToUse: z.array(z.string()).optional(),
+  whenNotToUse: z.array(z.string()).optional(),
+  scalingNotes: z.string().optional(),
 });
 
 export type EncyclopediaModule = z.infer<typeof EncyclopediaModuleSchema>;

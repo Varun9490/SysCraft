@@ -524,7 +524,7 @@ export function stepSimulationTick(
     totalDropped += Math.min(lambda, accountedDrops);
     if (p99 > globalP99) globalP99 = p99;
     if ((indegree.get(node.id) ?? 0) === 0) entryRps += outputRps;
-    totalCost += meta.costPerHourUsd * Math.max(1, Math.floor(node.replicationFactor));
+    totalCost += (node.costPerHourUsdOverride ?? meta.costPerHourUsd) * Math.max(1, Math.floor(node.replicationFactor));
   }
 
   for (const edge of topology.edges) {

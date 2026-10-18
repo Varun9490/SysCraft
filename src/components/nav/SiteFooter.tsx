@@ -12,7 +12,6 @@ const PRODUCT_LINKS = [
   { href: "/labs", label: "System Labs" },
   { href: "/flowchart", label: "Design Flowchart" },
   { href: "/play", label: "Play Modes" },
-  { href: "/library", label: "Curated Library" },
   { href: "/practice", label: "FSRS Review" },
   { href: "/room", label: "Live Rooms" },
   { href: "/progress", label: "Progress" },
@@ -26,7 +25,6 @@ const LIBRARY_LINKS = [
   { href: "/wiki/primitives", label: `${SEED_RESOURCES.length} Infrastructure Primitives` },
   { href: "/labs", label: `${GUIDED_LABS.length} Real-world Systems` },
   { href: "/learn", label: `${TOTAL_LESSONS} Structured Lessons` },
-  { href: "/library", label: "16 Canonical External Sources" },
   { href: "/resources/new", label: "Custom Resource Studio" },
   { href: "/canvas", label: "IaC Export" },
 ];
@@ -66,7 +64,7 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">Library</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">Resources</h3>
             <ul className="mt-4 space-y-2.5">
               {LIBRARY_LINKS.map((link) => (
                 <li key={link.label}>

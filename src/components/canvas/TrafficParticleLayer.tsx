@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useViewport } from "@xyflow/react";
 import { simSnapshotRef } from "@/store/useSimStore";
 import { useCanvasPrefsStore } from "@/store/useCanvasPrefsStore";
+import { useCanvasStore, type CanvasEdgeData, type EdgeCondition } from "@/store/useCanvasStore";
 
 /**
  * Decoupled 60 FPS HTML5 Canvas packet overlay.
@@ -14,9 +15,15 @@ import { useCanvasPrefsStore } from "@/store/useCanvasPrefsStore";
  * transform — so traffic follows the visible curve/step/line of every edge,
  * never a straight center-to-center chord.
  *
+ * Flowchart conditions route particles: `cache_hit` / `cache_miss` split at the
+ * source's live hit ratio, `read` / `write` split at the source's write mix,
+ * `rate_limited` carries only dropped RPS, `error` tracks the target's error
+ * rate, and `async` renders dashed outside the critical path.
+ *
  * Perf contract: reads live RPS/latency/error only from the mutable
  * `simSnapshotRef` inside a requestAnimationFrame loop — zero Zustand
- * subscriptions per tick, zero React re-renders while the sim runs.
+ * subscriptions per tick, zero React re-renders while the sim runs. Edge
+ * conditions arrive once per structural change (single store read).
  */
 
 const MAX_PARTICLES_PER_EDGE = 40;
@@ -48,12 +55,25 @@ export function TrafficParticleLayer() {
   const viewportRef = useRef(viewport);
   const prefsRef = useRef({ showParticles, particleDensity });
 
+  // Structure changes rarely; mirror edge → condition into a ref for the rAF loop.
+  const edges = useCanvasStore((s) => s.edges);
+  const edgeDecorRef = useRef<Map<string, { condition: EdgeCondition; source: string }>>(new Map());
+
   useEffect(() => {
     viewportRef.current = viewport;
   }, [viewport]);
   useEffect(() => {
     prefsRef.current = { showParticles, particleDensity };
   }, [showParticles, particleDensity]);
+  useEffect(() => {
+    const next = new Map<string, { condition: EdgeCondition; source: string }>();
+    for (const edge of edges) {
+      const data = (edge.data ?? {}) as CanvasEdgeData;
+      const condition = data.condition ?? "none";
+      if (condition !== "none") next.set(edge.id, { condition, source: edge.source });
+    }
+    edgeDecorRef.current = next;
+  }, [edges]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -127,7 +147,51 @@ export function TrafficParticleLayer() {
           const edgeId = wrapper.getAttribute("data-id");
           if (!edgeId) continue;
           const flow = snapshot.edges[edgeId];
-          const rps = flow?.rps ?? 0;
+          let rps = flow?.rps ?? 0;
+          let errorRate = flow?.errorRate ?? 0;
+          let dashed = false;
+
+          // Flowchart-condition routing: reshape which traffic rides this edge.
+          const decor = edgeDecorRef.current.get(edgeId);
+          if (decor) {
+            const sourceTelem = snapshot.nodes[decor.source];
+            const hitRatio = Math.max(0, Math.min(1, (sourceTelem?.cacheHitPct ?? 0) / 100));
+            const errRatio = Math.max(0, Math.min(1, (sourceTelem?.errorRate ?? 0) / 100));
+            let writeRatio = 0.2;
+            if (decor.condition === "read" || decor.condition === "write") {
+              const node = useCanvasStore.getState().nodes.find((n) => n.id === decor.source);
+              const overrides = node?.data?.overrides;
+              writeRatio = Math.max(0, Math.min(1, Number(overrides?.writeRatio ?? 0.2)));
+            }
+            switch (decor.condition) {
+              case "cache_hit":
+                rps *= hitRatio;
+                if (rps > 0.5) errorRate = 0;
+                break;
+              case "cache_miss":
+                rps *= 1 - hitRatio;
+                break;
+              case "read":
+                rps *= 1 - writeRatio;
+                break;
+              case "write":
+                rps *= writeRatio;
+                break;
+              case "rate_limited":
+                rps = sourceTelem?.droppedRps ?? 0;
+                errorRate = 1;
+                break;
+              case "error":
+                rps *= errRatio;
+                errorRate = 1;
+                break;
+              case "async":
+                dashed = true;
+                break;
+              default:
+                break;
+            }
+          }
           if (!(rps > 0.5)) continue;
 
           // Edges hidden by React Flow (collapsed/minimap clones) have no box.
@@ -150,7 +214,9 @@ export function TrafficParticleLayer() {
           }
           ctx.strokeStyle = `rgba(${rgb}, 0.22)`;
           ctx.lineWidth = Math.max(1, 1.4 * vp.zoom);
+          if (dashed) ctx.setLineDash([6 * Math.max(1, vp.zoom), 7 * Math.max(1, vp.zoom)]);
           ctx.stroke();
+          if (dashed) ctx.setLineDash([]);
 
           const count = Math.max(1, Math.min(MAX_PARTICLES_PER_EDGE, Math.round((rps / 150) * density)));
           const latencyMs = flow?.latencyMs ?? 50;

@@ -189,13 +189,13 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
       )}
 
       <div
-        className="syscraft-node-enter group relative select-none"
+        className="syscraft-node-enter group relative select-none transition-transform duration-200 ease-out will-change-transform hover:scale-[1.015]"
         style={{ width, height }}
         title={tooltip}
       >
         <div
-          className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl border bg-zinc-950 transition-[border-color,box-shadow] duration-200 ${
-            selected ? "shadow-[0_0_0_3px_rgba(125,211,252,0.18),0_16px_40px_-16px_rgba(0,0,0,0.9)]" : ""
+          className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl border bg-zinc-950 transition-[border-color,box-shadow,transform] duration-200 ${
+            selected ? "shadow-[0_0_0_3px_rgba(125,211,252,0.18),0_16px_40px_-16px_rgba(0,0,0,0.9)]" : "group-hover:shadow-[0_14px_36px_-18px_rgba(0,0,0,0.85)]"
           }`}
           style={{ borderColor: selected ? "#7dd3fc" : `${accent}55` }}
         >

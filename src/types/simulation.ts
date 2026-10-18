@@ -71,6 +71,8 @@ export const GraphNodeSchema = z.object({
   baseP99Ms: z.number().min(0).default(40),
   region: z.string().default("us-east-1"),
   loadBalancer: LoadBalancerAlgorithmSchema.default("round_robin"),
+  /** User-decided per-replica hourly cost; overrides the primitive default. */
+  costPerHourUsdOverride: z.number().min(0).optional(),
 });
 
 export type GraphNode = z.infer<typeof GraphNodeSchema>;

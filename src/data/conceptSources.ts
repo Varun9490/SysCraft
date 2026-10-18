@@ -328,17 +328,68 @@ export const CONCEPT_DEFINITIONS: ConceptDefinition[] = [
   {
     moduleId: "observability-tracing",
     definition:
-      "Observability answers three different questions with three signals — metrics say how much, logs say what happened, traces say where the time went — and SRE practice wires them to SLOs so alerting fires on burned error budgets, not on harmless noise.",
+      "Observability is three signals: metrics (how much), logs (what), traces (where the time went); SRE practice binds them to SLOs and burn-rate alerts.",
     sources: [
       {
         label: "OpenTelemetry documentation",
         url: "https://opentelemetry.io/docs/",
-        note: "Traces, spans, context propagation, and the collector in standard form.",
+        note: "Standard traces, spans, and collectors in operational form.",
       },
       {
         label: "Google SRE Workbook — Alerting on SLOs",
         url: "https://sre.google/workbook/alerting-on-slos/",
-        note: "Burn-rate alerting math — the multiwindow recipe most teams copy.",
+        note: "Burn-rate alerting math from the standard SRE reference.",
+      },
+    ],
+  },
+  {
+    moduleId: "tokenization-basics",
+    definition:
+      "Tokenization converts text to integer sequences; vocabulary size and encoding algorithm are design choices that directly impact memory footprint and latency.",
+    sources: [
+      {
+        label: "Byte Pair Encoding (Sennrich et al. 2016)",
+        url: "https://arxiv.org/abs/1508.07909",
+        note: "The BPE paper adopted by GPT-family tokenizers.",
+      },
+      {
+        label: "microsoft/generative-ai-for-beginners",
+        url: "https://github.com/microsoft/generative-ai-for-beginners",
+        note: "Module on tokenization and embeddings from the Microsoft generative AI curriculum.",
+      },
+    ],
+  },
+  {
+    moduleId: "embeddings-vector-db",
+    definition:
+      "Dense vector representations make semantic similarity measurable; approximate nearest-neighbor indexes (HNSW, IVF) replace exact search at scale.",
+    sources: [
+      {
+        label: "Efficient and robust approximate nearest neighbor search (Malkov & Yashunin 2018)",
+        url: "https://arxiv.org/abs/1603.09320",
+        note: "The foundational HNSW paper adopted in Milvus, Weaviate, Pinecone.",
+      },
+      {
+        label: "microsoft/generative-ai-for-beginners — embeddings module",
+        url: "https://github.com/microsoft/generative-ai-for-beginners",
+        note: "Embedding concepts explained in the Microsoft curriculum.",
+      },
+    ],
+  },
+  {
+    moduleId: "system-design-primer-curriculum",
+    definition:
+      "Key abstractions from the system design primer mapped to primitives: sharding, replication, rate limiting, caching — each with its design trade-offs.",
+    sources: [
+      {
+        label: "donnemartin/system-design-primer",
+        url: "https://github.com/donnemartin/system-design-primer",
+        note: "Canonical primer covering sharding, replication, rate limiting, caching, consistency.",
+      },
+      {
+        label: "ossu/computer-science course guide",
+        url: "https://github.com/ossu/computer-science",
+        note: "Canonical reference for algorithms and distributed systems concepts used in this curriculum.",
       },
     ],
   },

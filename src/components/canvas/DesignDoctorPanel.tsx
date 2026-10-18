@@ -73,7 +73,7 @@ export function DesignDoctorPanel({ open, onClose }: DesignDoctorPanelProps) {
         transition={{ type: "spring", stiffness: 320, damping: 30 }}
         role="complementary"
         aria-label="Design Doctor report"
-        className="pointer-events-auto absolute right-3 top-16 z-30 flex max-h-[calc(100%-6.5rem)] w-[400px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/95 shadow-2xl backdrop-blur"
+        className="pointer-events-auto absolute right-3 top-16 z-30 flex max-h-[calc(100%-6.5rem)] w-[400px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
       >
         <header className="flex shrink-0 items-center gap-2 border-b border-zinc-800/80 px-3.5 py-2.5">
           <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/10">

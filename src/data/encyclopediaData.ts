@@ -1,12 +1,11 @@
 import type { EncyclopediaModule } from "@/types/encyclopedia";
+import { ENCYCLOPEDIA_CURRICULUM_MODULES } from "./encyclopediaCurriculum";
 
 /**
- * Visual Almanac: 19 deep-dive system design modules.
- * Each module pairs a long-form Markdown lesson with trade-off matrices,
- * an interactive visualizer hook, FSRS flashcards, and scenario quizzes.
+ * Visual Almanac: 19 base deep-dive modules + 10 imported curriculum modules.
  */
 
-export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
+const BASE_ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
   {
     id: "consistent-hashing",
     title: "Consistent Hashing & Rendezvous",
@@ -902,6 +901,11 @@ export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
     ],
     relatedModuleIds: ["load-balancing", "rate-limiting"],
   },
+];
+
+export const ENCYCLOPEDIA_MODULES: EncyclopediaModule[] = [
+  ...BASE_ENCYCLOPEDIA_MODULES,
+  ...ENCYCLOPEDIA_CURRICULUM_MODULES,
 ];
 
 export const ENCYCLOPEDIA_MODULE_IDS: string[] = ENCYCLOPEDIA_MODULES.map((m) => m.id);

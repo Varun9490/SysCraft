@@ -40,7 +40,7 @@ export function OnboardingOverlay() {
         initial={{ opacity: 0, y: 18, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={containerSpring}
-        className="pointer-events-auto w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950/95 p-6 shadow-2xl backdrop-blur"
+        className="pointer-events-auto w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl"
       >
         <motion.span
           initial={{ opacity: 0, y: -6 }}

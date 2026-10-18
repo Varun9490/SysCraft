@@ -1,15 +1,18 @@
 'use client';
 
-import { useMemo, useState } from "react";
-import { ChevronDown, FlaskConical, Plus, Search } from "@/components/ui/icons";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, FlaskConical, Plus, Search, Wrench } from "@/components/ui/icons";
 import { CATEGORY_ICON } from "@/components/canvas/ResourceNode";
 import { SEED_RESOURCES } from "@/data/seedResources";
+import { listRegisteredCustomResources } from "@/store/customResourceRegistry";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import type { ResourceCategory } from "@/types/resource";
 
 /**
  * Searchable, category-grouped palette of every canvas primitive. Categories
- * collapse so the rail reads as a compact index instead of a 32-row wall.
+ * collapse so the rail reads as a compact index instead of a 48-row wall.
+ * User-authored primitives from the Custom Resource Studio surface in a
+ * dedicated "Your primitives" group on top.
  */
 
 const CATEGORY_ORDER: ResourceCategory[] = [
@@ -36,23 +39,70 @@ function prettyCategory(category: string): string {
 
 export function ResourcesPanel() {
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState<Set<string>>(new Set(["edge", "compute"]));
+  const [open, setOpen] = useState<Set<string>>(new Set(["edge", "compute", "__custom__"]));
+  const [customs, setCustoms] = useState(() => listRegisteredCustomResources());
+
+  const refreshCustoms = useCallback(() => {
+    setCustoms(listRegisteredCustomResources());
+  }, []);
+
+  // Custom Resource Studio saves dispatch this event; also re-read once after
+  // the async IndexedDB hydration completes.
+  useEffect(() => {
+    window.addEventListener("syscraft-custom-resources-changed", refreshCustoms);
+    const timer = window.setTimeout(refreshCustoms, 600);
+    return () => {
+      window.removeEventListener("syscraft-custom-resources-changed", refreshCustoms);
+      window.clearTimeout(timer);
+    };
+  }, [refreshCustoms]);
 
   const trimmed = query.trim().toLowerCase();
 
-  const grouped = useMemo(() => {
-    return CATEGORY_ORDER.map((category) => ({
-      category,
-      items: SEED_RESOURCES.filter((r) => r.category === category),
-    })).filter((group) => group.items.length > 0);
-  }, []);
+  type PaletteItem = { id: string; name: string; strokeColor: string; category: ResourceCategory };
+  type PaletteGroup = { category: string; items: PaletteItem[] };
 
-  const filtered = useMemo(() => {
+  const grouped = useMemo<PaletteGroup[]>(() => {
+    const core: PaletteGroup[] = CATEGORY_ORDER.map((category) => ({
+      category,
+      items: SEED_RESOURCES.filter((r) => r.category === category).map(
+        (r): PaletteItem => ({ id: r.id, name: r.name, strokeColor: r.strokeColor, category: r.category }),
+      ),
+    })).filter((group) => group.items.length > 0);
+    if (customs.length === 0) return core;
+    return [
+      ...core,
+      {
+        category: "__custom__",
+        items: customs.map(
+          (c): PaletteItem => ({
+            id: c.id,
+            name: c.name,
+            strokeColor: c.strokeColor,
+            category: c.category,
+          }),
+        ),
+      },
+    ];
+  }, [customs]);
+
+  const filtered = useMemo<PaletteItem[]>(() => {
     if (!trimmed) return [];
-    return SEED_RESOURCES.filter(
-      (r) => r.name.toLowerCase().includes(trimmed) || r.category.toLowerCase().includes(trimmed),
+    const all: PaletteItem[] = [
+      ...SEED_RESOURCES.map(
+        (r): PaletteItem => ({ id: r.id, name: r.name, strokeColor: r.strokeColor, category: r.category }),
+      ),
+      ...customs.map(
+        (c): PaletteItem => ({ id: c.id, name: c.name, strokeColor: c.strokeColor, category: c.category }),
+      ),
+    ];
+    return all.filter(
+      (r) =>
+        r.name.toLowerCase().includes(trimmed) ||
+        r.category.toLowerCase().includes(trimmed) ||
+        r.id.toLowerCase().includes(trimmed),
     );
-  }, [trimmed]);
+  }, [trimmed, customs]);
 
   const addNode = (resourceId: string, name: string) => {
     const count = useCanvasStore.getState().nodes.length;
@@ -70,7 +120,7 @@ export function ResourcesPanel() {
     });
   };
 
-  const renderRow = (resource: (typeof SEED_RESOURCES)[number]) => {
+  const renderRow = (resource: PaletteItem) => {
     const Icon = CATEGORY_ICON[resource.category] ?? FlaskConical;
     return (
       <button
@@ -115,8 +165,10 @@ export function ResourcesPanel() {
           </>
         ) : (
           grouped.map(({ category, items }) => {
+            const isCustomGroup = category === "__custom__";
             const isOpen = open.has(category);
-            const Icon = CATEGORY_ICON[category] ?? FlaskConical;
+            const GroupIcon = isCustomGroup ? Wrench : CATEGORY_ICON[category as ResourceCategory] ?? FlaskConical;
+            const pretty = isCustomGroup ? "Your primitives" : prettyCategory(category);
             return (
               <div key={category} className="mb-1">
                 <button
@@ -124,9 +176,13 @@ export function ResourcesPanel() {
                   onClick={() => toggle(category)}
                   className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors hover:bg-zinc-800/50"
                 >
-                  <Icon size={13} className="shrink-0 text-zinc-500" />
-                  <span className="flex-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
-                    {prettyCategory(category)}
+                  <GroupIcon size={13} className="shrink-0 text-zinc-500" />
+                  <span
+                    className={`flex-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400 ${
+                      isCustomGroup ? "text-sky-300/90" : ""
+                    }`}
+                  >
+                    {pretty}
                   </span>
                   <span className="text-[10.5px] tabular-nums text-zinc-600">{items.length}</span>
                   <ChevronDown

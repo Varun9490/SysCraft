@@ -124,7 +124,7 @@ export function CanvasPreferences() {
             className="fixed inset-0 z-40 cursor-default"
             tabIndex={-1}
           />
-          <div className="absolute right-0 top-9 z-50 w-[300px] rounded-xl border border-zinc-800 bg-zinc-950/95 p-3 shadow-2xl backdrop-blur">
+          <div className="absolute right-0 top-9 z-50 w-[300px] rounded-xl border border-zinc-800 bg-zinc-950 p-3 shadow-2xl">
             <div className="mb-1 flex items-center justify-between">
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
                 Canvas preferences

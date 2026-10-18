@@ -144,6 +144,9 @@ export function compileDockerCompose(topology: GraphTopology): string {
     const seed = seedById.get(n.resourceId);
     const name = serviceName.get(n.id) ?? n.id;
     const port = 8000 + i;
+    const primaryPort = seed?.servicePorts?.[0];
+    const hostPort = primaryPort?.port ?? port;
+    const containerPort = primaryPort?.containerPort ?? primaryPort?.port ?? 80;
     const needs = (deps.get(n.id) ?? []).filter((d) => d !== name);
     lines.push(`  ${name}:`);
     lines.push(`    image: ${dockerImageFor(n.resourceId, seed?.category ?? "compute")}`);
@@ -152,7 +155,10 @@ export function compileDockerCompose(topology: GraphTopology): string {
     lines.push(`      REGION: ${n.region}`);
     lines.push(`      REPLICAS: "${Math.max(1, Math.floor(n.replicationFactor))}"`);
     lines.push(`    ports:`);
-    lines.push(`      - "${port}:80"`);
+    lines.push(`      - "${hostPort}:${containerPort}"`);
+    for (const extra of (seed?.servicePorts ?? []).slice(1)) {
+      lines.push(`      - "${extra.port}:${extra.containerPort ?? extra.port}" # ${extra.label}`);
+    }
     if (needs.length > 0) {
       lines.push(`    depends_on:`);
       for (const d of needs) lines.push(`      - ${d}`);
@@ -181,6 +187,10 @@ export function compileKubernetes(topology: GraphTopology): string {
     const name = `${slug(n.resourceId)}-${slug(n.id)}`.slice(0, 52);
     const replicas = Math.max(1, Math.floor(n.replicationFactor));
     const cpu = n.baseThroughputRps > 10000 ? "2000m" : "500m";
+    const servicePorts = seed?.servicePorts ?? [];
+    const primaryPort = servicePorts[0];
+    const containerPort = primaryPort?.containerPort ?? primaryPort?.port ?? 8000 + i;
+    const expose = primaryPort?.expose ?? "cluster";
     docs.push(`---`);
     docs.push(`apiVersion: apps/v1`);
     docs.push(`kind: Deployment`);
@@ -201,7 +211,9 @@ export function compileKubernetes(topology: GraphTopology): string {
     docs.push(`        - name: ${name}`);
     docs.push(`          image: ${dockerImageFor(n.resourceId, seed?.category ?? "compute")}`);
     docs.push(`          ports:`);
-    docs.push(`            - containerPort: ${8000 + i}`);
+    docs.push(`            - name: ${primaryPort?.label ? slug(primaryPort.label) : "http"}`);
+    docs.push(`              protocol: ${(primaryPort?.protocol === "udp" ? "UDP" : "TCP")}`);
+    docs.push(`              containerPort: ${containerPort}`);
     docs.push(`          env:`);
     docs.push(`            - name: REGION`);
     docs.push(`              value: "${n.region}"`);
@@ -222,8 +234,21 @@ export function compileKubernetes(topology: GraphTopology): string {
     docs.push(`  selector:`);
     docs.push(`    app: ${name}`);
     docs.push(`  ports:`);
-    docs.push(`    - port: 80`);
-    docs.push(`      targetPort: ${8000 + i}`);
+    for (const port of servicePorts.length > 0
+      ? servicePorts
+      : [{ label: "http", port: 80 as number, containerPort: 8000 + i, protocol: undefined as string | undefined }]) {
+      docs.push(`    - name: ${port.label ? slug(port.label) : "port"}`);
+      docs.push(`      port: ${port.port}`);
+      docs.push(`      targetPort: ${port.containerPort ?? port.port}`);
+      if (("protocol" in port ? port.protocol : undefined) === "udp") docs.push(`      protocol: UDP`);
+    }
+    if (expose === "internet" || expose === "loadbalancer") {
+      docs.push(`  type: LoadBalancer`);
+    } else if (expose === "node") {
+      docs.push(`  type: NodePort`);
+    } else {
+      docs.push(`  type: ClusterIP`);
+    }
   });
   return `${docs.join("\n")}\n`;
 }

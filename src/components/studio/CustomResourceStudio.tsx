@@ -32,6 +32,7 @@ export function CustomResourceStudio({ open, onClose }: CustomResourceStudioProp
   const [category, setCategory] = useState<ResourceCategory>("cache");
   const [throughput, setThroughput] = useState(20000);
   const [p50, setP50] = useState(2);
+  const [cost, setCost] = useState(0.12);
   const [saved, setSaved] = useState<CustomResourceRecord[]>([]);
 
   useEffect(() => {
@@ -60,14 +61,23 @@ export function CustomResourceStudio({ open, onClose }: CustomResourceStudioProp
         baseThroughputRps: throughput,
         baseP50Ms: p50,
         category,
+        costPerHourUsd: cost,
         description: description.trim(),
       }),
     });
     if (ok) {
       registerCustomResource(
-        makeCustomSpec({ id, name: name.trim() || "Custom resource", category, baseThroughputRps: throughput, baseP50Ms: p50 }),
+        makeCustomSpec({
+          id,
+          name: name.trim() || "Custom resource",
+          category,
+          baseThroughputRps: throughput,
+          baseP50Ms: p50,
+          costPerHourUsd: cost,
+        }),
       );
       setSaved(await listCustomResources());
+      window.dispatchEvent(new CustomEvent("syscraft-custom-resources-changed"));
     }
   };
 
@@ -127,6 +137,17 @@ export function CustomResourceStudio({ open, onClose }: CustomResourceStudioProp
           <label className="block text-[11px] text-zinc-400">
             Base p50 (ms)
             <input type="number" min={0} value={p50} onChange={(e) => setP50(Math.max(0, Number(e.target.value)))} className="mt-0.5 w-full rounded bg-zinc-900 px-2 py-1.5 text-xs tabular-nums text-zinc-100" />
+          </label>
+          <label className="block text-[11px] text-zinc-400">
+            Cost per replica-hour (USD) — you decide
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={cost}
+              onChange={(e) => setCost(Math.max(0, Number(e.target.value)))}
+              className="mt-0.5 w-full rounded bg-zinc-900 px-2 py-1.5 text-xs tabular-nums text-zinc-100"
+            />
           </label>
         </div>
 

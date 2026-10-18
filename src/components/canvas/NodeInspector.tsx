@@ -655,6 +655,77 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
+        <Field
+          label="Cost per replica-hour (USD)"
+          hint={
+            typeof overrides.costPerHourUsd === "number"
+              ? `stock $${(ref?.costPerHourUsd ?? 0).toFixed(2).replace(/\.00$/, "")}`
+              : `you decide — stock $${(ref?.costPerHourUsd ?? 0).toFixed(2).replace(/\.00$/, "")}`
+          }
+        >
+          <div className="relative flex items-center">
+            <span className="pointer-events-none absolute left-2.5 text-[12px] text-zinc-500">$</span>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={typeof overrides.costPerHourUsd === "number" ? overrides.costPerHourUsd : ""}
+              placeholder={String((ref?.costPerHourUsd ?? 0).toFixed(2).replace(/\.00$/, ""))}
+              onChange={(event) => {
+                const raw = event.target.value;
+                if (raw === "") {
+                  set({ costPerHourUsd: undefined });
+                  return;
+                }
+                const parsed = Math.max(0, Number(raw));
+                set({ costPerHourUsd: Number.isFinite(parsed) ? parsed : undefined });
+              }}
+              className={`${INPUT_CLASS} pl-6 tabular-nums`}
+            />
+          </div>
+        </Field>
+
+        <div className="space-y-2">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+            Service ports · port mappings
+          </p>
+          {(seed?.servicePorts?.length ?? 0) > 0 ? (
+            <ul className="space-y-1.5">
+              {seed?.servicePorts?.map((port, index) => (
+                <li
+                  key={`${port.label}-${index}`}
+                  className="flex items-center gap-2 rounded-md border border-line/50 bg-app-raised/30 px-2.5 py-1.5 text-[11.5px]"
+                >
+                  <span className="min-w-0 flex-1 truncate text-zinc-300">{port.label}</span>
+                  <span className="rounded bg-zinc-800/80 px-1.5 py-0.5 font-mono text-[10.5px] tabular-nums text-zinc-300">
+                    {port.port}/{port.protocol}
+                  </span>
+                  {typeof port.containerPort === "number" && port.containerPort !== port.port && (
+                    <span className="font-mono text-[10.5px] tabular-nums text-zinc-500">cn {port.containerPort}</span>
+                  )}
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                      port.expose === "internet" || port.expose === "loadbalancer"
+                        ? "bg-amber-500/15 text-amber-300"
+                        : port.expose === "node"
+                          ? "bg-sky-500/15 text-sky-300"
+                          : "bg-zinc-800 text-zinc-400"
+                    }`}
+                  >
+                    {port.expose === "internet" ? "public" : port.expose}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="rounded-md border border-dashed border-line/60 px-2.5 py-2 text-[11px] leading-relaxed text-zinc-600">
+              No declared port map — this primitive is modeled inside its platform (virtual routes, not sockets), or it is
+              a custom primitive. Declare <span className="text-zinc-400">servicePorts</span> when a block fronts a real
+              listener.
+            </p>
+          )}
+        </div>
+
         {ref && (
           <div className="space-y-2">
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-600">Reference</p>

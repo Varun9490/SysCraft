@@ -40,8 +40,44 @@ export const STARTER_ENTRY_RPS = 500;
 
 export type CanvasEdgeRouting = "smoothstep" | "bezier" | "straight";
 
+/**
+ * Logical condition an edge carries for flowchart-style routing. The traffic
+ * particle layer reads this to split/pin/drop packets per branch:
+ * - cache_hit / cache_miss scale by the source node's hit ratio,
+ * - rate_limited / error color and count follow the drop/error rate,
+ * - read/write pin the edge to that half of the source's traffic mix,
+ * - async renders dashed (queued hops outside the critical path).
+ */
+export type EdgeCondition =
+  | "none"
+  | "cache_hit"
+  | "cache_miss"
+  | "read"
+  | "write"
+  | "rate_limited"
+  | "error"
+  | "async";
+
+export const EDGE_CONDITION_LABELS: Record<EdgeCondition, string> = {
+  none: "Default flow",
+  cache_hit: "Cache hit",
+  cache_miss: "Cache miss → origin",
+  read: "Reads only",
+  write: "Writes only",
+  rate_limited: "Rate-limited / dropped",
+  error: "Errors / fallback",
+  async: "Async / queued",
+};
+
+/** Data payload carried by every canvas edge (labels + routing conditions). */
+export interface CanvasEdgeData extends Record<string, unknown> {
+  /** Free-text label for the link, e.g. "gRPC fanout" or "orders topic". */
+  label?: string;
+  condition?: EdgeCondition;
+}
+
 export type CanvasFlowNode = Node<ResourceNodeData, "resource" | "region">;
-export type CanvasFlowEdge = Edge;
+export type CanvasFlowEdge = Edge<CanvasEdgeData>;
 
 interface SceneNodePayload {
   id: string;
@@ -54,10 +90,18 @@ interface SceneNodePayload {
   accentColor?: string;
 }
 
+interface SceneEdgePayload {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+  condition?: EdgeCondition;
+}
+
 interface ScenePayload {
   version: number;
   nodes: SceneNodePayload[];
-  edges: Array<{ id: string; source: string; target: string }>;
+  edges: SceneEdgePayload[];
 }
 
 interface CanvasState {
@@ -97,6 +141,8 @@ interface CanvasState {
   deleteSelection: () => number;
   addEdge: (source: string, target: string) => string | null;
   removeEdge: (edgeId: string) => void;
+  /** Edit an edge's flowchart label / routing condition (Connection inspector). */
+  updateEdgeData: (edgeId: string, partial: { label?: string | null; condition?: EdgeCondition }) => void;
   /** Re-route every edge (existing + future) with the chosen style. */
   setEdgeStyle: (style: CanvasEdgeRouting) => void;
   setSemanticZoomLevel: (level: 1 | 2 | 3) => void;
@@ -135,8 +181,54 @@ function makeEdgeId(source: string, target: string): string {
 }
 
 /** Stamp the canvas-wide routing style onto an edge. */
-function routeEdge(edge: CanvasFlowEdge, style: CanvasEdgeRouting): CanvasFlowEdge {
-  return edge.type === style ? edge : { ...edge, type: style };
+const CONDITION_COLORS: Record<EdgeCondition, string> = {
+  none: "#67e8f9",
+  cache_hit: "#34d399",
+  cache_miss: "#fbbf24",
+  read: "#7dd3fc",
+  write: "#f472b6",
+  rate_limited: "#f87171",
+  error: "#fb7185",
+  async: "#a78bfa",
+};
+
+export function conditionColor(condition: EdgeCondition | undefined): string {
+  return CONDITION_COLORS[condition ?? "none"];
+}
+
+/** Native React Flow label chip that renders the link text + condition. */
+function decorateEdge(edge: CanvasFlowEdge, style: CanvasEdgeRouting): CanvasFlowEdge {
+  const data = (edge.data ?? {}) as CanvasEdgeData;
+  const condition = data.condition ?? "none";
+  const labelText = (data.label ?? "").trim();
+  const conditionText = EDGE_CONDITION_LABELS[condition];
+  const rendered =
+    labelText && condition !== "none"
+      ? `${labelText} · ${conditionText}`
+      : labelText || (condition !== "none" ? conditionText : undefined);
+  const color = conditionColor(condition);
+  const nextLabelStyle = rendered ? { fill: color, fontSize: 10, fontWeight: 600 as const } : undefined;
+  const nextLabelBgStyle =
+    rendered
+      ? {
+          fill: "#09090b",
+          fillOpacity: 0.92,
+          strokeColor: condition === "none" ? "#3f3f46" : color,
+          strokeOpacity: 0.9,
+          strokeWidth: 1,
+        }
+      : undefined;
+  const nextLabelBgPadding: [number, number] | undefined = rendered ? [6, 3] : undefined;
+  const nextLabelBgBorderRadius = rendered ? 6 : undefined;
+  return {
+    ...edge,
+    type: style,
+    label: rendered,
+    labelStyle: nextLabelStyle,
+    labelBgStyle: nextLabelBgStyle,
+    labelBgPadding: nextLabelBgPadding,
+    labelBgBorderRadius: nextLabelBgBorderRadius,
+  };
 }
 
 function buildFlowNode(resourceId: string, position: { x: number; y: number }, label: string): CanvasFlowNode {
@@ -170,7 +262,16 @@ function payloadFromState(nodes: CanvasFlowNode[], edges: CanvasFlowEdge[]): Sce
         : {}),
       ...(typeof node.data.accentColor === "string" ? { accentColor: node.data.accentColor } : {}),
     })),
-    edges: edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target })),
+    edges: edges.map((edge) => {
+      const data = (edge.data ?? {}) as CanvasEdgeData;
+      return {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        ...(typeof data.label === "string" && data.label.length > 0 ? { label: data.label } : {}),
+        ...(data.condition && data.condition !== "none" ? { condition: data.condition } : {}),
+      };
+    }),
   };
 }
 
@@ -193,7 +294,15 @@ function topologyFromPayload(payload: ScenePayload): { nodes: CanvasFlowNode[]; 
   const nodeIds = new Set(nodes.map((n) => n.id));
   const edges: CanvasFlowEdge[] = payload.edges
     .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target) && e.source !== e.target)
-    .map((e) => ({ id: e.id, source: e.source, target: e.target }));
+    .map((e) => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      data: {
+        ...(typeof e.label === "string" ? { label: e.label } : {}),
+        ...(e.condition ? { condition: e.condition } : {}),
+      },
+    }));
   const seen = new Set<string>();
   return {
     nodes,
@@ -244,11 +353,20 @@ export const useCanvasStore = create<CanvasState>()(
 
       updateNodeOverrides: (nodeId, partial) => {
         set((state) => ({
-          nodes: state.nodes.map((node) =>
-            node.id === nodeId
-              ? { ...node, data: { ...node.data, overrides: { ...node.data.overrides, ...partial } } }
-              : node,
-          ),
+          nodes: state.nodes.map((node) => {
+            if (node.id !== nodeId) return node;
+            const merged: Record<string, unknown> = { ...node.data.overrides, ...partial };
+            for (const key of Object.keys(merged)) {
+              const value = merged[key];
+              if (value === undefined || value === null || (typeof value === "number" && Number.isNaN(value))) {
+                delete merged[key];
+              }
+            }
+            return {
+              ...node,
+              data: { ...node.data, overrides: merged as typeof node.data.overrides },
+            };
+          }),
         }));
       },
 
@@ -347,7 +465,8 @@ export const useCanvasStore = create<CanvasState>()(
         if (!ids.has(source) || !ids.has(target)) return null;
         if (edges.some((e) => e.source === source && e.target === target)) return null;
         const id = makeEdgeId(source, target);
-        set((state) => ({ edges: [...state.edges, { id, source, target, type: state.edgeStyle }] }));
+        const raw: CanvasFlowEdge = { id, source, target, data: {} };
+        set((state) => ({ edges: [...state.edges, decorateEdge(raw, state.edgeStyle)] }));
         return id;
       },
 
@@ -355,8 +474,31 @@ export const useCanvasStore = create<CanvasState>()(
         set((state) => ({ edges: state.edges.filter((edge) => edge.id !== edgeId) }));
       },
 
+      updateEdgeData: (edgeId, partial) => {
+        set((state) => {
+          const target = state.edges.find((edge) => edge.id === edgeId);
+          if (!target) return state;
+          const data = { ...((target.data ?? {}) as CanvasEdgeData) };
+          if (partial.label !== undefined) {
+            const label = (partial.label ?? "").trim();
+            if (label.length > 0) data.label = label;
+            else delete data.label;
+          }
+          if (partial.condition !== undefined) {
+            if (partial.condition === "none") delete data.condition;
+            else data.condition = partial.condition;
+          }
+          const updated = { ...target, data };
+          const rest = state.edges.filter((edge) => edge.id !== edgeId);
+          const index = state.edges.indexOf(target);
+          return {
+            edges: [...rest.slice(0, index), decorateEdge(updated, state.edgeStyle), ...rest.slice(index)],
+          };
+        });
+      },
+
       setEdgeStyle: (style) => {
-        set((state) => ({ edgeStyle: style, edges: state.edges.map((edge) => routeEdge(edge, style)) }));
+        set((state) => ({ edgeStyle: style, edges: state.edges.map((edge) => decorateEdge(edge, style)) }));
       },
 
       setSemanticZoomLevel: (level) => {
@@ -426,7 +568,7 @@ export const useCanvasStore = create<CanvasState>()(
         const nextNodes = [...nodes.filter((node) => node.id !== nodeId), ingress, deployment, cluster];
         set((state) => ({
           nodes: nextNodes,
-          edges: nextEdges.map((edge) => routeEdge(edge, state.edgeStyle)),
+          edges: nextEdges.map((edge) => decorateEdge(edge, state.edgeStyle)),
           selectedNodeId: deployment.id,
           fitViewNonce: state.fitViewNonce + 1,
         }));
@@ -458,7 +600,7 @@ export const useCanvasStore = create<CanvasState>()(
         ];
         set((state) => ({
           nodes,
-          edges: edges.map((edge) => routeEdge(edge, state.edgeStyle)),
+          edges: edges.map((edge) => decorateEdge(edge, state.edgeStyle)),
           selectedNodeId: null,
           sceneName: "Checkout starter",
           fitViewNonce: state.fitViewNonce + 1,
@@ -488,7 +630,7 @@ export const useCanvasStore = create<CanvasState>()(
         }
         set((state) => ({
           nodes,
-          edges: edges.map((edge) => routeEdge(edge, state.edgeStyle)),
+          edges: edges.map((edge) => decorateEdge(edge, state.edgeStyle)),
           selectedNodeId: null,
           abBaseline: null,
           sceneName: blueprint.name,
@@ -499,7 +641,7 @@ export const useCanvasStore = create<CanvasState>()(
       replaceTopology: (nodes, edges) => {
         set((state) => ({
           nodes,
-          edges: edges.map((edge) => routeEdge(edge, state.edgeStyle)),
+          edges: edges.map((edge) => decorateEdge(edge, state.edgeStyle)),
           selectedNodeId: null,
           fitViewNonce: state.fitViewNonce + 1,
         }));
@@ -555,6 +697,9 @@ export const useCanvasStore = create<CanvasState>()(
             baseP99Ms: base?.baseP99Ms ?? custom?.baseP99Ms ?? 40,
             region: overrides.region ?? base?.region ?? custom?.region ?? "us-east-1",
             loadBalancer: "round_robin",
+            ...(typeof overrides.costPerHourUsd === "number" && overrides.costPerHourUsd >= 0
+              ? { costPerHourUsdOverride: overrides.costPerHourUsd }
+              : {}),
           };
         });
         return {
@@ -609,7 +754,7 @@ export const useCanvasStore = create<CanvasState>()(
           const { nodes, edges } = topologyFromPayload(parsed);
           set((state) => ({
             nodes,
-            edges: edges.map((edge) => routeEdge(edge, state.edgeStyle)),
+            edges: edges.map((edge) => decorateEdge(edge, state.edgeStyle)),
             selectedNodeId: null,
             fitViewNonce: state.fitViewNonce + 1,
           }));

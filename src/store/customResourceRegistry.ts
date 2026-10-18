@@ -71,20 +71,24 @@ export function makeCustomSpec(partial: {
   category: ResourceCategory;
   baseThroughputRps: number;
   baseP50Ms: number;
+  /** User-decided per-replica hourly cost (USD). Defaults to 0.12 when unset. */
+  costPerHourUsd?: number;
+  vcpu?: number;
+  memoryGb?: number;
 }): CustomResourceSpec {
   return {
     id: partial.id,
     name: partial.name,
     category: partial.category,
     baseThroughputRps: Math.max(1, partial.baseThroughputRps),
-    vcpu: 2,
-    memoryGb: 4,
+    vcpu: partial.vcpu ?? 2,
+    memoryGb: partial.memoryGb ?? 4,
     baseP50Ms: Math.max(0, partial.baseP50Ms),
     baseP95Ms: Math.max(0, partial.baseP50Ms * 2.5),
     baseP99Ms: Math.max(0, partial.baseP50Ms * 5),
     maxConcurrency: 500,
     replicationFactor: 2,
-    costPerHourUsd: 0.12,
+    costPerHourUsd: Math.max(0, partial.costPerHourUsd ?? 0.12),
     storageEngine: "none",
     writeRatio: 0.2,
     cacheHitRate: partial.category === "cache" ? 0.9 : 0,
@@ -109,6 +113,9 @@ export async function hydrateCustomResourcesFromDb(): Promise<number> {
             category: (schema.category as ResourceCategory | undefined) ?? (row.category as ResourceCategory),
             baseThroughputRps: typeof schema.baseThroughputRps === "number" ? schema.baseThroughputRps : 5000,
             baseP50Ms: typeof schema.baseP50Ms === "number" ? schema.baseP50Ms : 8,
+            costPerHourUsd: typeof schema.costPerHourUsd === "number" ? schema.costPerHourUsd : undefined,
+            vcpu: typeof schema.vcpu === "number" ? schema.vcpu : undefined,
+            memoryGb: typeof schema.memoryGb === "number" ? schema.memoryGb : undefined,
           }),
         );
         count += 1;

@@ -386,6 +386,98 @@ export const PATH_PARTS: PathPart[] = [
         encyclopediaId: "merkle-trees",
         practiceLabIds: ["dynamodb-from-scratch", "search-autocomplete"],
       },
+      {
+        id: "tokenization-basics",
+        number: 20,
+        title: "Tokenization and embeddings",
+        description:
+          "How text becomes numbers, why vocabulary size is a design trade-off, and how embeddings become searchable.",
+        lessonTitles: [
+          "Byte-pair encoding from scratch",
+          "Subword encoding trade-offs",
+          "Embedding space and cosine similarity",
+          "Vector DB index design (HNSW vs IVF)",
+          "Chunking strategies for RAG",
+          "Embedding model choice for multilingual data",
+        ],
+        encyclopediaId: "tokenization-basics",
+        practiceLabIds: ["search-autocomplete", "rag-system"],
+      },
+      {
+        id: "rag-patterns",
+        number: 21,
+        title: "Retrieval-augmented generation",
+        description:
+          "Ground LLM responses with retrieved context: chunking, embedding, ANN retrieval, reranking, prompt injection.",
+        lessonTitles: [
+          "Chunk size and overlap design",
+          "Embedding model selection",
+          "Approximate nearest neighbor retrieval",
+          "Cross-encoder reranking",
+          "Hybrid lexical + dense retrieval",
+          "Prompt template architecture for RAG",
+        ],
+        encyclopediaId: "rag-patterns",
+        practiceLabIds: ["rag-system", "search-autocomplete"],
+      },
+      {
+        id: "system-design-primer-curriculum",
+        number: 22,
+        title: "System design primer mapped to primitives",
+        description:
+          "Every design concept in the primer mapped to a canvas primitive and a production paper reference.",
+        lessonTitles: [
+          "Rate limiters: token vs leaky bucket",
+          "Sharding: consistent hash vs range",
+          "Replication: sync vs async vs quorum",
+          "Caching: aside vs through vs write-through",
+          "Consistency levels: strong vs eventual",
+          "Observability: metrics + logs + traces",
+        ],
+        encyclopediaId: "system-design-primer-curriculum",
+        practiceLabIds: ["rate-limit-design", "sharding-patterns"],
+      },
+    ],
+  },
+  {
+    id: "ai-modern-patterns",
+    title: "AI & modern patterns",
+    subtitle: "The new primitives that connect to every existing design.",
+    accentClass: "text-violet-300",
+    accentHex: "#C084FC",
+    modules: [
+      {
+        id: "kv-cache-design",
+        number: 23,
+        title: "KV cache design for LLM serving",
+        description:
+          "How self-attention's key/value memory scales, and how paged attention and continuous batching manage it.",
+        lessonTitles: [
+          "KV cache memory math",
+          "Sliding window vs full context",
+          "Paged attention design",
+          "Continuous batching",
+          "Batch scheduling with variable sequence lengths",
+        ],
+        encyclopediaId: "kv-cache-design",
+        practiceLabIds: ["llm-serving", "batch-optimization"],
+      },
+      {
+        id: "rate-limiting",
+        number: 24,
+        title: "Rate limiting and throttling",
+        description:
+          "From token buckets to distributed counters: how to protect downstream services with bounded admission.",
+        lessonTitles: [
+          "Token bucket semantics",
+          "Leaky bucket behavior",
+          "Sliding window rate limiters",
+          "Distributed rate limiting with Redis",
+          "Admission control and graceful degradation",
+        ],
+        encyclopediaId: "rate-limiting",
+        practiceLabIds: ["rate-limit-design", "load-balancing"],
+      },
     ],
   },
 ];

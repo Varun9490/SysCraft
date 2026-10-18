@@ -14,6 +14,7 @@ import {
   FileText,
   FlaskConical,
   GraduationCap,
+  Gauge,
   HelpCircle,
   Layers,
   ListChecks,
@@ -30,6 +31,8 @@ import {
   Waves,
 } from "@/components/ui/icons";
 import { SysCraftCanvas } from "@/components/canvas/SysCraftCanvas";
+import { ConnectionInspector } from "@/components/canvas/ConnectionInspector";
+import { CostAnalysisPanel } from "@/components/canvas/CostAnalysisPanel";
 import { InternalSimModal } from "@/components/canvas/InternalSimModal";
 import { NodeInspector } from "@/components/canvas/NodeInspector";
 import { RoomSession } from "@/components/room/RoomSession";
@@ -59,7 +62,8 @@ type PanelId =
   | "iac"
   | "studio"
   | "arena"
-  | "sims";
+  | "sims"
+  | "costs";
 
 type TabId = "resources" | "blueprints" | "learn" | "tools";
 
@@ -205,6 +209,7 @@ const TOOL_PANELS: Array<{
   { id: "studio", label: "Custom Studio", description: "Design your own primitives", Icon: Sparkles },
   { id: "arena", label: "Incident Arena", description: "20 timed chaos drills", Icon: Swords },
   { id: "sims", label: "Internal Sims", description: "B-Tree · Raft · hashing · tokens", Icon: Cpu },
+  { id: "costs", label: "Cost Analysis", description: "Your price × replicas, live idle spend", Icon: Gauge },
 ];
 
 function ToolsPanel({ onOpenPanel }: { onOpenPanel: (id: PanelId) => void }) {
@@ -472,7 +477,7 @@ export default function CleanWorkspaceShell() {
           aria-label="Workspace palette"
         >
           <div className="flex h-full w-[300px] min-h-0 flex-col">
-            <div className="flex gap-1 border-b border-zinc-800/80 p-2">
+            <div className="flex gap-1 overflow-x-auto border-b border-zinc-800/80 p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:h-0">
               {tabs.map(({ id, label, Icon }) => {
                 const active = tab === id;
                 return (
@@ -480,9 +485,7 @@ export default function CleanWorkspaceShell() {
                     key={id}
                     type="button"
                     onClick={() => setTab(id)}
-                    className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
-                      active ? "text-zinc-950" : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
-                    }`}
+                    className="relative flex min-w-[72px] flex-none items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors active:scale-[0.97] sm:min-w-[78px]"
                   >
                     {active && (
                       <motion.span
@@ -491,7 +494,7 @@ export default function CleanWorkspaceShell() {
                         transition={{ type: "spring", stiffness: 420, damping: 34 }}
                       />
                     )}
-                    <span className="relative inline-flex items-center gap-1.5">
+                    <span className={`relative inline-flex items-center gap-1.5 ${active ? "text-zinc-950" : "text-zinc-400 hover:text-zinc-200"}`}>
                       <Icon size={13} />
                       {label}
                     </span>
@@ -541,6 +544,7 @@ export default function CleanWorkspaceShell() {
 
         <div className="relative min-w-0 flex-1">
           <SysCraftCanvas className="h-full w-full" />
+          <ConnectionInspector />
           <RoomSession />
           <TimeTravelScrubber />
         </div>
@@ -560,6 +564,7 @@ export default function CleanWorkspaceShell() {
       <CustomResourceStudio open={panel === "studio"} onClose={() => setPanel(null)} />
       <IncidentArena open={panel === "arena"} onClose={() => setPanel(null)} />
       <InternalSimModal open={panel === "sims"} onClose={() => setPanel(null)} />
+      <CostAnalysisPanel open={panel === "costs"} onClose={() => setPanel(null)} />
 
       <Command.Dialog
         open={paletteOpen}

@@ -13,6 +13,7 @@ import {
   FlaskConical,
   HelpCircle,
   LayoutGrid,
+  LineChart,
   ListChecks,
   Plus,
   Redo2,
@@ -489,7 +490,7 @@ export function FloatingToolbar() {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex flex-col items-center gap-2 px-3">
       {/* ── Command dock ─────────────────────────────────────────────────── */}
-      <div className="pointer-events-auto flex max-w-full items-center gap-1 rounded-2xl border border-zinc-800 bg-zinc-950/90 p-1.5 shadow-2xl backdrop-blur">
+      <div className="pointer-events-auto flex max-w-full items-center gap-1 rounded-2xl border border-zinc-800 bg-zinc-950 p-1.5 shadow-2xl">
         {/* Build */}
         <select
           value={resourceId}
@@ -587,7 +588,7 @@ export function FloatingToolbar() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.97 }}
                 transition={spring}
-                className="absolute right-0 top-full mt-2 w-60 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/97 p-1.5 shadow-2xl backdrop-blur"
+                className="absolute right-0 top-full mt-2 w-60 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 shadow-2xl"
               >
                 <ToolFlyoutRow
                   Icon={SlidersHorizontal}
@@ -597,6 +598,15 @@ export function FloatingToolbar() {
                   <CanvasPreferences />
                 </ToolFlyoutRow>
                 <ToolFlyoutRow Icon={Box} label="K8s view" hint="Expand service → pods" onClick={expandSelectedToK8s} />
+                <ToolFlyoutRow
+                  Icon={LineChart}
+                  label="Cost analysis"
+                  hint="You decide the price · live bill"
+                  onClick={() => {
+                    setToolsOpen(false);
+                    openWorkspacePanel("costs");
+                  }}
+                />
                 <ToolFlyoutRow Icon={ListChecks} label="Outline mode" hint="Screen-reader editor [o]" onClick={toggleOutline} active={outlineBadgeActive} />
                 <ToolFlyoutRow Icon={HelpCircle} label="Design Doctor" hint="14 architecture rules [d]" onClick={toggleDoctor} active={doctorBadgeActive} />
                 <ToolFlyoutRow Icon={Share} label="Share" hint="Read-only /s link" onClick={shareCanvas} />
@@ -641,7 +651,7 @@ export function FloatingToolbar() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.97 }}
                 transition={spring}
-                className="absolute right-0 top-full mt-2 w-[292px] overflow-hidden rounded-xl border border-red-900/50 bg-zinc-950/97 p-2.5 shadow-2xl backdrop-blur"
+                className="absolute right-0 top-full mt-2 w-[292px] overflow-hidden rounded-xl border border-red-900/50 bg-zinc-950 p-2.5 shadow-2xl"
               >
                 <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-red-300">Break something on purpose</p>
                 <div className="flex gap-1.5">
@@ -747,7 +757,7 @@ export function FloatingToolbar() {
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-lg border border-red-900/60 bg-zinc-950/90 px-3 py-1 text-[11px] text-red-200 shadow-xl backdrop-blur"
+          className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-lg border border-red-900/60 bg-zinc-950 px-3 py-1 text-[11px] text-red-200 shadow-xl"
         >
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
           <span className="font-semibold uppercase tracking-[0.12em] text-red-300">Incident live</span>

@@ -112,7 +112,7 @@ export function OutlineMode() {
 
   return (
     <div
-      className="absolute inset-0 z-40 overflow-y-auto bg-zinc-950/97 p-4 text-zinc-200 backdrop-blur"
+      className="absolute inset-0 z-40 overflow-y-auto bg-zinc-950 p-4 text-zinc-200"
       role="region"
       aria-label="Canvas outline mode"
     >

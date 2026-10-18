@@ -138,10 +138,18 @@ function CanvasInner({ className }: { className: string }) {
         fitView
         minZoom={0.2}
         maxZoom={2.5}
+        zoomOnScroll={false}
+        panOnScroll
+        panOnScrollSpeed={0.6}
+        zoomOnPinch
+        zoomOnDoubleClick={false}
+        selectionOnDrag
+        panOnDrag={[1, 2]}
         snapToGrid={prefs.snapToGrid}
         snapGrid={[prefs.snapGridSize, prefs.snapGridSize]}
         defaultEdgeOptions={defaultEdgeOptions}
         connectionLineStyle={{ stroke: "#7dd3fc", strokeWidth: 1.6 }}
+        connectionRadius={30}
       >
         {prefs.showGrid && (
           <Background variant={gridVariant} gap={prefs.snapToGrid ? prefs.snapGridSize : 24} size={1.5} />

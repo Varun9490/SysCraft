@@ -1,14 +1,17 @@
 import type { ResourceDefinition } from "@/types/resource";
+import { KUBERNETES_RESOURCES } from "./seedKubernetes";
 
 /**
- * Seed catalog of all 32 SysCraft canvas primitives (28 cloud services +
- * 4 Kubernetes / container orchestration primitives).
+ * Seed catalog of all 48 SysCraft canvas primitives (32 core cloud services +
+ * 4 Kubernetes / container orchestration primitives + 16 Kubernetes control
+ * plane / edge / observability / GitOps primitives).
  * Every entry carries production-realistic queuing defaults, FinOps cost,
- * hardened-security score, and a self-contained encyclopedia article so the
- * simulator, BoE calculator, and Almanac can run fully offline.
+ * hardened-security score, per-surface service ports with container mappings,
+ * and a self-contained encyclopedia article so the simulator, BoE calculator,
+ * and Almanac can run fully offline.
  */
 
-export const SEED_RESOURCES: ResourceDefinition[] = [
+const CORE_RESOURCES: ResourceDefinition[] = [
   {
     id: "cdn_edge",
     name: "CDN Edge (CloudFront / Fastly)",
@@ -38,6 +41,11 @@ export const SEED_RESOURCES: ResourceDefinition[] = [
       multiAz: true,
       region: "us-east-1",
     },
+    servicePorts: [
+      { label: "HTTPS", port: 443, protocol: "https", expose: "internet" },
+      { label: "HTTP", port: 80, protocol: "http", expose: "internet" },
+      { label: "Origin probe", port: 8899, protocol: "http", expose: "cluster", containerPort: 8899 },
+    ],
     strokeColor: "#CDA86A",
     fillStyle: "hachure",
     encyclopediaMarkdown: "# CDN Edge\n\nA content delivery network replicates cacheable bytes to 300+ points of presence so users fetch from a nearby PoP instead of origin. TLS terminates at edge, collapsing handshake RTT. Consistent hashing maps URLs to cache shards.\n\n## How it works\n\n- Anycast BGP routes the user to the nearest healthy PoP.\n- Cache key includes normalized path, query allow-list, and Accept-Encoding.\n- Stale-while-revalidate serves expired bytes while origin refreshes async.\n- Shield tier collapses 100 edge misses into 1 origin fetch.\n\n## Capacity planning\n\nSize egress as peak_RPS times mean_object_bytes. A 50k RPS edge tier with 25 KB mean object needs roughly 10 Gbps per PoP. Keep origin shield cache hit above 95 percent or origin melts during launches.",
@@ -1290,6 +1298,8 @@ export const SEED_RESOURCES: ResourceDefinition[] = [
     scalingNotes: "Scale replicas with connection concurrency; move static TLS work to a CDN and keep only dynamic routes on the controller.",
   },
 ];
+
+export const SEED_RESOURCES: ResourceDefinition[] = [...CORE_RESOURCES, ...KUBERNETES_RESOURCES];
 
 export const SEED_RESOURCE_IDS: string[] = SEED_RESOURCES.map((r) => r.id);
 
