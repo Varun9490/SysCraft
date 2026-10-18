@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: "/labs", label: "Labs" },
   { href: "/flowchart", label: "Flowchart" },
   { href: "/play", label: "Play" },
+  { href: "/library", label: "Library" },
   { href: "/practice", label: "Review" },
 ];
 

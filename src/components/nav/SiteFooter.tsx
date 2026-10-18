@@ -12,6 +12,7 @@ const PRODUCT_LINKS = [
   { href: "/labs", label: "System Labs" },
   { href: "/flowchart", label: "Design Flowchart" },
   { href: "/play", label: "Play Modes" },
+  { href: "/library", label: "Curated Library" },
   { href: "/practice", label: "FSRS Review" },
   { href: "/room", label: "Live Rooms" },
   { href: "/progress", label: "Progress" },
@@ -25,6 +26,7 @@ const LIBRARY_LINKS = [
   { href: "/wiki/primitives", label: `${SEED_RESOURCES.length} Infrastructure Primitives` },
   { href: "/labs", label: `${GUIDED_LABS.length} Real-world Systems` },
   { href: "/learn", label: `${TOTAL_LESSONS} Structured Lessons` },
+  { href: "/library", label: "16 Canonical External Sources" },
   { href: "/resources/new", label: "Custom Resource Studio" },
   { href: "/canvas", label: "IaC Export" },
 ];

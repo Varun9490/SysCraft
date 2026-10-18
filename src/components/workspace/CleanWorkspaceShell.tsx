@@ -312,6 +312,14 @@ export default function CleanWorkspaceShell() {
         if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
         event.preventDefault();
         setPaletteOpen((o) => !o);
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
+        const target = event.target as HTMLElement | null;
+        const tag = target?.tagName ?? "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+        event.preventDefault();
+        setRailOpen((o) => !o);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -376,8 +384,9 @@ export default function CleanWorkspaceShell() {
         <button
           type="button"
           onClick={() => setRailOpen((o) => !o)}
-          title={railOpen ? "Hide palette" : "Show palette"}
-          className={`ml-1 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
+          title={railOpen ? "Hide palette [Ctrl+B]" : "Show palette [Ctrl+B]"}
+          aria-expanded={railOpen}
+          className={`ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
             railOpen ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100" : "bg-zinc-800/80 text-zinc-200"
           }`}
         >
@@ -453,56 +462,82 @@ export default function CleanWorkspaceShell() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        {railOpen && (
-        <aside className="flex w-[300px] min-h-0 shrink-0 flex-col overflow-hidden border-r border-zinc-800/80 bg-zinc-950">
-          <div className="flex gap-1 border-b border-zinc-800/80 p-2">
-            {tabs.map(({ id, label, Icon }) => {
-              const active = tab === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTab(id)}
-                  className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
-                    active ? "text-zinc-950" : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
-                  }`}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="ws-tab-pill"
-                      className="absolute inset-0 rounded-lg bg-gradient-to-r from-brass to-brass-bright"
-                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                    />
-                  )}
-                  <span className="relative inline-flex items-center gap-1.5">
-                    <Icon size={13} />
-                    {label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+      <div className="relative flex min-h-0 flex-1">
+        <motion.aside
+          initial={false}
+          animate={{ width: railOpen ? 300 : 0, opacity: railOpen ? 1 : 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="relative flex shrink-0 flex-col overflow-hidden border-r border-zinc-800/80 bg-zinc-950"
+          aria-hidden={!railOpen}
+          aria-label="Workspace palette"
+        >
+          <div className="flex h-full w-[300px] min-h-0 flex-col">
+            <div className="flex gap-1 border-b border-zinc-800/80 p-2">
+              {tabs.map(({ id, label, Icon }) => {
+                const active = tab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setTab(id)}
+                    className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
+                      active ? "text-zinc-950" : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
+                    }`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="ws-tab-pill"
+                        className="absolute inset-0 rounded-lg bg-gradient-to-r from-brass to-brass-bright"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    <span className="relative inline-flex items-center gap-1.5">
+                      <Icon size={13} />
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-          <div className="relative min-h-0 flex-1 overflow-hidden">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={tab}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0"
-              >
-                {tab === "resources" && <ResourcesPanel />}
-                {tab === "blueprints" && <BlueprintsPanel />}
-                {tab === "learn" && <LearnPanel onOpenModule={openModule} />}
-                {tab === "tools" && <ToolsPanel onOpenPanel={openPanel} />}
-              </motion.div>
-            </AnimatePresence>
+            <div className="relative min-h-0 flex-1 overflow-hidden">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={tab}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute inset-0"
+                >
+                  {tab === "resources" && <ResourcesPanel />}
+                  {tab === "blueprints" && <BlueprintsPanel />}
+                  {tab === "learn" && <LearnPanel onOpenModule={openModule} />}
+                  {tab === "tools" && <ToolsPanel onOpenPanel={openPanel} />}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
-        </aside>
-        )}
+        </motion.aside>
+
+        <AnimatePresence>
+          {!railOpen && (
+            <motion.button
+              key="rail-restore"
+              type="button"
+              initial={{ opacity: 0, x: -14 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -14 }}
+              transition={{ duration: 0.24, delay: 0.12 }}
+              onClick={() => setRailOpen(true)}
+              title="Show palette [Ctrl+B]"
+              aria-label="Show workspace palette"
+              className="absolute left-1.5 top-3 z-40 flex h-9 items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-950/90 px-2.5 text-[12px] font-medium text-zinc-300 shadow-xl backdrop-blur transition-colors hover:border-zinc-600 hover:text-zinc-100"
+            >
+              <Menu size={14} /> Palette
+            </motion.button>
+          )}
+        </AnimatePresence>
 
         <div className="relative min-w-0 flex-1">
           <SysCraftCanvas className="h-full w-full" />

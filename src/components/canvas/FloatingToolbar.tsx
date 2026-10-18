@@ -1,15 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { useReactFlow } from "@xyflow/react";
 import dagre from "dagre";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Box,
-  ChevronDown,
+  Check,
   Eraser,
   FileText,
   Flame,
+  FlaskConical,
   HelpCircle,
   LayoutGrid,
   ListChecks,
@@ -17,8 +18,12 @@ import {
   Redo2,
   RotateCcw,
   Share,
+  SlidersHorizontal,
   Trash2,
   Undo2,
+  Wrench,
+  X,
+  Zap,
 } from "@/components/ui/icons";
 import { SEED_RESOURCES } from "@/data/seedResources";
 import { CLOUD_REGIONS } from "@/data/regionLatency";
@@ -28,10 +33,11 @@ import { useSimStore } from "@/store/useSimStore";
 import { CanvasPreferences } from "./CanvasPreferences";
 
 /**
- * Floating canvas island + chaos bar.
- * Single-key bindings: [l] auto-layout · [o] outline · [d] doctor ·
- * [1/2/3] semantic zoom · [z]/[y] undo/redo · [space] run/stop ·
- * [Delete]/[Backspace] delete selection.
+ * Canvas command dock — one slim pill instead of three stacked rows.
+ * Every control is grouped by intent (Build · Arrange · Canvas · Tools · Chaos)
+ * and low-frequency actions live inside spring-animated flyouts, so the canvas
+ * stays visible: [l] auto-layout · [o] outline · [d] doctor · [1/2/3] semantic
+ * zoom · [z]/[y] undo/redo · [space] run/stop · [Delete] delete selection.
  */
 
 const CHAOS_KINDS: ChaosKind[] = [
@@ -112,7 +118,6 @@ function openWorkspacePanel(panel: string): void {
   window.dispatchEvent(new CustomEvent("syscraft:open-panel", { detail: { panel } }));
 }
 
-
 function undoCanvas(): void {
   const store = useCanvasStore as unknown as {
     temporal: { getState: () => { undo: () => void; redo: () => void } };
@@ -135,12 +140,68 @@ function redoCanvas(): void {
   }
 }
 
+const spring = { type: "spring" as const, stiffness: 420, damping: 32 };
+
+function DockIcon({
+  onClick,
+  title,
+  label,
+  children,
+  tone = "ghost",
+  active = false,
+  disabled = false,
+  ariaLabel,
+}: {
+  onClick: () => void;
+  title: string;
+  label?: string;
+  children: ReactNode;
+  tone?: "ghost" | "accent";
+  active?: boolean;
+  disabled?: boolean;
+  ariaLabel?: string;
+}) {
+  const toneClass =
+    tone === "accent"
+      ? "bg-sky-500 text-zinc-950 hover:bg-sky-400"
+      : active
+        ? "border border-sky-400/60 bg-sky-500/10 text-sky-300"
+        : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100";
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={ariaLabel ?? title}
+      whileHover={disabled ? undefined : { scale: 1.07 }}
+      whileTap={disabled ? undefined : { scale: 0.92 }}
+      transition={spring}
+      className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors ${disabled ? "cursor-not-allowed opacity-35" : ""} ${toneClass}`}
+    >
+      {children}
+      {label && <span className="hidden md:inline">{label}</span>}
+    </motion.button>
+  );
+}
+
+function clearToneDanger(armed: boolean): string {
+  return armed
+    ? "border border-red-500/70 bg-red-500/15 text-red-300"
+    : "text-zinc-400 hover:bg-red-950/70 hover:text-red-300";
+}
+
+function DockDivider() {
+  return <span className="mx-0.5 h-5 w-px bg-zinc-800" aria-hidden />;
+}
+
 export function FloatingToolbar() {
   const { screenToFlowPosition } = useReactFlow();
   const [resourceId, setResourceId] = useState(SEED_RESOURCES[0]?.id ?? "rest_service");
   const [chaosKind, setChaosKind] = useState<ChaosKind>("zone_outage");
   const [chaosScope, setChaosScope] = useState("all");
   const [chaosOpen, setChaosOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [clearArmed, setClearArmed] = useState(false);
 
   const semanticZoomLevel = useCanvasStore((s) => s.semanticZoomLevel);
@@ -166,6 +227,19 @@ export function FloatingToolbar() {
     return () => window.clearTimeout(timer);
   }, [clearArmed]);
 
+  useEffect(() => {
+    if (!toolsOpen && !chaosOpen) return;
+    const dismiss = () => {
+      setToolsOpen(false);
+      setChaosOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") dismiss();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toolsOpen, chaosOpen]);
+
   const handleClear = useCallback(() => {
     if (!clearArmed) {
       setClearArmed(true);
@@ -186,6 +260,7 @@ export function FloatingToolbar() {
     const kb = (url.length / 1024).toFixed(1);
     const announce = (message: string) => {
       setShareNotice(message);
+      setToolsOpen(false);
       window.setTimeout(() => setShareNotice(null), 4200);
     };
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -205,6 +280,7 @@ export function FloatingToolbar() {
       selected && K8S_EXPANDABLE.has(String(selected.data.resourceId))
         ? selected
         : state.nodes.find((n) => K8S_EXPANDABLE.has(String(n.data.resourceId)));
+    setToolsOpen(false);
     if (!candidate) {
       setK8sNotice("Select a stateless compute node (or add one) to expand into Kubernetes pods.");
     } else {
@@ -316,7 +392,7 @@ export function FloatingToolbar() {
       if (restarted) {
         useSimStore.getState().startSimulation(() => useCanvasStore.getState().toGraphTopology());
       }
-      setChaosPrompt(false);
+      setChaosOpen(false);
       setChaosNotice(
         `Injected ${kind.replace(/_/g, " ")} on ${scopeLabel}${restarted ? " — simulation started so you can watch it burn" : ""}.`,
       );
@@ -324,10 +400,6 @@ export function FloatingToolbar() {
     },
     [selectedNodeId],
   );
-
-  const fireChaos = useCallback(() => {
-    injectChaos(chaosKind, chaosScope);
-  }, [chaosKind, chaosScope, injectChaos]);
 
   const quickBreak = useCallback(
     (preset: (typeof QUICK_BREAKS)[number]) => {
@@ -341,9 +413,20 @@ export function FloatingToolbar() {
 
   const endChaos = useCallback(() => {
     useSimStore.getState().clearChaos();
+    setChaosOpen(false);
     setChaosPrompt(true);
     window.setTimeout(() => setChaosPrompt(false), 9000);
   }, []);
+
+  const toggleDoctor = useCallback(() => {
+    useCanvasStore.getState().setDoctorOpen(!doctorOpen);
+    setToolsOpen(false);
+  }, [doctorOpen]);
+
+  const toggleOutline = useCallback(() => {
+    useCanvasStore.getState().setOutlineMode(!outlineMode);
+    setToolsOpen(false);
+  }, [outlineMode]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -400,14 +483,20 @@ export function FloatingToolbar() {
     return () => window.removeEventListener("syscraft:auto-layout", onAutoLayout);
   }, [runAutoLayout]);
 
+  const doctorBadgeActive = doctorOpen;
+  const outlineBadgeActive = outlineMode;
+
   return (
     <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex flex-col items-center gap-2 px-3">
-      <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-950/90 p-1.5 shadow-2xl backdrop-blur">
+      {/* ── Command dock ─────────────────────────────────────────────────── */}
+      <div className="pointer-events-auto flex max-w-full items-center gap-1 rounded-2xl border border-zinc-800 bg-zinc-950/90 p-1.5 shadow-2xl backdrop-blur">
+        {/* Build */}
         <select
           value={resourceId}
           onChange={(e) => setResourceId(e.target.value)}
-          className="h-8 max-w-44 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-200"
-          title="Resource palette"
+          className="h-9 max-w-36 rounded-lg border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-200 outline-none transition-colors focus:border-zinc-600"
+          title="Pick a primitive, then Add (or Ctrl-K → Add resource)"
+          aria-label="Resource palette"
         >
           {resourceOptions.map((r) => (
             <option key={r.id} value={r.id}>
@@ -415,123 +504,251 @@ export function FloatingToolbar() {
             </option>
           ))}
         </select>
-        <button
-          onClick={addSelectedResource}
-          className="flex h-8 items-center gap-1 rounded-md bg-sky-500 px-2.5 text-xs font-semibold text-zinc-950 hover:bg-sky-400"
-          title="Add resource (drop at viewport center)"
-        >
-          <Plus size={14} /> Add
-        </button>
-        <span className="h-6 w-px bg-zinc-800" />
-        <button
-          onClick={runAutoLayout}
-          className="flex h-8 items-center gap-1 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:bg-zinc-800"
-          title="Auto-layout with dagre [l]"
-        >
-          <LayoutGrid size={14} /> Layout
-        </button>
-        <button
-          onClick={deleteSelected}
-          disabled={selectedCount === 0}
-          className="flex h-8 items-center gap-1 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
-          title="Delete the selected node or edge [Delete / Backspace]"
-        >
-          <Trash2 size={14} /> Delete
-        </button>
-        <div className="flex overflow-hidden rounded-md border border-zinc-800" title="Semantic zoom [1/2/3]">
+        <DockIcon onClick={addSelectedResource} title={`Drop the chosen primitive at the viewport center (jitters so stacked adds fan out)`} tone="accent" label="Add">
+          <Plus size={15} weight="bold" />
+        </DockIcon>
+        <DockDivider />
+
+        {/* Arrange */}
+        <DockIcon onClick={runAutoLayout} title="Auto-layout everything with dagre [l]" label="Layout">
+          <LayoutGrid size={15} />
+        </DockIcon>
+        <DockIcon onClick={deleteSelected} disabled={selectedCount === 0} title="Delete the selected node(s)/edges [Delete · Backspace]" label="Delete" >
+          <Trash2 size={15} />
+        </DockIcon>
+        <div className="mx-0.5 flex h-9 items-center overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/60" title="Semantic zoom — how much detail nodes show [1·2·3]">
           {[1, 2, 3].map((level) => (
-            <button
+            <motion.button
               key={level}
+              type="button"
+              whileTap={{ scale: 0.88 }}
+              transition={spring}
               onClick={() => useCanvasStore.getState().setSemanticZoomLevel(level as 1 | 2 | 3)}
-              className={`h-8 w-8 text-xs font-semibold ${
-                semanticZoomLevel === level ? "bg-zinc-100 text-zinc-950" : "text-zinc-400 hover:bg-zinc-800"
+              title={`Semantic zoom ${level}`}
+              className={`h-9 w-7 text-xs font-semibold transition-colors ${
+                semanticZoomLevel === level ? "bg-zinc-100 text-zinc-950" : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
               }`}
             >
               {level}
-            </button>
+            </motion.button>
           ))}
         </div>
-        <button
-          onClick={undoCanvas}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-800 text-zinc-300 hover:bg-zinc-800"
-          title="Undo [z]"
-        >
-          <Undo2 size={14} />
-        </button>
-        <button
-          onClick={redoCanvas}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-800 text-zinc-300 hover:bg-zinc-800"
-          title="Redo [y]"
-        >
-          <Redo2 size={14} />
-        </button>
-        <button
-          onClick={() => useCanvasStore.getState().loadStarterTemplate()}
-          className="flex h-8 items-center gap-1 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:bg-zinc-800"
-          title="Reload checkout starter template"
-        >
-          <RotateCcw size={14} /> Starter
-        </button>
-        <button
+        <DockIcon onClick={undoCanvas} title="Undo last canvas change [z]">
+          <Undo2 size={15} />
+        </DockIcon>
+        <DockIcon onClick={redoCanvas} title="Redo [y]">
+          <Redo2 size={15} />
+        </DockIcon>
+        <DockDivider />
+
+        {/* Canvas scenes */}
+        <DockIcon onClick={() => useCanvasStore.getState().loadStarterTemplate()} title="Reload the checkout starter template">
+          <RotateCcw size={15} />
+        </DockIcon>
+        <motion.button
+          type="button"
           onClick={handleClear}
-          className={`flex h-8 items-center gap-1 rounded-md border px-2 text-xs ${
-            clearArmed
-              ? "border-red-500/70 bg-red-500/15 text-red-300"
-              : "border-zinc-800 text-zinc-400 hover:bg-red-950 hover:text-red-300"
-          }`}
+          whileHover={clearArmed ? undefined : { scale: 1.06 }}
+          whileTap={clearArmed ? undefined : { scale: 0.92 }}
+          transition={spring}
           title="Clear the whole canvas — click twice to confirm"
+          aria-label="Clear canvas (click again to confirm)"
+          className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors ${clearToneDanger(clearArmed)}`}
         >
-          <Eraser size={14} /> {clearArmed ? "Sure?" : "Clear"}
-        </button>
-        <CanvasPreferences />
+          {clearArmed ? <Check size={15} /> : <Eraser size={15} />}
+          <span className="hidden md:inline">{clearArmed ? "Sure?" : "Clear"}</span>
+        </motion.button>
+
+        {/* Tools flyout */}
+        <div className="relative">
+          <motion.button
+            type="button"
+            onClick={() => {
+              setToolsOpen((o) => !o);
+              setChaosOpen(false);
+            }}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.92 }}
+            transition={spring}
+            title="Tools — preferences, K8s view, outline, doctor, share"
+            aria-expanded={toolsOpen}
+            aria-label="Canvas tools menu"
+            className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors ${
+              toolsOpen ? "bg-zinc-100 text-zinc-950" : "text-zinc-200 hover:bg-zinc-800"
+            }`}
+          >
+            <Wrench size={15} />
+            <span className="hidden md:inline">Tools</span>
+          </motion.button>
+          <AnimatePresence initial={false}>
+            {toolsOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                transition={spring}
+                className="absolute right-0 top-full mt-2 w-60 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/97 p-1.5 shadow-2xl backdrop-blur"
+              >
+                <ToolFlyoutRow
+                  Icon={SlidersHorizontal}
+                  label="Canvas preferences"
+                  hint="Grid, edges, minimap, effects"
+                >
+                  <CanvasPreferences />
+                </ToolFlyoutRow>
+                <ToolFlyoutRow Icon={Box} label="K8s view" hint="Expand service → pods" onClick={expandSelectedToK8s} />
+                <ToolFlyoutRow Icon={ListChecks} label="Outline mode" hint="Screen-reader editor [o]" onClick={toggleOutline} active={outlineBadgeActive} />
+                <ToolFlyoutRow Icon={HelpCircle} label="Design Doctor" hint="14 architecture rules [d]" onClick={toggleDoctor} active={doctorBadgeActive} />
+                <ToolFlyoutRow Icon={Share} label="Share" hint="Read-only /s link" onClick={shareCanvas} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Chaos */}
+        <DockDivider />
+        <div className="relative">
+          <motion.button
+            type="button"
+            onClick={() => {
+              setChaosOpen((o) => !o);
+              setToolsOpen(false);
+            }}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.92 }}
+            transition={spring}
+            title="Chaos engineering — inject failures, spike traffic, kill nodes"
+            aria-expanded={chaosOpen}
+            aria-label="Chaos engineering menu"
+            className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors ${
+              chaosActive
+                ? "border border-red-500/70 bg-red-500/15 text-red-300"
+                : chaosOpen
+                  ? "bg-red-950 text-red-200"
+                  : "text-red-300/90 hover:bg-red-950/60"
+            }`}
+          >
+            <motion.span animate={chaosActive ? { scale: [1, 1.25, 1] } : { scale: 1 }} transition={chaosActive ? { repeat: Infinity, duration: 1.1 } : { duration: 0.2 }}>
+              <Flame size={15} />
+            </motion.span>
+            <span className="hidden md:inline">{chaosActive ? "Incident" : "Chaos"}</span>
+            {chaosActive && <span className="h-1.5 w-1.5 rounded-full bg-red-400" />}
+          </motion.button>
+          <AnimatePresence initial={false}>
+            {chaosOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                transition={spring}
+                className="absolute right-0 top-full mt-2 w-[292px] overflow-hidden rounded-xl border border-red-900/50 bg-zinc-950/97 p-2.5 shadow-2xl backdrop-blur"
+              >
+                <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-red-300">Break something on purpose</p>
+                <div className="flex gap-1.5">
+                  <select
+                    value={chaosKind}
+                    onChange={(e) => setChaosKind(e.target.value as ChaosKind)}
+                    className="h-8 min-w-0 flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-1.5 text-[11px] text-zinc-200"
+                    title="Chaos scenario"
+                    aria-label="Chaos scenario"
+                  >
+                    {CHAOS_KINDS.map((kind) => (
+                      <option key={kind} value={kind}>
+                        {kind.replace(/_/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={chaosScope}
+                    onChange={(e) => setChaosScope(e.target.value)}
+                    className="h-8 min-w-0 flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-1.5 text-[11px] text-zinc-200"
+                    title="Blast radius"
+                    aria-label="Blast radius"
+                  >
+                    <option value="all">everywhere</option>
+                    <option value="selected">selected node</option>
+                    {CLOUD_REGIONS.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={() => injectChaos(chaosKind, chaosScope)}
+                  className="mt-1.5 h-8 w-full rounded-md bg-red-500 text-xs font-semibold text-white transition-colors hover:bg-red-400"
+                >
+                  Inject
+                </button>
+                <p className="mb-1.5 mt-3 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                  <Zap size={11} className="text-red-300" /> One-click breaks
+                </p>
+                <div className="grid gap-1.5">
+                  {QUICK_BREAKS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => quickBreak(preset)}
+                      title={preset.hint}
+                      className="flex items-center justify-between rounded-md border border-zinc-800 px-2.5 py-1.5 text-[11.5px] text-zinc-300 transition-colors hover:border-red-600/60 hover:text-red-200"
+                    >
+                      {preset.label}
+                      <Flame size={11} className="text-zinc-600" />
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2.5 flex items-center gap-1.5 border-t border-zinc-800 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChaosOpen(false);
+                      openWorkspacePanel("postmortem");
+                    }}
+                    className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-zinc-800 text-[11.5px] text-zinc-300 hover:border-zinc-600 hover:text-zinc-100"
+                    title="Open the auto-generated blameless post-mortem"
+                  >
+                    <FileText size={13} /> Post-mortem
+                  </button>
+                  {chaosActive ? (
+                    <button
+                      onClick={endChaos}
+                      className="h-8 rounded-md border border-red-500 px-2.5 text-[11.5px] font-semibold text-red-300 hover:bg-red-950"
+                    >
+                      Clear chaos
+                    </button>
+                  ) : (
+                    <FlaskConical size={16} className="text-zinc-700" />
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-xl border border-violet-900/50 bg-zinc-950/90 p-1.5 shadow-2xl backdrop-blur">
-        <button
-          onClick={expandSelectedToK8s}
-          className="flex h-8 items-center gap-1 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:border-sky-600/60 hover:text-sky-300"
-          title="Expand the selected (or first) stateless compute node into Ingress → Service → Pods + control plane"
-        >
-          <Box size={14} /> K8s View
-        </button>
-        <button
-          onClick={() => useCanvasStore.getState().setOutlineMode(!outlineMode)}
-          className={`flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-zinc-800 ${
-            outlineMode ? "border-violet-400/60 text-violet-300" : "border-zinc-800 text-zinc-300"
-          }`}
-          title="Accessible Outline Mode — keyboard & screen-reader editor [o]"
-        >
-          <ListChecks size={14} /> Outline
-        </button>
-        <button
-          onClick={() => useCanvasStore.getState().setDoctorOpen(!doctorOpen)}
-          className={`flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-zinc-800 ${
-            doctorOpen ? "border-amber-400/60 text-amber-300" : "border-zinc-800 text-zinc-300"
-          }`}
-          title="Design Doctor — 14 static architecture rules [d]"
-        >
-          <HelpCircle size={14} /> Doctor
-        </button>
-        <button
-          onClick={shareCanvas}
-          className="flex h-8 items-center gap-1 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:border-sky-600/60 hover:text-sky-300"
-          title="Copy a read-only share link — the whole topology compresses into the URL fragment"
-        >
-          <Share size={14} /> Share
-        </button>
-      </div>
-
-      {(shareNotice ?? k8sNotice ?? chaosNotice) && (
-        <p
-          role="status"
-          className="pointer-events-auto max-w-xl rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-1.5 text-center text-[11.5px] text-zinc-200 shadow-xl"
-        >
-          {shareNotice ?? k8sNotice ?? chaosNotice}
-        </p>
-      )}
+      {/* ── Notices ──────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {(shareNotice ?? k8sNotice ?? chaosNotice) && (
+          <motion.p
+            key={shareNotice ?? k8sNotice ?? chaosNotice}
+            role="status"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.22 }}
+            className="pointer-events-auto max-w-xl rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-1.5 text-center text-[11.5px] text-zinc-200 shadow-xl"
+          >
+            {shareNotice ?? k8sNotice ?? chaosNotice}
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       {chaosActive && (
-        <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-lg border border-red-900/60 bg-zinc-950/90 px-3 py-1 text-[11px] text-red-200 shadow-xl backdrop-blur">
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-lg border border-red-900/60 bg-zinc-950/90 px-3 py-1 text-[11px] text-red-200 shadow-xl backdrop-blur"
+        >
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
           <span className="font-semibold uppercase tracking-[0.12em] text-red-300">Incident live</span>
           <span className="text-red-200/90">{activeChaos.kind.replace(/_/g, " ")}</span>
@@ -550,11 +767,16 @@ export function FloatingToolbar() {
           >
             <FileText size={12} /> Post-mortem
           </button>
-        </div>
+        </motion.div>
       )}
 
       {chaosPrompt && (
-        <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-1 text-[11.5px] text-zinc-200 shadow-xl">
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22 }}
+          className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-1 text-[11.5px] text-zinc-200 shadow-xl"
+        >
           <span>Chaos cleared — review what actually happened.</span>
           <button
             type="button"
@@ -572,101 +794,45 @@ export function FloatingToolbar() {
             className="text-zinc-500 hover:text-zinc-300"
             aria-label="Dismiss"
           >
-            ✕
+            <X size={12} />
           </button>
-        </div>
+        </motion.div>
       )}
+    </div>
+  );
+}
 
-      <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-xl border border-red-900/50 bg-zinc-950/90 p-1.5 shadow-2xl backdrop-blur">
-        <button
-          onClick={() => setChaosOpen((o) => !o)}
-          className={`flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-semibold transition-colors ${
-            chaosActive ? "animate-pulse text-red-300" : "text-zinc-300 hover:bg-zinc-800"
-          }`}
-          title="Chaos engineering controls"
-        >
-          <Flame size={14} className="text-red-400" />
-          Chaos
-          {chaosActive && <span className="h-1.5 w-1.5 rounded-full bg-red-400" />}
-          <motion.span animate={{ rotate: chaosOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-            <ChevronDown size={13} className="text-zinc-500" />
-          </motion.span>
-        </button>
-
-        <AnimatePresence initial={false}>
-          {chaosOpen && (
-            <motion.div
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: "auto" }}
-              exit={{ opacity: 0, width: 0 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="flex items-center gap-1.5 overflow-hidden"
-            >
-              <span className="h-6 w-px bg-zinc-800" />
-              <select
-                value={chaosKind}
-                onChange={(e) => setChaosKind(e.target.value as ChaosKind)}
-                className="h-8 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-200"
-              >
-                {CHAOS_KINDS.map((kind) => (
-                  <option key={kind} value={kind}>
-                    {kind.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={chaosScope}
-                onChange={(e) => setChaosScope(e.target.value)}
-                className="h-8 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-200"
-                title="Blast radius"
-              >
-                <option value="all">everywhere</option>
-                <option value="selected">selected node</option>
-                {CLOUD_REGIONS.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    region: {r.id}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={fireChaos}
-                className="h-8 rounded-md bg-red-500 px-2.5 text-xs font-semibold text-white hover:bg-red-400"
-              >
-                Inject
-              </button>
-              <span className="h-6 w-px bg-zinc-800" />
-              {QUICK_BREAKS.map((preset) => (
-                <button
-                  key={preset.id}
-                  onClick={() => quickBreak(preset)}
-                  title={preset.hint}
-                  className="h-8 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:border-red-600/60 hover:text-red-300"
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <button
-          type="button"
-          onClick={() => openWorkspacePanel("postmortem")}
-          className="flex h-8 items-center gap-1 rounded-md border border-zinc-800 px-2 text-xs text-zinc-300 hover:border-zinc-600 hover:text-zinc-100"
-          title="Open the auto-generated blameless post-mortem"
-        >
-          <FileText size={13} /> Post-mortem
-        </button>
-
-        {chaosActive && (
-          <button
-            onClick={endChaos}
-            className="h-8 rounded-md border border-red-500 px-2.5 text-xs font-semibold text-red-300 hover:bg-red-950"
-          >
-            Clear chaos
-          </button>
-        )}
-      </div>
+function ToolFlyoutRow({
+  Icon,
+  label,
+  hint,
+  onClick,
+  active = false,
+  children,
+}: {
+  Icon: ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  hint: string;
+  onClick?: () => void;
+  active?: boolean;
+  children?: ReactNode;
+}) {
+  // A div (not a button) so nested interactive controls — like the
+  // CanvasPreferences trigger — remain valid HTML.
+  return (
+    <div
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      className={`flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors ${
+        active ? "bg-zinc-800/80" : "hover:bg-zinc-800/60"
+      }`}
+    >
+      <Icon size={15} className={active ? "text-sky-300" : "text-zinc-400"} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[12px] font-medium text-zinc-100">{label}</span>
+        <span className="block truncate text-[10.5px] text-zinc-500">{hint}</span>
+      </span>
+      {children}
     </div>
   );
 }
