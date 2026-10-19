@@ -22,10 +22,12 @@ import {
   SlidersHorizontal,
   Trash2,
   Undo2,
+  AlertTriangle,
   Wrench,
   X,
   Zap,
 } from "@/components/ui/icons";
+import { computeRunPreflight } from "@/engine/designDoctor";
 import { SEED_RESOURCES } from "@/data/seedResources";
 import { CLOUD_REGIONS } from "@/data/regionLatency";
 import type { ChaosKind } from "@/types/simulation";
@@ -228,6 +230,32 @@ export function FloatingToolbar() {
   );
   const chaosActive = useSimStore((s) => s.chaos.active);
   const activeChaos = useSimStore((s) => s.chaos);
+  // Pre-run ward: subscribe to a derived string signature (ids + categories +
+  // edge wiring) instead of the nodes array — drags mutate positions at 60fps
+  // and must never re-render this dock. The memo re-derives cheaply only when
+  // the STRUCTURE changes, reading full data non-reactively via getState().
+  const topologySignature = useCanvasStore(
+    (s) =>
+      s.nodes
+        .map((node) => `${node.id}:${String(node.data.resourceId ?? "")}`)
+        .join("|") +
+      "#" +
+      s.edges.map((edge) => `${edge.source}>${edge.target}`).join("|"),
+  );
+  const preflight = useMemo(() => {
+    const canvasState = useCanvasStore.getState();
+    return computeRunPreflight(
+      canvasState.nodes.map((node) => ({
+        id: node.id,
+        resourceId: String(node.data.resourceId ?? "rest_service"),
+        label: String(node.data.label ?? node.id),
+        overrides: node.data.overrides ?? {},
+      })),
+      canvasState.edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target })),
+    );
+    // topologySignature is the exact cache key for this derivation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topologySignature]);
   const [k8sNotice, setK8sNotice] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
   const [chaosNotice, setChaosNotice] = useState<string | null>(null);
@@ -551,6 +579,22 @@ export function FloatingToolbar() {
         <DockIcon onClick={redoCanvas} title="Redo [y]">
           <Redo2 size={15} />
         </DockIcon>
+        {/* Pre-run check: a broken topology deserves the warning whether the
+            clock is ticking or not (the refresh-restore boots the sim live). */}
+        {preflight.length > 0 && (
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.92 }}
+            transition={spring}
+            onClick={() => useCanvasStore.getState().setDoctorOpen(true)}
+            title={preflight.map((warning) => `${warning.title} — ${warning.detail}`).join("\n\n")}
+            aria-label={`Run check: ${preflight.length} problem${preflight.length > 1 ? "s" : ""} — open Design Doctor`}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 text-[11px] font-semibold text-amber-300 transition-colors hover:bg-amber-500/20"
+          >
+            <AlertTriangle size={13} weight="fill" className="shrink-0" />
+            Run check: {preflight.length} problem{preflight.length > 1 ? "s" : ""}
+          </motion.button>
+        )}
         <DockDivider />
 
         {/* Canvas scenes */}

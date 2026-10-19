@@ -599,3 +599,92 @@ function effectiveP99(node: DoctorNodeInput): number {
   const seed = seedById.get(node.resourceId);
   return seed ? seed.defaults.baseP99Ms : 40;
 }
+
+export interface RunPreflightWarning {
+  kind: "orphaned-node" | "request-cycle" | "no-datastore-path";
+  title: string;
+  detail: string;
+  nodeIds: string[];
+}
+
+/**
+ * Cheap pre-run ward: the three structural mistakes that make a simulation
+ * run meaningless (orphaned nodes, synchronous cycles, datastores no traffic
+ * can reach). Deliberately NOT a hard gate — labs and chaos presets start
+ * broken on purpose; this is the "check your wiring" signal at Run moment.
+ */
+export function computeRunPreflight(nodes: DoctorNodeInput[], edges: DoctorEdgeInput[]): RunPreflightWarning[] {
+  if (nodes.length < 2) return [];
+  const warnings: RunPreflightWarning[] = [];
+  const { validEdges, out, incoming } = buildAdjacency(nodes, edges);
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+
+  // 1) Orphans — a block wired to nothing (dead weight / forgotten node).
+  const orphans = nodes.filter(
+    (node) => (incoming.get(node.id)?.length ?? 0) === 0 && (out.get(node.id)?.length ?? 0) === 0,
+  );
+  if (orphans.length > 0) {
+    warnings.push({
+      kind: "orphaned-node",
+      title: `${orphans.length} node${orphans.length > 1 ? "s are" : " is"} wired to nothing`,
+      detail:
+        "Blocks with no upstream and no downstream never receive (or serve) traffic — the simulation reads them as dead capacity. Wire them in or remove them.",
+      nodeIds: orphans.map((node) => node.id),
+    });
+  }
+
+  // 2) Cycles in the request graph — load multiplies on every pass.
+  const onCycle = nodesOnCycles(nodes, validEdges);
+  if (onCycle.length > 0) {
+    warnings.push({
+      kind: "request-cycle",
+      title: `${onCycle.length} nodes sit on a synchronous cycle`,
+      detail:
+        "A request path that feeds back into itself multiplies traffic on every pass (retry storm, metastable failure). Break the loop with a queue (async back-edge) or a hop cap at the caller.",
+      nodeIds: onCycle,
+    });
+  }
+
+  // 3) Datastores / brokers unreachable from any entry tier.
+  const hasDataTier = nodes.some((node) =>
+    DATASTORE_CATEGORIES.has(categoryOf(node)) || QUEUE_CATEGORIES.has(categoryOf(node)),
+  );
+  if (hasDataTier) {
+    // Seeds = indegree-0 blocks, EXCLUDING the data tier itself: a datastore
+    // or broker with zero producers is precisely the "unreachable" failure,
+    // not a valid starting point for traffic.
+    const isDataTier = (node: DoctorNodeInput) =>
+      DATASTORE_CATEGORIES.has(categoryOf(node)) || QUEUE_CATEGORIES.has(categoryOf(node));
+    const seeds = nodes.filter(
+      (node) => (incoming.get(node.id)?.length ?? 0) === 0 && !isDataTier(node),
+    );
+    const reachable = new Set<string>(seeds.map((node) => node.id));
+    const queue = [...reachable];
+    while (queue.length > 0) {
+      const current = nodeById.get(queue.shift() ?? "");
+      if (!current) continue;
+      for (const edge of out.get(current.id) ?? []) {
+        if (!reachable.has(edge.target)) {
+          reachable.add(edge.target);
+          queue.push(edge.target);
+        }
+      }
+    }
+    const unreachable = nodes.filter(
+      (node) =>
+        (DATASTORE_CATEGORIES.has(categoryOf(node)) || QUEUE_CATEGORIES.has(categoryOf(node))) &&
+        !reachable.has(node.id),
+    );
+    const first = unreachable[0];
+    if (unreachable.length > 0 && first) {
+      warnings.push({
+        kind: "no-datastore-path",
+        title: `${unreachable.length} data node${unreachable.length > 1 ? "s are" : " is"} unreachable`,
+        detail: `${nameOf(first)} cannot receive any request: there is no directed path from an entry block into it. The run will report perfect latency for hardware that never serves anything.`,
+        nodeIds: unreachable.map((node) => node.id),
+      });
+    }
+  }
+
+  return warnings;
+}

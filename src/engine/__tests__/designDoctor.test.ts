@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nodesOnCycles, runDesignDoctor, type DoctorEdgeInput, type DoctorNodeInput } from "../designDoctor";
+import { computeRunPreflight, nodesOnCycles, runDesignDoctor, type DoctorEdgeInput, type DoctorNodeInput } from "../designDoctor";
 
 function node(id: string, resourceId: string, overrides: DoctorNodeInput["overrides"] = {}): DoctorNodeInput {
   return { id, resourceId, label: id, overrides };
@@ -69,6 +69,58 @@ describe("designDoctor", () => {
       [edge("edge", "api"), edge("api", "q")],
     );
     expect(fixed.findings.some((f) => f.ruleId === "client-to-queue-direct")).toBe(false);
+  });
+
+  describe("computeRunPreflight", () => {
+    it("stays silent for a fully wired three-tier design", () => {
+      const warnings = computeRunPreflight(
+        [node("e", "cdn_edge"), node("api", "rest_service"), node("db", "postgres_db")],
+        [edge("e", "api"), edge("api", "db")],
+      );
+      expect(warnings).toEqual([]);
+    });
+
+    it("flags an isolated block as wired to nothing", () => {
+      const warnings = computeRunPreflight(
+        [node("e", "cdn_edge"), node("api", "rest_service"), node("stray", "redis_cache")],
+        [edge("e", "api")],
+      );
+      const orphan = warnings.find((w) => w.kind === "orphaned-node");
+      expect(orphan).toBeDefined();
+      expect(orphan?.nodeIds).toEqual(["stray"]);
+    });
+
+    it("flags a synchronous cycle", () => {
+      const warnings = computeRunPreflight(
+        [node("a", "rest_service"), node("b", "rest_service")],
+        [edge("a", "b"), edge("b", "a")],
+      );
+      const cycle = warnings.find((w) => w.kind === "request-cycle");
+      expect(cycle).toBeDefined();
+      expect(cycle?.nodeIds.sort()).toEqual(["a", "b"]);
+    });
+
+    it("flags a datastore nobody feeds (not a seed for reachable traffic)", () => {
+      const warnings = computeRunPreflight(
+        [node("e", "cdn_edge"), node("api", "rest_service"), node("db", "postgres_db")],
+        [edge("e", "api")],
+      );
+      const unreachable = warnings.find((w) => w.kind === "no-datastore-path");
+      expect(unreachable).toBeDefined();
+      expect(unreachable?.nodeIds).toContain("db");
+    });
+
+    it("says nothing when no data tier exists at all", () => {
+      const warnings = computeRunPreflight(
+        [node("e", "cdn_edge"), node("api", "rest_service")],
+        [edge("e", "api")],
+      );
+      expect(warnings.find((w) => w.kind === "no-datastore-path")).toBeUndefined();
+    });
+
+    it("ignores singleton canvases", () => {
+      expect(computeRunPreflight([node("only", "rest_service")], [])).toEqual([]);
+    });
   });
 
   it("detects cycles", () => {

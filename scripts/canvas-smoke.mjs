@@ -222,6 +222,40 @@ if (saved) {
   console.log(`[loop] nodes after reload: ${restored}`);
 }
 
+// --- Probe G: pre-run check pill ----------------------------------------
+// Break the restored topology (delete the middle service node; its database
+// becomes unreachable) → the dock must show the amber "Run check" pill, and
+// clicking it must open the Design Doctor panel.
+if (restored >= 4) {
+  const pillProbe = { pill: 0, doctor: 0, nodesAfter: 0 };
+  try {
+    // Node ids are random-suffixed (n_mvfc0zjx_*), so target the middle
+    // service node by its persisted label instead of a literal id.
+    const apiNode = page.locator(".react-flow__node", { hasText: "Checkout API" }).first();
+    await apiNode.click({ force: true, timeout: 8_000 });
+    await page.waitForTimeout(250);
+    const selected = await page.locator(".react-flow__node.selected").count();
+    console.log(`[diag] selected nodes after click Checkout API: ${selected}`);
+    await page.keyboard.press("Delete");
+    await page.waitForTimeout(900);
+    pillProbe.nodesAfter = await page.locator(".react-flow__node").count();
+    pillProbe.pill = await page.locator('button[aria-label^="Run check"]').count();
+  } catch (err) {
+    console.log(`[diag] probe G exception: ${String(err).slice(0, 160)}`);
+  }
+  await page.screenshot({ path: "scripts/canvas-smoke-runcheck.png", fullPage: false });
+  console.log(`[diag] nodes after delete: ${pillProbe.nodesAfter}`);
+  if (pillProbe.pill === 0) {
+    failures.push({ probe: "G pre-run pill visible after break", ...pillProbe });
+  } else {
+    await page.locator('button[aria-label^="Run check"]').first().click();
+    await page.waitForTimeout(700);
+    pillProbe.doctor = await page.locator('[aria-label="Design Doctor report"]').count();
+    if (pillProbe.doctor === 0) failures.push({ probe: "G doctor opens from pill", ...pillProbe });
+  }
+  console.log(`[loop] run-check pill: ${JSON.stringify(pillProbe)}`);
+}
+
 await page.screenshot({ path: "scripts/canvas-smoke-last.png", fullPage: false });
 
 console.log(JSON.stringify({ verdict: { failures } }, null, 2));
