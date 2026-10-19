@@ -6,6 +6,7 @@ import { ArrowRight, BookOpen, CheckCircle2, Clock, Cpu, FlaskConical, HardDrive
 import { Markdown } from '@/components/Markdown';
 import { ShinyText } from '@/components/ui/reactbits/ShinyText';
 import { SEED_RESOURCES } from '@/data/seedResources';
+import { canvasHrefWithAdd } from '@/store/canvasDeepLink';
 import type { ResourceCategory, ResourceDefinition } from '@/types/resource';
 
 /**
@@ -73,12 +74,19 @@ export function PrimitivesBrowser({ primitives = SEED_RESOURCES }: { primitives?
   const [category, setCategory] = useState<ResourceCategory | 'all'>('all');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string>(() => primitives[0]?.id ?? '');
+  // The id carried by ?resource= — tracked separately so the canvas CTA
+  // links to the primitive the reader actually deep-linked to, not the one
+  // that happened to be rendered before the effect ran.
+  const [deepLinkId, setDeepLinkId] = useState<string | null>(null);
 
   // ?resource=<id> deep-link — read on mount only, SSR-safe.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('resource');
-    if (id && primitives.some((p) => p.id === id)) setSelectedId(id);
+    if (id && primitives.some((p) => p.id === id)) {
+      setSelectedId(id);
+      setDeepLinkId(id);
+    }
   }, [primitives]);
 
   const select = (id: string) => {
@@ -193,28 +201,37 @@ export function PrimitivesBrowser({ primitives = SEED_RESOURCES }: { primitives?
             {filtered.map((p, i) => {
               const active = p.id === selected.id;
               return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => select(p.id)}
-                  className={`wiki-pop-item w-full rounded-xl border px-3.5 py-3 text-left transition-all ${
-                    active
-                      ? 'border-brass/50 bg-brass/[0.07]'
-                      : 'border-zinc-800 bg-zinc-950/40 hover:border-zinc-600 hover:bg-zinc-900/60'
-                  }`}
-                  style={{ animationDelay: `${Math.min(i * 30, 420)}ms` }}
-                >
-                  <span className={`block truncate text-[13px] font-semibold ${active ? 'text-brass-bright' : 'text-zinc-100'}`}>
-                    {p.name}
-                  </span>
-                  <span className="mt-0.5 flex items-center gap-2 text-[10.5px] text-zinc-500">
-                    <span>{CATEGORY_LABELS[p.category]}</span>
-                    ·
-                    <span className="tabular-nums">{formatRps(p.defaults.baseThroughputRps)} RPS</span>
-                    ·
-                    <span className="tabular-nums">${p.defaults.costPerHourUsd.toFixed(2)}/hr</span>
-                  </span>
-                </button>
+                <div key={p.id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => select(p.id)}
+                    className={`wiki-pop-item w-full rounded-xl border px-3.5 py-3 pr-24 text-left transition-all ${
+                      active
+                        ? 'border-brass/50 bg-brass/[0.07]'
+                        : 'border-zinc-800 bg-zinc-950/40 hover:border-zinc-600 hover:bg-zinc-900/60'
+                    }`}
+                    style={{ animationDelay: `${Math.min(i * 30, 420)}ms` }}
+                  >
+                    <span className={`block truncate text-[13px] font-semibold ${active ? 'text-brass-bright' : 'text-zinc-100'}`}>
+                      {p.name}
+                    </span>
+                    <span className="mt-0.5 flex items-center gap-2 text-[10.5px] text-zinc-500">
+                      <span>{CATEGORY_LABELS[p.category]}</span>
+                      ·
+                      <span className="tabular-nums">{formatRps(p.defaults.baseThroughputRps)} RPS</span>
+                      ·
+                      <span className="tabular-nums">${p.defaults.costPerHourUsd.toFixed(2)}/hr</span>
+                    </span>
+                  </button>
+                  <Link
+                    href={canvasHrefWithAdd([p.id])}
+                    title={`Add ${p.name} to the canvas`}
+                    aria-label={`Add ${p.name} to the canvas`}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1 text-[10.5px] font-semibold text-zinc-300 transition-colors hover:border-brass/60 hover:text-brass-bright"
+                  >
+                    + Canvas
+                  </Link>
+                </div>
               );
             })}
             {filtered.length === 0 && (
@@ -234,11 +251,11 @@ export function PrimitivesBrowser({ primitives = SEED_RESOURCES }: { primitives?
                   <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-zinc-300">{selected.description}</p>
                 </div>
                 <Link
-                  href="/canvas"
+                  href={canvasHrefWithAdd([deepLinkId ?? selected.id])}
                   className="group inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brass px-4 py-2 text-[12.5px] font-semibold text-zinc-950 transition-transform hover:scale-[1.03]"
                 >
                   <FlaskConical size={14} />
-                  Drag onto canvas
+                  Add to canvas
                   <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
@@ -369,7 +386,7 @@ export function PrimitivesBrowser({ primitives = SEED_RESOURCES }: { primitives?
                 <span className="inline-flex items-center gap-1.5">
                   <Clock size={12} /> Defaults mirror production shapes
                 </span>
-                <Link href="/canvas" className="ml-auto inline-flex items-center gap-1.5 text-sky-300 hover:text-sky-200">
+                <Link href={canvasHrefWithAdd([deepLinkId ?? selected.id])} className="ml-auto inline-flex items-center gap-1.5 text-sky-300 hover:text-sky-200">
                   <HardDrive size={12} /> Build with it on the canvas <ArrowRight size={12} />
                 </Link>
               </div>

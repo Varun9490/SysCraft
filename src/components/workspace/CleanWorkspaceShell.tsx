@@ -317,9 +317,14 @@ export default function CleanWorkspaceShell() {
       .then(() => {
         // Restored coordinates may sit off the previous viewport: refit once.
         useCanvasStore.setState((state) => ({ fitViewNonce: state.fitViewNonce + 1 }));
+        // Tell the canvas the persisted topology is in place, so a wiki deep
+        // link (?add=...) can drop its primitives on top of the restore
+        // instead of being overwritten by it.
+        useCanvasStore.getState().setHydrated(true);
       })
       .catch(() => {
         /* corrupt storage already sanitised by migrate — start fresh */
+        useCanvasStore.getState().setHydrated(true);
       });
   }, []);
 

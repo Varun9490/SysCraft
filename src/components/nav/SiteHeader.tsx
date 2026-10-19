@@ -15,7 +15,7 @@ const NAV_LINKS = [
   { href: "/learn", label: "Learn" },
   { href: "/canvas", label: "Design" },
   { href: "/labs", label: "Labs" },
-  { href: "/wiki", label: "Reference" },
+  { href: "/wiki", label: "Wiki" },
 ];
 
 function isActive(pathname: string, href: string): boolean {

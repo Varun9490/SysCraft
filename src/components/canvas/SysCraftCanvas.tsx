@@ -19,6 +19,7 @@ import { OnboardingOverlay } from "./OnboardingOverlay";
 import { OutlineMode } from "./OutlineMode";
 import { DesignDoctorPanel } from "./DesignDoctorPanel";
 import { useCanvasStore, type CanvasFlowNode } from "@/store/useCanvasStore";
+import { CANVAS_ADD_PARAM, parseCanvasAddParam } from "@/store/canvasDeepLink";
 import { useSimStore } from "@/store/useSimStore";
 import { hydrateCustomResourcesFromDb } from "@/store/customResourceRegistry";
 import { useCanvasPrefsStore } from "@/store/useCanvasPrefsStore";
@@ -47,7 +48,7 @@ function CanvasInner({ className }: { className: string }) {
   const running = useSimStore((s) => s.running);
   // Whole-store subscription is fine: prefs change on explicit user action only.
   const prefs = useCanvasPrefsStore();
-  const { fitView, setCenter } = useReactFlow();
+  const { fitView, setCenter, screenToFlowPosition } = useReactFlow();
 
   const gridVariant =
     prefs.gridStyle === "lines"
@@ -94,6 +95,37 @@ function CanvasInner({ className }: { className: string }) {
       duration: 420,
     });
   }, [focusRequest, setCenter]);
+
+  // Wiki → canvas handoff: /canvas?add=postgres_db,redis_cache drops the
+  // requested primitives on arrival. The drop waits for the persisted
+  // topology to be restored first, otherwise the restore would overwrite it.
+  const hydrated = useCanvasStore((s) => s.hydrated);
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    const requested = parseCanvasAddParam(window.location.search);
+    if (requested.length === 0) return;
+
+    // Consume the param so a refresh (or Back) doesn't re-add the blocks.
+    const params = new URLSearchParams(window.location.search);
+    params.delete(CANVAS_ADD_PARAM);
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+    );
+
+    const store = useCanvasStore.getState();
+    const center = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+    requested.forEach((resourceId, index) => {
+      const jitter = (useCanvasStore.getState().nodes.length % 8) * 36;
+      store.addNode(resourceId, {
+        x: center.x - 116 + jitter + index * 48,
+        y: center.y - 64 + jitter + index * 34,
+      });
+    });
+    useCanvasStore.setState((state) => ({ fitViewNonce: state.fitViewNonce + 1 }));
+  }, [hydrated, screenToFlowPosition]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

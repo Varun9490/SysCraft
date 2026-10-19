@@ -256,6 +256,38 @@ if (restored >= 4) {
   console.log(`[loop] run-check pill: ${JSON.stringify(pillProbe)}`);
 }
 
+// --- Probe H: wiki → canvas handoff -------------------------------------
+// The primitives library advertises adding a block to the canvas. The link
+// must carry the primitive (?add=postgres_db) and the canvas must actually
+// drop it — a plain navigation to /canvas is the bug this locks down.
+const handoff = { href: null, nodes: 0, postgres: 0 };
+try {
+  await page.goto(`${BASE}/wiki/primitives?resource=postgres_db`, { waitUntil: "load" });
+  // The article CTA (not the per-item rail links) is the one under test.
+  const addLink = page.locator('article a[href^="/canvas?add="]').first();
+  await addLink.waitFor({ state: "visible", timeout: 30_000 });
+  // The ?resource= id is applied after mount — wait for the CTA to carry it.
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    handoff.href = await addLink.getAttribute("href");
+    if (handoff.href && handoff.href.includes("add=postgres_db")) break;
+    await page.waitForTimeout(250);
+  }
+  await addLink.click();
+  await page.waitForSelector(".react-flow__node", { state: "visible", timeout: 60_000 });
+  await page.waitForTimeout(1200);
+  handoff.nodes = await page.locator(".react-flow__node").count();
+  handoff.postgres = await page.locator(".react-flow__node", { hasText: /postgres/i }).count();
+} catch (err) {
+  console.log(`[diag] probe H exception: ${String(err).slice(0, 160)}`);
+}
+if (!handoff.href || !handoff.href.includes("add=postgres_db")) {
+  failures.push({ probe: "H wiki add link carries primitive", href: handoff.href });
+}
+if (handoff.postgres < 1) {
+  failures.push({ probe: "H primitive dropped on canvas", ...handoff });
+}
+console.log(`[loop] wiki handoff: ${JSON.stringify(handoff)}`);
+
 await page.screenshot({ path: "scripts/canvas-smoke-last.png", fullPage: false });
 
 console.log(JSON.stringify({ verdict: { failures } }, null, 2));

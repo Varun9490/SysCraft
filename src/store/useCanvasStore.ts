@@ -146,6 +146,10 @@ interface CanvasState {
   doctorOpen: boolean;
   /** One-shot request to center the viewport on a node (Doctor / Outline). */
   focusRequest: { nodeId: string; nonce: number } | null;
+  /** True once the persisted topology has been restored into the store. */
+  hydrated: boolean;
+  /** Flip the hydration flag (called by the workspace shell after rehydrate). */
+  setHydrated: (hydrated: boolean) => void;
 
   onNodesChange: OnNodesChange<CanvasFlowNode>;
   onEdgesChange: OnEdgesChange<CanvasFlowEdge>;
@@ -420,6 +424,9 @@ export const useCanvasStore = create<CanvasState>()(
       outlineMode: false,
       doctorOpen: false,
       focusRequest: null,
+      hydrated: false,
+
+      setHydrated: (hydrated) => set({ hydrated }),
 
       onNodesChange: (changes) => {
         set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) }));
