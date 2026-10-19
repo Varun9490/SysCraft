@@ -3,7 +3,7 @@ import { SiteChrome } from "@/components/nav/SiteChrome";
 import { PlayArena } from "@/components/play/PlayArena";
 
 export const metadata = {
-  title: "Play — Nine System Design Game Modes | SysCraft",
+  title: "Play — system design game modes",
   description:
     "Nine deterministic game modes: Estimate Sprint, Pattern Match, Debug the Outage, Bottleneck Hunt, the UTC-seeded Daily Puzzle, and simulation-backed challenges that run on the seeded Web Worker engine.",
 };

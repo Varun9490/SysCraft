@@ -3,7 +3,7 @@ import { SiteChrome } from "@/components/nav/SiteChrome";
 import { KnowledgeGraph } from "@/components/wiki/KnowledgeGraph";
 
 export const metadata = {
-  title: "Knowledge Graph — SysCraft Wiki",
+  title: "Knowledge graph — wiki",
   description:
     "The SysCraft concept graph: every encyclopedia topic mapped by difficulty and relation, shaded by your spaced-repetition mastery.",
 };

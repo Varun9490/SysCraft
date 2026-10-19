@@ -4,6 +4,7 @@ import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import { BootRunner } from "@/components/shell/BootRunner";
 import { ThemeBridge } from "@/components/shell/ThemeBridge";
+import { SITE_NAME, SITE_URL } from "@/data/contentManifest";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -11,25 +12,39 @@ const outfit = Outfit({
   display: "swap",
 });
 
+/**
+ * Honest, claim-free metadata. The app is free and local-first, but it is not
+ * fully offline (AI tiers call APIs, WebLLM downloads weights), so we never
+ * say "offline" — see the claims register (/reference/numbers) discipline.
+ */
 export const metadata: Metadata = {
-  title: "SysCraft — Interactive System Design, Distributed Systems & Kubernetes Simulator",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} — Learn system design by running it`,
+    template: `%s — ${SITE_NAME}`,
+  },
   description:
-    "Stop memorizing static boxes. Read, sketch, and load-test real distributed systems and Kubernetes clusters on a live browser canvas — 100% free and offline-ready.",
-  applicationName: "SysCraft",
+    "Design real architectures on an infinite canvas, run them under load, and watch what breaks — from a single server to globally distributed systems. Free, local-first, no account.",
+  applicationName: SITE_NAME,
   keywords: [
     "system design",
     "distributed systems",
-    "kubernetes",
-    "simulator",
+    "architecture simulator",
     "interview preparation",
-    "spaced repetition",
+    "latency numbers",
+    "caching",
+    "consistency",
   ],
   openGraph: {
-    title: "SysCraft — Interactive System Design & Kubernetes Simulator",
+    title: `${SITE_NAME} — Learn system design by running it`,
     description:
-      "Read, sketch, and load-test real distributed systems and Kubernetes clusters on a live browser canvas. Free, local-first, offline-ready.",
-    siteName: "SysCraft",
+      "Design real architectures, run them under load, and watch what breaks — from a single server to globally distributed systems. Free, local-first, no account.",
+    siteName: SITE_NAME,
     type: "website",
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 };
 

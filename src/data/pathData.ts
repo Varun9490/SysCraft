@@ -1,7 +1,21 @@
 /**
- * The full SysCraft learning path: 19 modules across 3 parts, 137 lessons,
- * sequenced in the order a growing application needs them — from a single
- * server to globally distributed systems.
+ * The full SysCraft learning path, structured as: approach → foundations →
+ * distributed systems → under the hood → AI systems.
+ *
+ * Invariants enforced by tests (src/data/__tests__/contentCounts.test.ts):
+ *   - no two modules share an id;
+ *   - no module has more lessons than a book chapter (nine max);
+ *   - every practiceLabIds entry resolves to a real guided lab;
+ *   - every encyclopediaId resolves to a real wiki article;
+ *   - all counts quoted in UI copy come from TOTAL_MODULES / TOTAL_LESSONS.
+ *
+ * Module 0 is the delivery framework: how to approach ANY design. Modules
+ * 1–10 walk a single starter system ("one server → distributed") in the order
+ * a growing app actually hits the problems.
+ *
+ * CAP/PACELC lives in Module 12 (Problems in distributed systems) and the
+ * replication deep dives — deliberately NOT in Module 1, which is an
+ * on-ramp, not a theory paper.
  */
 
 export interface PathModule {
@@ -27,6 +41,30 @@ export interface PathPart {
 
 export const PATH_PARTS: PathPart[] = [
   {
+    id: "approach",
+    title: "Approach",
+    subtitle: "The process to follow on every design problem, before any box is drawn.",
+    accentClass: "text-rose-300",
+    accentHex: "#CE7E78",
+    modules: [
+      {
+        id: "how-to-approach-design",
+        number: 0,
+        title: "How to approach any design",
+        description:
+          "A six-step delivery framework — requirements, estimation, entities, API, high-level design, deep dives — that turns a blank page into a defensible architecture.",
+        lessonTitles: [
+          "Requirements first: functional, non-functional, and out of scope",
+          "Estimation only when it changes the design",
+          "Core entities and access patterns",
+          "API contracts: verbs, idempotency, pagination, identity",
+          "High-level design, endpoint by endpoint",
+          "Deep dives and timeboxing: leading the design",
+        ],
+      },
+    ],
+  },
+  {
     id: "foundations",
     title: "Foundations",
     subtitle: "The core ideas, in the order a growing app needs them.",
@@ -38,14 +76,14 @@ export const PATH_PARTS: PathPart[] = [
         number: 1,
         title: "What is system design?",
         description:
-          "Requirements, constraints, and the vocabulary used to reason about real systems before writing a single line of infrastructure.",
+          "System design is making explicit trade-off decisions under constraints. Learn to read any problem before drawing any box.",
         lessonTitles: [
           "Functional vs non-functional requirements",
+          "Simple is a design too: one server is often enough",
           "Latency, throughput, and availability numbers",
           "Back-of-the-envelope estimation",
           "How to read a system design problem",
         ],
-        encyclopediaId: "cap-theorem",
       },
       {
         id: "simple-system",
@@ -56,8 +94,10 @@ export const PATH_PARTS: PathPart[] = [
         lessonTitles: [
           "One server, one database",
           "Request lifecycle end to end",
+          "API design: REST verbs, status codes, and pagination",
+          "Data modeling: entities, access patterns, and indexes",
+          "Database indexing: B-trees and why lookups stay fast",
           "DNS, TCP, and TLS in ten minutes",
-          "Load balancers appear",
           "Stateless vs stateful services",
           "Your first deployment topology",
         ],
@@ -65,17 +105,18 @@ export const PATH_PARTS: PathPart[] = [
         practiceLabIds: ["pastebin-service"],
       },
       {
-        id: "caching",        number: 3,
+        id: "caching",
+        number: 3,
         title: "Caching",
         description:
           "Why caches work, the four strategies, eviction policies, invalidation, and how hot keys melt production.",
         lessonTitles: [
           "Why caches work: the 80/20 rule",
+          "Where to cache: browser, CDN, in-process, networked",
           "Cache-aside, read-through, write-through, write-back",
           "Eviction: LRU, LFU, and TTLs",
           "Cache invalidation strategies",
           "Hot keys and cache stampedes",
-          "CDN and edge caching",
           "Measuring hit ratio and its ROI",
         ],
         encyclopediaId: "caching-strategies",
@@ -109,7 +150,7 @@ export const PATH_PARTS: PathPart[] = [
           "Primary failover and split brain",
           "Indexing and query plans",
           "Sharding keys and hotspots",
-          "Range vs hash partitioning",
+          "Sharding keys vs range partitions",
           "CQRS and read models",
           "Choosing SQL vs NoSQL",
           "Schema migrations without downtime",
@@ -154,14 +195,14 @@ export const PATH_PARTS: PathPart[] = [
       {
         id: "rate-limiting",
         number: 8,
-        title: "Rate limiting",
+        title: "Rate limiting and overload",
         description:
-          "Token buckets to distributed counters: protecting services from abuse, overload, and the retry storms you caused yourself.",
+          "Token buckets to distributed counters, admission control, load shedding, and the retry storms you can cause yourself.",
         lessonTitles: [
           "Token bucket, leaky bucket, sliding window",
           "Distributed rate limiting with Redis",
           "Per-user, per-IP, per-key policies",
-          "Graceful degradation under abuse",
+          "Fixed-window bursts and boundary effects",
           "Load shedding vs rate limiting",
           "Fairness: weighted queues and priorities",
         ],
@@ -215,9 +256,9 @@ export const PATH_PARTS: PathPart[] = [
         number: 11,
         title: "Microservices",
         description:
-          "When to split the monolith, where the boundaries go, and the operational cost of every new service.",
+          "When to split the monolith — and when not to — where the boundaries go, and the operational cost of every new service.",
         lessonTitles: [
-          "Monolith first: when to split",
+          "Monolith first: when to split (and when not to)",
           "Service boundaries and domains",
           "Sync vs async service calls",
           "Service discovery",
@@ -232,14 +273,14 @@ export const PATH_PARTS: PathPart[] = [
         number: 12,
         title: "Problems in distributed systems",
         description:
-          "Partial failure, timeouts, retry storms, clock skew, and how cascading failures actually start.",
+          "Partial failure, timeouts, retry storms, clock skew — and why partitions force the consistency/availability choice (CAP, PACELC).",
         lessonTitles: [
           "Partial failure and timeouts",
           "Retries and retry storms",
           "Circuit breakers and bulkheads",
+          "CAP and PACELC: the partition trade-off",
           "Clock skew and ordering",
           "Cascading failures",
-          "Distributed debugging and tracing",
           "Designing for failure",
         ],
         encyclopediaId: "cap-theorem",
@@ -249,12 +290,12 @@ export const PATH_PARTS: PathPart[] = [
         number: 13,
         title: "Replication in depth",
         description:
-          "Leader-based, multi-leader, and leaderless replication, quorums, conflict resolution, and a first pass at consensus.",
+          "Leader-based, multi-leader, and leaderless replication, quorums with honest failure semantics, conflict resolution, and a first pass at consensus.",
         lessonTitles: [
           "Single-leader replication",
           "Multi-leader and leaderless",
-          "Quorums: R + W > N",
-          "Conflict resolution: LWW, CRDTs",
+          "Quorums: R + W > N, and what happens when replicas fail",
+          "Consistency models: linearizability to eventual",
           "Read-your-writes consistency",
           "Follower reads and monotonicity",
           "Consensus: Paxos and Raft intuition",
@@ -357,99 +398,84 @@ export const PATH_PARTS: PathPart[] = [
     accentHex: "#E6CC9F",
     modules: [
       {
-        id: "classic-algorithms",
+        id: "hashing-and-sketches",
         number: 19,
-        title: "Classic algorithms in action",
+        title: "Hashing and probabilistic sketches",
         description:
-          "Nineteen algorithms you meet in every real system — implemented, visualized, and connected to production use.",
+          "Consistent hashing, bloom filters, cardinality sketches, Merkle trees, and spatial indexes — the small algorithms behind big systems.",
         lessonTitles: [
           "Consistent hashing from scratch",
           "Bloom filters and false positives",
-          "Merkle trees for file sync",
           "HyperLogLog cardinality estimation",
           "Count-min sketch heavy hitters",
-          "LSM trees and compaction",
-          "B-trees and page splits",
-          "Raft leader election walkthrough",
-          "Gossip and epidemic protocols",
-          "CRDTs hands-on",
-          "Geohashing and proximity search",
-          "Vector clocks and causality",
-          "Skip lists: the probabilistic index",
-          "Rate limiting algorithms compared",
-          "QuadTrees and spatial indexes",
-          "Min-heap scheduling",
-          "Write-ahead logs",
-          "MapReduce intuition",
-          "Choosing data structures in interviews",
+          "Merkle trees for file sync",
+          "Geohashing, quadtrees, and spatial indexes",
         ],
-        encyclopediaId: "merkle-trees",
+        encyclopediaId: "bloom-filters",
         practiceLabIds: ["dynamodb-from-scratch", "search-autocomplete"],
       },
       {
-        id: "tokenization-basics",
+        id: "storage-engines",
         number: 20,
-        title: "Tokenization and embeddings",
+        title: "Storage engines",
         description:
-          "How text becomes numbers, why vocabulary size is a design trade-off, and how embeddings become searchable.",
+          "How a database actually stores and finds bytes: LSM trees, B-trees, write-ahead logs, and probabilistic indexes.",
+        lessonTitles: [
+          "LSM trees and compaction",
+          "B-trees and page splits",
+          "Write-ahead logs",
+          "Skip lists: the probabilistic index",
+        ],
+        encyclopediaId: "btree-vs-lsm",
+      },
+      {
+        id: "coordination-and-time",
+        number: 21,
+        title: "Coordination and time",
+        description:
+          "Leader election, gossip, CRDTs, causal ordering, and fair scheduling — how a cluster agrees on anything.",
+        lessonTitles: [
+          "Raft leader election walkthrough",
+          "Gossip and epidemic protocols",
+          "CRDTs hands-on",
+          "Vector clocks and causality",
+          "Min-heaps and fair scheduling",
+          "MapReduce intuition",
+        ],
+        encyclopediaId: "raft-consensus",
+      },
+    ],
+  },
+  {
+    id: "ai-modern-patterns",
+    title: "AI systems",
+    subtitle: "Retrieval and LLM serving join the existing primitives.",
+    accentClass: "text-violet-300",
+    accentHex: "#C084FC",
+    modules: [
+      {
+        id: "embeddings-retrieval",
+        number: 22,
+        title: "Embeddings and retrieval",
+        description:
+          "How text becomes numbers, how embeddings become searchable, and how retrieval augments generation — chunking, ANN, reranking, injection defense.",
         lessonTitles: [
           "Byte-pair encoding from scratch",
           "Subword encoding trade-offs",
           "Embedding space and cosine similarity",
           "Vector DB index design (HNSW vs IVF)",
           "Chunking strategies for RAG",
-          "Embedding model choice for multilingual data",
-        ],
-        encyclopediaId: "tokenization-basics",
-        practiceLabIds: ["search-autocomplete", "rag-system"],
-      },
-      {
-        id: "rag-patterns",
-        number: 21,
-        title: "Retrieval-augmented generation",
-        description:
-          "Ground LLM responses with retrieved context: chunking, embedding, ANN retrieval, reranking, prompt injection.",
-        lessonTitles: [
-          "Chunk size and overlap design",
-          "Embedding model selection",
-          "Approximate nearest neighbor retrieval",
-          "Cross-encoder reranking",
           "Hybrid lexical + dense retrieval",
-          "Prompt template architecture for RAG",
+          "Cross-encoder reranking",
+          "Prompt-injection defense",
         ],
         encyclopediaId: "rag-patterns",
-        practiceLabIds: ["rag-system", "search-autocomplete"],
+        practiceLabIds: ["agentic-rag-support", "search-autocomplete"],
       },
       {
-        id: "system-design-primer-curriculum",
-        number: 22,
-        title: "System design primer mapped to primitives",
-        description:
-          "Every design concept in the primer mapped to a canvas primitive and a production paper reference.",
-        lessonTitles: [
-          "Rate limiters: token vs leaky bucket",
-          "Sharding: consistent hash vs range",
-          "Replication: sync vs async vs quorum",
-          "Caching: aside vs through vs write-through",
-          "Consistency levels: strong vs eventual",
-          "Observability: metrics + logs + traces",
-        ],
-        encyclopediaId: "system-design-primer-curriculum",
-        practiceLabIds: ["rate-limit-design", "sharding-patterns"],
-      },
-    ],
-  },
-  {
-    id: "ai-modern-patterns",
-    title: "AI & modern patterns",
-    subtitle: "The new primitives that connect to every existing design.",
-    accentClass: "text-violet-300",
-    accentHex: "#C084FC",
-    modules: [
-      {
-        id: "kv-cache-design",
+        id: "llm-serving",
         number: 23,
-        title: "KV cache design for LLM serving",
+        title: "LLM serving",
         description:
           "How self-attention's key/value memory scales, and how paged attention and continuous batching manage it.",
         lessonTitles: [
@@ -460,23 +486,6 @@ export const PATH_PARTS: PathPart[] = [
           "Batch scheduling with variable sequence lengths",
         ],
         encyclopediaId: "kv-cache-design",
-        practiceLabIds: ["llm-serving", "batch-optimization"],
-      },
-      {
-        id: "rate-limiting",
-        number: 24,
-        title: "Rate limiting and throttling",
-        description:
-          "From token buckets to distributed counters: how to protect downstream services with bounded admission.",
-        lessonTitles: [
-          "Token bucket semantics",
-          "Leaky bucket behavior",
-          "Sliding window rate limiters",
-          "Distributed rate limiting with Redis",
-          "Admission control and graceful degradation",
-        ],
-        encyclopediaId: "rate-limiting",
-        practiceLabIds: ["rate-limit-design", "load-balancing"],
       },
     ],
   },

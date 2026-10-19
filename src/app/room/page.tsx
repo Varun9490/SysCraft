@@ -2,7 +2,7 @@ import { SiteChrome } from "@/components/nav/SiteChrome";
 import { RoomLobby } from "@/components/room/RoomLobby";
 
 export const metadata = {
-  title: "Live Rooms — P2P Collaboration | SysCraft",
+  title: "Live rooms — P2P collaboration",
   description:
     "Design architectures together: create or join a room and edit the same SysCraft canvas peer-to-peer over WebRTC. No accounts, no server state, end-to-end encrypted.",
 };

@@ -49,6 +49,7 @@ const CHAOS_KINDS: ChaosKind[] = [
   "traffic_surge",
   "dependency_down",
   "dns_failure",
+  "cache_flush",
 ];
 
 const K8S_EXPANDABLE = new Set(["rest_service", "serverless_function", "background_worker", "service_mesh", "llm_inference"]);
@@ -69,11 +70,12 @@ const CHAOS_DEFAULTS: Record<ChaosKind, { capacityPenalty: number; latencyPenalt
   traffic_surge: { capacityPenalty: 0, latencyPenaltyMs: 0 },
   dependency_down: { capacityPenalty: 0.9, latencyPenaltyMs: 0 },
   dns_failure: { capacityPenalty: 0.6, latencyPenaltyMs: 0 },
+  cache_flush: { capacityPenalty: 0, latencyPenaltyMs: 0 },
 };
 
 /**
- * The three archetypal failures of the build-run-break loop, as one-click
- * presets so a learner can break a design without configuring chaos by hand.
+ * Archetypal failures of the build-run-break loop, as one-click presets so a
+ * learner can break a design without configuring chaos by hand.
  */
 const QUICK_BREAKS: Array<{
   id: string;
@@ -110,6 +112,15 @@ const QUICK_BREAKS: Array<{
     capacityPenalty: 0.34,
     latencyPenaltyMs: 0,
     hint: "Loses a third of compute/cache replicas.",
+  },
+  {
+    id: "flush",
+    label: "Purge caches",
+    kind: "cache_flush",
+    scope: "all",
+    capacityPenalty: 0,
+    latencyPenaltyMs: 0,
+    hint: "Empties every cache tier; hit rates re-warm over ~25s while the durable tier eats cold misses.",
   },
 ];
 

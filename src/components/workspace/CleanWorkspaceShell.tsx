@@ -48,6 +48,7 @@ import { TelemetryDrawer } from "@/components/telemetry/TelemetryDrawer";
 import { TimeTravelScrubber } from "@/components/telemetry/TimeTravelScrubber";
 import { TraceWaterfallModal } from "@/components/telemetry/TraceWaterfallModal";
 import { DesignWorkbench } from "@/components/workbench/DesignWorkbench";
+import { CONTENT_COUNTS } from "@/data/contentManifest";
 import { ENCYCLOPEDIA_MODULES } from "@/data/encyclopediaData";
 import { SEED_RESOURCES } from "@/data/seedResources";
 import { isSoundEnabled, playToggle, setSoundEnabled } from "@/engine/soundEngine";
@@ -141,7 +142,7 @@ function LearnPanel({ onOpenModule }: { onOpenModule: (moduleId: string) => void
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search 19 concept modules…"
+            placeholder={`Search ${ENCYCLOPEDIA_MODULES.length} concept modules…`}
             className="w-full rounded-lg border border-zinc-800 bg-zinc-900/70 py-2 pl-8 pr-3 text-[13px] text-zinc-200 outline-none transition-colors placeholder:text-zinc-600 focus:border-zinc-600"
           />
         </div>
@@ -187,7 +188,7 @@ function LearnPanel({ onOpenModule }: { onOpenModule: (moduleId: string) => void
           className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-zinc-800/70"
         >
           <FlaskConical size={14} className="text-amber-300" />
-          <span className="flex-1 text-[12.5px] text-zinc-300">Practice in 16 labs</span>
+          <span className="flex-1 text-[12.5px] text-zinc-300">Practice in {CONTENT_COUNTS.labs} labs</span>
           <ArrowRight size={13} className="text-zinc-600 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
@@ -207,7 +208,7 @@ const TOOL_PANELS: Array<{
   { id: "postmortem", label: "Post-mortem", description: "RCA report generator", Icon: FileText },
   { id: "iac", label: "IaC Export", description: "Terraform · Docker · K8s", Icon: FileCode2 },
   { id: "studio", label: "Custom Studio", description: "Design your own primitives", Icon: Sparkles },
-  { id: "arena", label: "Incident Arena", description: "20 timed chaos drills", Icon: Swords },
+  { id: "arena", label: "Incident Arena", description: `${CONTENT_COUNTS.chaosDrills} timed chaos drills`, Icon: Swords },
   { id: "sims", label: "Internal Sims", description: "B-Tree · Raft · hashing · tokens", Icon: Cpu },
   { id: "costs", label: "Cost Analysis", description: "Your price × replicas, live idle spend", Icon: Gauge },
 ];

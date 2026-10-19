@@ -34,9 +34,13 @@ export const ChaosKindSchema = z.enum([
   "traffic_surge",
   "dependency_down",
   "dns_failure",
+  "cache_flush",
 ]);
 
 export type ChaosKind = z.infer<typeof ChaosKindSchema>;
+
+/** LRU/entry re-warming horizon after a full cache flush (seconds). */
+export const CACHE_FLUSH_WARMUP_S = 25;
 
 export const ChaosStateSchema = z.object({
   active: z.boolean().default(false),
@@ -106,6 +110,8 @@ export const NodeTelemetrySchema = z.object({
   p95Ms: z.number().min(0),
   p99Ms: z.number().min(0),
   queueDepth: z.number().min(0),
+  /** Little's-Law in-service estimate: served RPS x p50 service time (concurrency slots busy). */
+  concurrentInFlight: z.number().min(0).default(0),
   errorRate: z.number().min(0).max(1),
   cpuPct: z.number().min(0).max(100),
   cacheHitPct: z.number().min(0).max(100),

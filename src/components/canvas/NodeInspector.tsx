@@ -405,6 +405,13 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
                     {Math.round(telemetry.queueDepth).toLocaleString()} / {sizing.maxConcurrency.toLocaleString()}
                   </span>
                 </div>
+                <div className="flex items-center justify-between text-[10.5px] text-zinc-500">
+                  <span>Concurrency in flight</span>
+                  <span className="tabular-nums text-zinc-300">
+                    {Math.round(telemetry.concurrentInFlight).toLocaleString()} /{" "}
+                    {(sizing.maxConcurrency * Math.max(1, replicationFactor)).toLocaleString()} slots
+                  </span>
+                </div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
                   <div
                     className={`h-full rounded-full transition-[width] duration-300 ${

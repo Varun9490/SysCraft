@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { RotateCcw } from '@/components/ui/icons';
+import { FlaskConical, RotateCcw } from '@/components/ui/icons';
 import type { Topic, TopicParam } from '@/data/topics';
+import { clampExperimentParams, TOPIC_EXPERIMENTS, type TopicExperiment } from '@/data/topicExperiments';
 import {
   nodeColor,
-  simulateCache,
+  simulateCacheLab,
   simulateCdn,
   simulateConsistentHashing,
   simulateLoadBalancing,
@@ -14,6 +15,8 @@ import {
   simulateSharding,
   type LBAlgorithm,
 } from './simCore';
+import { PREDICTION_SPECS, type TopicSimKind } from './predictionSpec';
+import { PredictionGate } from './PredictionGate';
 
 type ParamState = Record<string, number | string>;
 
@@ -42,23 +45,20 @@ function Control({
       <div>
         <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-content-tertiary">{param.label}</p>
         <div className="flex flex-wrap gap-1.5">
-          {param.choices?.map((choice) => {
-            const active = value === choice.value;
-            return (
-              <button
-                key={choice.value}
-                type="button"
-                onClick={() => onChange(choice.value)}
-                className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                  active
-                    ? 'border-brass/60 bg-brass/15 text-content'
-                    : 'border-line bg-app-raised/50 text-content-secondary hover:border-line-strong hover:text-content'
-                }`}
-              >
-                {choice.label}
-              </button>
-            );
-          })}
+          {param.choices?.map((choice) => (
+            <button
+              key={choice.value}
+              type="button"
+              onClick={() => onChange(choice.value)}
+              className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                activeChoice(choice.value, value)
+                  ? 'border-brass/60 bg-brass/15 text-content'
+                  : 'border-line bg-app-raised/50 text-content-secondary hover:border-line-strong hover:text-content'
+              }`}
+            >
+              {choice.label}
+            </button>
+          ))}
         </div>
       </div>
     );
@@ -87,6 +87,10 @@ function Control({
   );
 }
 
+function activeChoice(choiceValue: string, current: number | string): boolean {
+  return String(current) === String(choiceValue);
+}
+
 function Metric({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'good' | 'warn' }) {
   const toneClass = tone === 'good' ? 'text-success' : tone === 'warn' ? 'text-danger' : 'text-content';
   return (
@@ -95,6 +99,21 @@ function Metric({ label, value, tone = 'default' }: { label: string; value: stri
       <p className={`mt-0.5 text-lg font-semibold tabular-nums ${toneClass}`}>{value}</p>
     </div>
   );
+}
+
+function paramsDisplayFor(topic: Topic, state: ParamState): string {
+  return topic.params
+    .map((param) => {
+      const raw = state[param.id];
+      let text: string;
+      if (param.kind === 'choice') {
+        text = param.choices?.find((c) => c.value === raw)?.label ?? String(raw);
+      } else {
+        text = `${typeof raw === 'number' && !Number.isInteger(raw) ? raw.toFixed(2) : raw}${param.unit ? ` ${param.unit}` : ''}`;
+      }
+      return `${param.label}: ${text}`;
+    })
+    .join(' · ');
 }
 
 /* ------------------------------------------------------------------ */
@@ -195,7 +214,7 @@ function LBView({ result }: { result: ReturnType<typeof simulateLoadBalancing> }
   );
 }
 
-function CacheView({ result }: { result: ReturnType<typeof simulateCache> }) {
+function CacheView({ result }: { result: ReturnType<typeof simulateCacheLab> }) {
   const pct = Math.round(result.hitRatio * 100);
   const circumference = 2 * Math.PI * 54;
   const points = result.series.length
@@ -328,9 +347,54 @@ function CdnView({ result, edges }: { result: ReturnType<typeof simulateCdn>; ed
 /* ------------------------------------------------------------------ */
 
 export function TopicSimulator({ topic }: { topic: Topic }) {
-  const [state, setState] = useState<ParamState>(() => defaultsFor(topic));
-  const set = (id: string, value: number | string) => setState((s) => ({ ...s, [id]: value }));
-  const reset = () => setState(defaultsFor(topic));
+  const experiments = TOPIC_EXPERIMENTS[topic.slug] ?? [];
+  const spec = topic.kind ? PREDICTION_SPECS[topic.kind as keyof typeof PREDICTION_SPECS] : null;
+  const simKind = (topic.kind ?? null) as TopicSimKind | null;
+  // Caching topics run the predict-first gate by default; the four caching
+  // scenarios are the guided lab of this surface.
+  const [scenarioMode, setScenarioMode] = useState<boolean>(topic.kind === 'cache');
+  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(
+    topic.kind === 'cache' && experiments[0] ? experiments[0].id : null,
+  );
+  const [armedExperimentId, setArmedExperimentId] = useState<string | null>(null);
+  const [state, setState] = useState<ParamState>(() =>
+    topic.kind === 'cache' && experiments[0]
+      ? ({
+          ...defaultsFor(topic),
+          ...clampExperimentParams(topic, experiments[0].params),
+        } as ParamState)
+      : defaultsFor(topic),
+  );
+
+  const applyParams = (overrides: Record<string, number | string>) => {
+    setState((s) => ({ ...s, ...clampExperimentParams(topic, overrides) }));
+  };
+
+  const changeParam = (id: string, value: number | string) => {
+    setState((s) => ({ ...s, [id]: value }));
+    if (scenarioMode) setScenarioMode(false);
+    setArmedExperimentId(null);
+  };
+
+  const loadExperiment = (experiment: TopicExperiment) => {
+    applyParams(experiment.params);
+    setActiveScenarioId(null);
+    setArmedExperimentId(experiment.id);
+  };
+
+  const runScenario = (experiment: TopicExperiment) => {
+    applyParams(experiment.params);
+    setActiveScenarioId(experiment.id);
+    setArmedExperimentId(null);
+    setScenarioMode(true);
+  };
+
+  const reset = () => {
+    setState(defaultsFor(topic));
+    setScenarioMode(topic.kind === 'cache');
+    setActiveScenarioId(topic.kind === 'cache' && experiments[0] ? experiments[0].id : null);
+    setArmedExperimentId(null);
+  };
 
   const sim = useMemo(() => {
     if (!topic.kind) return null;
@@ -340,7 +404,10 @@ export function TopicSimulator({ topic }: { topic: Topic }) {
       case 'load-balancing':
         return { kind: topic.kind, data: simulateLoadBalancing(num(state, 'servers'), num(state, 'rps'), str(state, 'algorithm') as LBAlgorithm) };
       case 'cache':
-        return { kind: topic.kind, data: simulateCache(num(state, 'cacheSize'), num(state, 'keySpace'), num(state, 'skew'), num(state, 'requests')) };
+        return {
+          kind: topic.kind,
+          data: simulateCacheLab(num(state, 'cacheSize'), num(state, 'keySpace'), num(state, 'skew'), num(state, 'requests'), num(state, 'ttlFlushEvery')),
+        };
       case 'rate-limit':
         return { kind: topic.kind, data: simulateRateLimit(num(state, 'rate'), num(state, 'burst'), num(state, 'requestRps'), num(state, 'seconds')) };
       case 'sharding':
@@ -349,6 +416,12 @@ export function TopicSimulator({ topic }: { topic: Topic }) {
         return { kind: topic.kind, data: simulateCdn(num(state, 'edges'), num(state, 'hitRatio') / 100, num(state, 'originLatency'), num(state, 'edgeLatency')) };
     }
   }, [topic.kind, state]);
+
+  const activeScenario = scenarioMode && activeScenarioId ? experiments.find((e) => e.id === activeScenarioId) ?? null : null;
+  const armedExperiment = armedExperimentId ? experiments.find((e) => e.id === armedExperimentId) ?? null : null;
+
+  const gateExperiment = activeScenario ?? armedExperiment;
+  const gateOpen = Boolean(simKind && spec && gateExperiment);
 
   const metrics = useMemo(() => {
     if (!sim) return [];
@@ -404,44 +477,161 @@ export function TopicSimulator({ topic }: { topic: Topic }) {
     }
   }, [sim]);
 
-  if (!sim) return null;
+  if (!sim || !simKind || !spec) {
+    return null;
+  }
+
+  const visual = (
+    <>
+      {sim.kind === 'consistent-hashing' && <HashRingView result={sim.data} />}
+      {sim.kind === 'load-balancing' && <LBView result={sim.data} />}
+      {sim.kind === 'cache' && <CacheView result={sim.data} />}
+      {sim.kind === 'rate-limit' && <RateLimitView result={sim.data} />}
+      {sim.kind === 'sharding' && <ShardView result={sim.data} />}
+      {sim.kind === 'cdn' && <CdnView result={sim.data} edges={num(state, 'edges')} />}
+    </>
+  );
 
   return (
     <div className="rounded-2xl border border-line bg-app/50 p-4 shadow-card sm:p-6">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-[11px] uppercase tracking-[0.18em] text-content-tertiary">Live sandbox</p>
-        <button
-          type="button"
-          onClick={reset}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-app-raised/50 px-2.5 py-1.5 text-[11px] font-medium text-content-secondary transition-colors hover:border-line-strong hover:text-content"
-        >
-          <RotateCcw size={12} /> Reset
-        </button>
+        <div className="flex items-center gap-2">
+          {topic.kind === 'cache' && (
+            <div className="flex overflow-hidden rounded-lg border border-line">
+              <button
+                type="button"
+                onClick={() => setScenarioMode(true)}
+                className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                  scenarioMode ? 'bg-brass/15 text-content' : 'bg-app-raised/40 text-content-tertiary hover:text-content'
+                }`}
+              >
+                Scenarios
+              </button>
+              <button
+                type="button"
+                onClick={() => setScenarioMode(false)}
+                className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                  !scenarioMode ? 'bg-brass/15 text-content' : 'bg-app-raised/40 text-content-tertiary hover:text-content'
+                }`}
+              >
+                Free tune
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={reset}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-app-raised/50 px-2.5 py-1.5 text-[11px] font-medium text-content-secondary transition-colors hover:border-line-strong hover:text-content"
+          >
+            <RotateCcw size={12} /> Reset
+          </button>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="flex min-h-[300px] items-center justify-center rounded-xl border border-line bg-app-raised/30 p-3 lg:col-span-3">
-          {sim.kind === 'consistent-hashing' && <HashRingView result={sim.data} />}
-          {sim.kind === 'load-balancing' && <LBView result={sim.data} />}
-          {sim.kind === 'cache' && <CacheView result={sim.data} />}
-          {sim.kind === 'rate-limit' && <RateLimitView result={sim.data} />}
-          {sim.kind === 'sharding' && <ShardView result={sim.data} />}
-          {sim.kind === 'cdn' && <CdnView result={sim.data} edges={num(state, 'edges')} />}
+      {scenarioMode && topic.kind === 'cache' && (
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          {experiments.map((experiment) => {
+            const letterLabel = experiment.title.split(' ').slice(0, 2).join(' ');
+            const active = activeScenarioId === experiment.id;
+            return (
+              <button
+                key={experiment.id}
+                type="button"
+                onClick={() => runScenario(experiment)}
+                className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                  active
+                    ? 'border-brass/60 bg-brass/15 text-content'
+                    : 'border-line bg-app-raised/50 text-content-secondary hover:border-line-strong hover:text-content'
+                }`}
+              >
+                {letterLabel}
+              </button>
+            );
+          })}
         </div>
+      )}
 
-        <div className="space-y-5 lg:col-span-2">
-          <div className="grid grid-cols-3 gap-2">
-            {metrics.map((m) => (
-              <Metric key={m.label} label={m.label} value={m.value} tone={m.tone} />
-            ))}
+      {gateOpen && (
+        <div className="mb-5">
+          <PredictionGate
+            surfaceId={`topic:${topic.slug}`}
+            questionId={gateExperiment!.id}
+            scenarioTitle={gateExperiment!.title}
+            situation={gateExperiment!.situation}
+            watchFor={gateExperiment!.watchFor}
+            spec={spec}
+            kind={simKind}
+            data={sim.data}
+            paramsDisplay={paramsDisplayFor(topic, state)}
+          />
+        </div>
+      )}
+
+      {/* Scenario mode hides the trace until the prediction is committed —
+          the point of the gate is that you estimate before seeing. */}
+      {(!gateOpen || sim.kind !== 'cache' || !activeScenario) && (
+        <div className="grid gap-6 lg:grid-cols-5">
+          <div className="flex min-h-[300px] items-center justify-center rounded-xl border border-line bg-app-raised/30 p-3 lg:col-span-3">
+            {visual}
           </div>
-          <div className="space-y-4">
-            {topic.params.map((param) => (
-              <Control key={param.id} param={param} value={state[param.id]} onChange={(v) => set(param.id, v)} />
-            ))}
+
+          <div className="space-y-5 lg:col-span-2">
+            <div className="grid grid-cols-3 gap-2">
+              {metrics.map((m) => (
+                <Metric key={m.label} label={m.label} value={m.value} tone={m.tone} />
+              ))}
+            </div>
+            {!gateOpen || !activeScenario ? (
+              <div className="space-y-4">
+                {topic.params.map((param) => (
+                  <Control
+                    key={param.id}
+                    param={param}
+                    value={state[param.id]}
+                    onChange={(v) => changeParam(param.id, v)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-line bg-app/40 px-3 py-2.5 text-[12px] leading-relaxed text-content-tertiary">
+                Scenario lock: switch to Free tune to pull the knobs manually.
+              </p>
+            )}
           </div>
         </div>
-      </div>
+      )}
+
+      {experiments.length > 0 && !(scenarioMode && topic.kind === 'cache') && (
+        <div className="mt-6 border-t border-line/70 pt-5">
+          <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-content-tertiary">
+            <FlaskConical size={13} className="text-brass" /> Guided experiments
+          </p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            {experiments.map((experiment) => {
+              const armed = armedExperimentId === experiment.id;
+              return (
+                <div key={experiment.id} className="rounded-xl border border-line bg-app/40 p-4">
+                  <p className="text-[13px] font-medium text-content">{experiment.title}</p>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-content-secondary">{experiment.situation}</p>
+                  <p className="mt-2 text-[12px] leading-relaxed text-content-tertiary">Watch for: {experiment.watchFor}</p>
+                  <button
+                    type="button"
+                    onClick={() => loadExperiment(experiment)}
+                    className={`mt-3 rounded-full px-4 py-2 text-[12px] font-semibold transition-all ${
+                      armed
+                        ? 'border border-brass/50 bg-brass/15 text-brass'
+                        : 'bg-brass/90 text-ink hover:bg-brass'
+                    }`}
+                  >
+                    {armed ? 'Armed — predict above' : 'Run experiment'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

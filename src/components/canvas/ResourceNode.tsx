@@ -45,6 +45,7 @@ import {
   type ResourceCategory,
   type ResourceNodeData,
 } from "@/types/resource";
+import { resolveInstanceSizing } from "@/engine/instanceSizing";
 import { getCustomResource } from "@/store/customResourceRegistry";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSimStore } from "@/store/useSimStore";
@@ -169,6 +170,27 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
   const p99Ms = telemetry?.p99Ms ?? 0;
   const errorRate = telemetry?.errorRate ?? 0;
   const queueDepth = telemetry?.queueDepth ?? 0;
+  const inFlight = telemetry?.concurrentInFlight ?? 0;
+  // Exact mirror of useCanvasStore.toGraphTopology so instance-size and
+  // concurrency overrides shift this badge's cap the same way the engine sees them.
+  const sizing = resolveInstanceSizing({
+    overrideVcpu: data.overrides?.vcpu,
+    overrideMemoryGb: data.overrides?.memoryGb,
+    seedVcpu: seed?.defaults.vcpu ?? custom?.vcpu,
+    seedMemoryGb: seed?.defaults.memoryGb ?? custom?.memoryGb,
+    seedThroughputRps: seed?.defaults.baseThroughputRps ?? custom?.baseThroughputRps ?? 1000,
+    seedMaxConcurrency: seed?.defaults.maxConcurrency ?? custom?.maxConcurrency ?? 500,
+    explicitThroughputRps: data.overrides?.baseThroughputRps,
+    explicitMaxConcurrency: data.overrides?.maxConcurrency,
+  });
+  const replicas = Math.max(
+    1,
+    data.overrides?.replicationFactor ??
+      seed?.defaults.replicationFactor ??
+      custom?.replicationFactor ??
+      1,
+  );
+  const maxConcurrency = sizing.maxConcurrency * replicas;
   const saturated = Boolean(telemetry && telemetry.utilization >= 1);
   const degraded = Boolean(telemetry && telemetry.errorRate >= 0.05);
 
@@ -259,6 +281,11 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
               <div className="flex items-center gap-2 border-t border-zinc-800/80 pt-1 text-[10px] tabular-nums">
                 <span className={errorTone(errorRate)}>err {(errorRate * 100).toFixed(1)}%</span>
                 <span className="text-zinc-500">q {queueDepth.toFixed(0)}</span>
+                {telemetry && maxConcurrency > 0 && (
+                  <span className={inFlight >= maxConcurrency ? "text-amber-300" : "text-zinc-500"}>
+                    c {Math.min(inFlight, maxConcurrency).toFixed(0)}/{maxConcurrency}
+                  </span>
+                )}
                 <span className="text-zinc-500">out {formatRps(telemetry?.outputRps ?? 0)} rps</span>
                 {telemetry && telemetry.ttftMs > 0 && (
                   <span className="text-violet-300">ttft {formatMs(telemetry.ttftMs)}</span>

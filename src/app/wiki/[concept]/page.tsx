@@ -24,8 +24,14 @@ export async function generateMetadata({
   const module = getEncyclopediaModule(concept);
   if (!module) return { title: "Concept — SysCraft Wiki" };
   return {
-    title: `${module.title} — SysCraft Wiki`,
+    title: `${module.title} — Wiki`,
     description: module.summary,
+    openGraph: {
+      title: `${module.title} — Wiki`,
+      description: module.summary,
+      type: "article",
+    },
+    twitter: { card: "summary_large_image" as const },
   };
 }
 

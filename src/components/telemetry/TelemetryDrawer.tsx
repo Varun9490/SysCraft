@@ -110,6 +110,7 @@ export function TelemetryDrawer({ open, onClose }: TelemetryDrawerProps) {
                 ["p95", fmtMs(selected.p95Ms)],
                 ["p99", fmtMs(selected.p99Ms)],
                 ["Queue", selected.queueDepth.toFixed(0)],
+                ["In flight", selected.concurrentInFlight.toFixed(0)],
                 ["CPU", `${selected.cpuPct.toFixed(0)}%`],
                 ["Errors", fmtPct(selected.errorRate)],
               ].map(([k, v]) => (

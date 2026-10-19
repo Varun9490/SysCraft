@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import {
   motion,
-  useInView,
   useMotionValue,
   useSpring,
   useTransform,
@@ -203,12 +202,17 @@ export function TiltCard({
 }
 
 /* ------------------------------------------------------------------ */
-/* Count-up numerals                                                   */
+/* Counted stat numerals                                               */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Renders the real value on the server, without JavaScript, and on the first
+ * client paint. Trust beats theatrics: a stat that counts up from 0 shows
+ * crawlers and non-JS visitors nothing, so we present the honest number
+ * statically (the surrounding section animates opacity instead).
+ */
 export function Counter({
   to,
-  duration = 1.6,
   decimals = 0,
   prefix = "",
   suffix = "",
@@ -221,28 +225,10 @@ export function Counter({
   suffix?: string;
   className?: string;
 }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
-  const [value, setValue] = useState(0);
-
-  useEffect(() => {
-    if (!inView) return;
-    let raf = 0;
-    const start = performance.now();
-    const tick = (t: number) => {
-      const p = Math.min(1, (t - start) / (duration * 1000));
-      const eased = 1 - Math.pow(1 - p, 3);
-      setValue(to * eased);
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [inView, to, duration]);
-
   return (
-    <span ref={ref} className={className}>
+    <span className={className}>
       {prefix}
-      {value.toFixed(decimals)}
+      {to.toFixed(decimals)}
       {suffix}
     </span>
   );

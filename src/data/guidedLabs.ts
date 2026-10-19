@@ -12,19 +12,97 @@ export const GUIDED_LABS: GuidedLab[] = [
     title: "URL Shortener (Bitly)",
     company: "Bitly",
     difficulty: "starter",
-    estimatedMinutes: 45,
-    briefMarkdown: "# Bitly: 100M URLs/month\n\nDesign a shortener handling 2k writes/sec and 20k reads/sec. Short codes are 7 chars (62^7 space). Must redirect in under 100ms p99 and survive cache loss without DB meltdown.",
+    estimatedMinutes: 60,
+    briefMarkdown: "# Bitly: 100M URLs/month\n\nDesign a shortener handling **peak 2k writes/sec** (100M new links/mo, avg ~38/s), **20k redirects/sec** with 7-char base62 codes (62⁷ space ≈ 3.5×10¹²). Redirect p99 ≤ 100ms and the system must survive total cache loss without DB meltdown.\n\nThis lab grades three decisions end to end: **(1)** how codes are minted, **(2)** 301 vs 302 and its cache-control, **(3)** what the first second after the redirect cache dies looks like. Every stage ladders toward one of them.",
     targetRps: 22000,
     sloP99Ms: 100,
     budgetUsdPerHour: 12,
     stages: [
-      { id: "bitly-s1", kind: "brief", title: "Scope the problem", instructionsMarkdown: "List functional (shorten, redirect, expiry, analytics) and non-functional (100ms p99, 99.9 percent availability) requirements.", hints: ["Separate reads from writes 10:1.", "Decide custom aliases scope."], gradingRules: [] },
-      { id: "bitly-s2", kind: "boe", title: "Back-of-envelope", instructionsMarkdown: "Compute QPS, storage for 5 years (100M/mo x 500B), bandwidth, and cache RAM for 20 percent hot keys.", hints: ["5 years ~ 6B rows ~ 3 TB.", "Hot set ~ 1.2B x 500B too big: cache top 20 percent."], gradingRules: [] },
-      { id: "bitly-s3", kind: "topology", title: "Build the topology", instructionsMarkdown: "Place CDN edge, API gateway, REST service, Redis cache, Postgres, and analytics stream. Enable multi-AZ.", hints: ["Cache-aside on redirect path.", "Async click analytics via Kafka."], gradingRules: [{ id: "bitly-g1", description: "Includes cache and durable DB", requiredResourceIds: ["redis_cache", "postgres_db"], minNodeCount: 4, maxP99Ms: null, maxErrorRate: null, maxCostPerHourUsd: null, requiresMultiAz: true, points: 30 }] },
-      { id: "bitly-s4", kind: "api", title: "API contracts", instructionsMarkdown: "Define POST /v1/shorten and GET /{code} with 302 semantics, rate limits, and idempotency keys.", hints: ["Return 302 with cache-control private.", "Throttle shorten per API key."], gradingRules: [] },
-      { id: "bitly-s5", kind: "review", title: "Review: counter vs random codes", instructionsMarkdown: "Justify base62 counter with ZooKeeper ranges versus MD5-hash collisions, and present cost estimate.", hints: ["Counter is collision-free; hash needs collision loop."], gradingRules: [{ id: "bitly-g2", description: "Stays inside budget and SLO", requiredResourceIds: [], minNodeCount: 4, maxP99Ms: 150, maxErrorRate: 0.01, maxCostPerHourUsd: 12, requiresMultiAz: false, points: 20 }] },
+      {
+        id: "bitly-s1",
+        kind: "brief",
+        title: "Scope the problem",
+        instructionsMarkdown:
+          "Write the requirements as commitments, not headings.\n\n**Functional:** shorten (custom aliases, bulk import, expiry, disable/kill), redirect, click analytics (async), per-owner throttling.\n\n**Non-functional:** redirect p99 ≤ 100ms; create ≤ 500ms; 99.9% availability; reads dominate 10:1 (20k vs 2k per second).\n\nThe scope test: 100M links/mo ≈ 38 writes/sec on average — the 2k/sec peak is roughly 50× that. Designs built for the mean die on the burst; say which numbers you're designing for and why.",
+        hints: [
+          "Separate the read path (redirect) from the write path (create) early — they scale for different reasons.",
+          "Custom aliases need a race-free uniqueness story: a unique index plus retry, not app-side check-then-insert.",
+          "Decide expiry/disabled links now: a killed phishing link must stop redirecting within minutes, which will constrain your caching decision in stage 4.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "bitly-s2",
+        kind: "boe",
+        title: "Back-of-envelope: show the arithmetic",
+        instructionsMarkdown:
+          "Every number below must come from arithmetic you can name — if you can't derive it, label it a guess out loud. That habit is the actual exam.\n\n| Quantity | Arithmetic | Result |\n| --- | --- | --- |\n| Avg write rate | 100M/mo ÷ 2.6M sec/mo | ≈ 38/s |\n| Peak write rate | given | 2k/s (~50× avg — size for it) |\n| Redirect rate | 10:1 read:write | ≈ 20k/s |\n| Rows in 5 years | 100M/mo × 60 | 6.0B |\n| Row storage | 6B × 500 B | ~3.0 TB |\n| Durable tier sized | indexes + metadata ≈ 3× raw | ~9–10 TB |\n| Code space, 7 chars | 62⁷ | ~3.5×10¹² (6B used ≈ 0.17% fill) |\n| Redirect egress | 20k/s × ~200 B | ~4 MB/s ≈ 32 Mbps |\n\nThen the estimate that decides everything — **the cache working set:**\n\nCaching the whole keyspace is nonsense: 6B keys × 500 B ≈ 3 TB of RAM. You cache **recency plus popularity** instead. Redirect traffic has a heavy tail — links minted in the last week plus the handful gone viral. Track real query logs, but plan on a working set of several million codes covering most of a day's unique reads: 5M codes × 500 B plus hash overhead ≈ **5–8 GB of Redis RAM** for a >90% hit rate.\n\nNow the meltdown arithmetic: 20k misses/sec × ~1.5 ms per flash point-lookup ≈ 30 worker-seconds of DB work per second — ~30–40 connections busy on redirect lookups alone, before duplicates pile on. Without in-flight deduplication, a thundering herd of repeated misses multiplies that tenfold, connection pools saturate, and latencies snowball. That collapse pattern — utilization pinned near 1.0 — is what actually takes sites down in the first second, not exhausted capacity.",
+        hints: [
+          "State every multiplier: 60 months, 500 B per row, log₂(62) ≈ 5.95 bits per character, ~200 B per redirect response.",
+          "The cache decision is a working-set decision, not a keyspace fraction — log-guided, not Pareto-blind.",
+          "Keep this arithmetic next to you for stage 5: the chaos drill grades whether you defended it.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "bitly-s3",
+        kind: "topology",
+        title: "Build the topology",
+        instructionsMarkdown:
+          "Place the tiers and draw the request paths.\n\n**Edge:** dns_load_balancer / cdn_edge for anycast locality and absorbed ambient repeats.\n**Front door:** api_gateway with rate_limiter — create-path quota per API key.\n**Core:** rest_service fleet split into two roles — fast redirectors (hot, read-only) and creators (mint + warm the cache).\n**Cache:** redis_cache, cache-aside, with single-flight on miss.\n**Durable:** postgres_db with a unique index on `code`.\n**Async:** kafka_stream for click events — analytics consumers aggregate rollups; nothing analytical rides the redirect path.\n\nEnable multi-AZ on every tier. Then run the simulation and confirm p99 and error rate land inside the SLO before you pass the stage.",
+        hints: [
+          "Cache-aside + single-flight: a miss for a hot code must trigger exactly one DB query no matter how many requests piled up behind it.",
+          "Analytics is a fan-out, not a dependency — the 302 must not wait on a Kafka publish. Belt-and-suspenders: buffer-and-flush in the service, publish is the fast path only.",
+          "Multi-AZ is not decoration: the whole point of stage 5 is that one AZ (or one cache fleet) can die without killing the other.",
+        ],
+        gradingRules: [
+          { id: "bitly-g1", description: "Cache + durable DB + async analytics wired, all multi-AZ", requiredResourceIds: ["redis_cache", "postgres_db", "kafka_stream"], minNodeCount: 5, maxP99Ms: 100, maxErrorRate: null, maxCostPerHourUsd: null, requiresMultiAz: true, points: 25 },
+          { id: "bitly-g1b", description: "Create path throttled and edge-resident", requiredResourceIds: ["api_gateway", "rate_limiter"], minNodeCount: 0, maxP99Ms: null, maxErrorRate: null, maxCostPerHourUsd: null, requiresMultiAz: false, points: 10 },
+        ],
+      },
+      {
+        id: "bitly-s4",
+        kind: "api",
+        title: "The redirect decision: 301 vs 302",
+        instructionsMarkdown:
+          "Sign the create contract, then make the redirect call.\n\n**POST /v1/shorten** — body `{url, alias?, expiresAt?}`, header `Idempotency-Key`; per-key quota (e.g. r = 5/s, burst 20), 429 + `Retry-After` on breach; database duplicate → `409` with the existing code (idempotent-ish honesty), not a silent second row.\n\n**The redirect choice — this is an analytics-budget decision first and a latency decision second:**\n\n| Choice | What you get | What it costs |\n| --- | --- | --- |\n| 301 + long browser cache | Later clicks never touch your servers — the user's own cache serves them | Your dashboards undercount clicks for the life of the URL; killing a phishing link becomes best-effort because browsers hold the mapping |\n| 302 + no-store | Every click is counted and killable | Origin absorbs the full 20k/s — p99 and DB relief hang entirely on your cache tier |\n| 302 + bounded public cache, e.g. `max-age=300–3600` | Ambient repeats absorbed at the edge; a counted sample still arrives; kill-links take ≤ one TTL, so expiry means something | Only slowly-aware analytics: repeat clicks inside the TTL window are absorbed (and undercounted) |\n\n308/307 preserve the HTTP method across redirects — matters for POST-heavy uses, irrelevant here: redirects are GETs.\n\nCommit: **default 302 with a configurable `Cache-Control: public, max-age=…`**, so customers can trade some analytics for control, and `410 Gone` for disabled links. Then defend your own number: which repeat-click loss percentage can this product tolerate? Say the sentence out loud.",
+        hints: [
+          "The kill-link requirement (stage 1) is what sets a TTL ceiling: unbounded cache lives and disablement timelines are the same argument.",
+          "Browsers honor `max-age` for 302 — so the TTL buys origin relief at the edge, but the first wave of misses after a cache flush is still fully yours.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "bitly-cache-loss",
+        kind: "chaos",
+        title: "Chaos drill: lose the redirect cache",
+        instructionsMarkdown:
+          "Your Redis fleet just died mid-failover — zero hits. Prove the durable tier absorbs the miss storm instead of melting.\n\n**Do it:** from the canvas, tear out (or dependency-down) the redis_cache tier, re-run the simulation at 20k reads/sec, then re-run the checks below. You're allowed to add mitigation first — that's the exercise: single-flight coalescing at the service, a connection-pool guard reserving headroom for create-path writes, read-replica scale-out, adaptive TTLs as LRU re-warms.\n\n**What you're defending against (the stage-2 arithmetic again):** 20k misses/sec × ~1.5 ms ≈ 30 connection-seconds of DB work per second — survivable **only** if duplicates coalesce behind one in-flight query. Coalesce them and the DB sees ~(unique misses per tick) × 1.5 ms. Don't, and the herd multiplies utilization past 1.0, pools queue, and everything upstream times out.\n\nPassing this stage means: errors stay below the incident guardrail, p99 degrades without collapsing, and the tab you'd page first is the connection pool — not the cache. Write down what your design does at second 0, 30, and 300 of the outage.",
+        hints: [
+          "Second 0: in-flight dedup keeps the stampede single-file; second 30: LRU is warming, replica pool stretched; second 300: hit-rate climbing back, SLO restored.",
+          "If your p99 explodes toward seconds, ask what queues: connection pool saturation hides as 'DB slow' — it usually isn't the disk.",
+          "You may keep the cache node present but degraded — the grader checks latency and errors, not the tool you used to break it.",
+        ],
+        gradingRules: [
+          { id: "bitly-cg1", description: "Redirect path still served from durable tier under cache loss", requiredResourceIds: ["postgres_db", "rest_service"], minNodeCount: 4, maxP99Ms: 400, maxErrorRate: 0.05, maxCostPerHourUsd: 12, requiresMultiAz: false, points: 25 },
+        ],
+      },
+      {
+        id: "bitly-s5",
+        kind: "review",
+        title: "Review: code allocation + the numbers you defend",
+        instructionsMarkdown:
+          "Defend the allocation choice with arithmetic, not vibes.\n\n- **Base62 counter with coordinated range leases** (e.g. 10k per lease): collision-free O(1) writes; at peak 2k/s that's ~17k lease grants/day — a genuinely trivial coordination load. State the dependency honestly: the lease service is now on the create critical path, so it needs its own HA story.\n- **Hash of the URL → base62, with collision retry:** no coordinator, but collision probability ≈ keyspace fill — at 6B/3.5×10¹² that's ~1 retry per 600 inserts at steady state. Also: the space is enumerable if hash inputs leak, and identical URLs collide permanently unless you append a nonce.\n- **Precomputed key pools (KGS style):** fastest create (look up, don't mint), but now you pool-ops unused keys, and the pool is a second stateful system to HA.\n\nThen the closing number-check — out loud, from memory: peak write rate, redirect rate, rows in 5 years, durable-tier TB, and Redis GB for a >90% hit rate. Finish with the failure mode you would page on first — and why (for the reference design: redirect-cache miss stampede hitting connection-pool saturation).",
+        hints: [
+          "Counter vs hash is a write-path decision, hot-tail cache sizing is a read-path decision — don't let the argument blur them.",
+          "Collisions are self-healing (retry); the coordinator being down is not. Name the failure you can't retry out of.",
+        ],
+        gradingRules: [
+          { id: "bitly-g2", description: "Final state inside budget and at the redirect SLO", requiredResourceIds: [], minNodeCount: 4, maxP99Ms: 100, maxErrorRate: 0.01, maxCostPerHourUsd: 12, requiresMultiAz: false, points: 20 },
+        ],
+      },
     ],
-    solutionMarkdown: "# Reference: counter + cache-aside\n\nAPI gateway -> REST (base62 range allocator) -> Redis (90 percent hit) -> Postgres (hash-indexed code). Clicks stream to Kafka for analytics. CDN caches 302s for anonymous links. Cost ~$8/hr, p99 ~40ms.",
+    solutionMarkdown: "# Reference: the gold-standard design\n\n## Edge tier\nAnycast DNS puts users on the nearest edge. The 302 is cached by browsers/ISPs only up to `max-age` (default 600s, per-customer override) — small enough that disablement holds, large enough that the edge eats ambient repeats. Redirect responses are a few hundred bytes, so the CDN here buys locality, not bandwidth relief.\n\n## Create path (≤ 500 ms)\n`api_gateway` (TLS, per-key quota r=5/s burst 20) → `rest_service` creators → **base62 counter with 10k range leases** (collision-free; ~17k grants/day at peak) → one durable insert into Postgres (unique index on `code` — custom aliases retry on conflict with the constraint as the arbiter) → cache warm-up insert → Kafka publish for the create event.\n\n## Redirect path (the 10:1 tier — p99 ≤ 100 ms)\n`rest_service` redirectors (hot, read-optimized) → **cache-aside Redis, single-flight on miss** (in-flight map: one DB lookup per unique in-flight key, all piled-up requests share the reply) → on miss, a Postgres point-lookup by `code` (~1–2 ms on flash) → 302 + `Location` + `Cache-Control: public, max-age=…`.\n\nWorking set: **several million-recent codes**, sized from query logs, ~5–8 GB of Redis RAM → >90% hit rate after warmup. Each added '9' of hit ratio buys ~10× origin relief — judge the tier by the origin-load curve, not by cache size (see `/reference/numbers`, Decisions).\n\n## Durable tier\nPostgres: `codes(code PK, url, owner_id, created_at, expires_at, disabled_at)`, monthly partitions by `created_at`. Writes go to a primary; one sync replica carries failover (< 30 s), and read replicas absorb redirect misses. 6.0B rows / ~3 TB raw / ~9–10 TB provisioned with indexes over 5 years.\n\n## Analytics tier\n`kafka_stream` receives click events (at-least-once, dedup by `(code, session hash, bucketed tick)` downstream); consumers aggregate 10-second rollups per link into the click warehouse. Nothing analytical blocks a redirect.\n\n## Chaos playbook — cache loss minute-by-minute\n- **Second 0:** single-flight coalescing converts the stampede into one query per unique key per tick; pool guard reserves ~20% of DB connections for create-path writes; read replicas absorb miss load.\n- **~30s:** LRU re-warming from the tail; p99 drifts up toward the 250–400ms guardrail; error rate stays under 5%.\n- **~300s:** hit rate climbs back past 70–90%; SLO restored. Alert on **pool utilization**, not cache emptiness — saturation hides as 'database slow'.\n- **The tab you page first: connection-pool saturation, not the cache.** Capacity was never the constraint; in-flight dedup was the survivor trait.\n\n## Cost ledger (~$11/hr, inside the $12 budget)\n| Tier | Nodes | ~$/h |\n| --- | --- | --- |\n| Gateway + rate limiter | 4 | 0.6 |\n| Creators | 4 | 0.8 |\n| Redirectors | 8 | 1.6 |\n| Redis fleet | 4 | 1.8 |\n| Postgres HA + replicas | 4 | 2.6 |\n| Kafka | 3 | 1.4 |\n| Observability | 1 | 0.4 |\n| Headroom / edges | — | ~1.8 |\n\n## Alternatives, defended\n| Design | Wins | Costs |\n| --- | --- | --- |\n| Counter + range leases | Collision-free O(1); uniform space | Lease service on the create critical path — needs HA like everything else |\n| Hash URL → base62, retry on collision | Stateless create | ~1 retry per 600 inserts at 6B keys; enumerable space; duplicate URLs need a nonce |\n| Precomputed key pool | Fastest create (no mint) | Pool itself is stateful; wasted keys; a second thing to fail |\n\n## What an interviewer probes next\nYour cache TTL vs kill-link promise; exactly-once analytics under retries; graceful degradation math when the cache fleet halves; and what re-sizes first if the month is 1B links instead of 100M — the keyspace, the lease cadence, the working set, or nothing.",
   },
   {
     id: "pastebin-service",

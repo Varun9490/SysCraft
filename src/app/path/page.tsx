@@ -1,16 +1,16 @@
-import { SiteChrome } from "@/components/nav/SiteChrome";
-import { PathPageContent } from "@/components/path/PathPageContent";
+import { RedirectTo } from "@/components/nav/RedirectTo";
+
+/**
+ * Legacy route preserved for old links: the learning path now lives at
+ * /learn. A 301 is also declared in vercel.json for production traffic.
+ */
 
 export const metadata = {
-  title: "Learning Path — SysCraft",
-  description:
-    "19 modules and 137 lessons, from one server to distributed systems, in the order a growing application needs them.",
+  title: "Learning path (moved)",
+  description: "The SysCraft learning path has moved to /learn.",
+  alternates: { canonical: "/learn" },
 };
 
-export default function PathPage() {
-  return (
-    <SiteChrome>
-      <PathPageContent />
-    </SiteChrome>
-  );
+export default function PathRedirectPage() {
+  return <RedirectTo href="/learn" />;
 }

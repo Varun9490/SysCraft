@@ -70,7 +70,7 @@ export function PathPageContent() {
           <AnimatedSection className="flex flex-col gap-4 border-b border-zinc-800/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: part.accentHex }}>
-                Part {partIndex + 1}
+                Part {partIndex}
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50 md:text-3xl">{part.title}</h2>
               <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-zinc-400">{part.subtitle}</p>

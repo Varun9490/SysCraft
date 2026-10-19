@@ -462,6 +462,101 @@ export function runDesignDoctor(
     });
   }
 
+  // Rule 15 — scaled connection tier with per-replica state and no shared backplane.
+  // The WebSocket lesson: once replicas >= 2, presence/room/session state that
+  // lives in a replica's memory means every instance silently owns a slice of
+  // the truth. Sticky routing hides it; a shared backplane fixes it.
+  // Detection is label-driven because the canvas has no dedicated WS primitive:
+  // learners name the connection tier ("WS / gateway", "Presence", "Rooms") the
+  // same way the chat blueprint does, and the absence of a cache/messaging/
+  // datastore neighbor within 2 hops is the structural half of the proof.
+  const CONNECTION_PAT = /\b(ws|websocket|websockets|socket|sockets|room|rooms|presence|session|sessions|chat|live)\b/i;
+  const BACKPLANE_CATEGORIES = new Set<ResourceCategory>([
+    "cache",
+    "messaging",
+    "streaming",
+    "database",
+    "search",
+    "vector_db",
+  ]);
+  const hasSharedBackplaneWithin = (startId: string, maxDepth: number): boolean => {
+    let frontier = new Set<string>([startId]);
+    const visited = new Set<string>([startId]);
+    for (let depth = 0; depth < maxDepth; depth += 1) {
+      const next = new Set<string>();
+      for (const id of frontier) {
+        const linked: string[] = [
+          ...(out.get(id) ?? []).map((e) => e.target),
+          ...(incoming.get(id) ?? []).map((e) => e.source),
+        ];
+        for (const neighborId of linked) {
+          if (visited.has(neighborId)) continue;
+          visited.add(neighborId);
+          const neighbor = nodeById.get(neighborId);
+          if (!neighbor) continue;
+          if (BACKPLANE_CATEGORIES.has(categoryOf(neighbor))) return true;
+          next.add(neighborId);
+        }
+      }
+      frontier = next;
+    }
+    return false;
+  };
+  for (const node of nodes) {
+    const category = categoryOf(node);
+    if (category !== "compute" && category !== "api" && category !== "serverless" && category !== "network") continue;
+    if (effectiveReplicas(node) < 2) continue;
+    if (!CONNECTION_PAT.test(node.label)) continue;
+    if (hasSharedBackplaneWithin(node.id, 2)) continue;
+    findings.push({
+      ruleId: "stateful-tier-no-backplane",
+      severity: "warning",
+      title: `${nameOf(node)} keeps connection state in replica memory`,
+      detail:
+        "A replicated tier whose name implies per-user state (sessions, rooms, presence, live sockets) with no shared backing store nearby: every replica owns its own slice of the truth, sticky routing becomes load-bearing, and a replica death loses state.",
+      suggestion:
+        "Externalize the state: a Redis presence/pub-sub (or a durable store) as the shared backplane, keep replicas identical, and treat sticky routing as a stopgap — never the fix.",
+      nodeIds: [node.id],
+      conceptId: "load-balancing",
+    });
+  }
+
+  // Rule 16 — large objects proxying through the compute tier instead of
+  // direct-to-storage. When an edge/client-facing tier reaches blob/file
+  // storage THROUGH an upload-heavy service, every byte of media occupies an
+  // app-tier connection and counts against its compute budget.
+  const OBJECT_STORE_IDS = new Set(["blob_storage", "file_storage"]);
+  for (const node of nodes) {
+    const metaCategory = categoryOf(node);
+    if (metaCategory !== "compute" && metaCategory !== "serverless" && metaCategory !== "api") continue;
+    const toObjectStore = (out.get(node.id) ?? []).filter((e) => {
+      const target = nodeById.get(e.target);
+      return target ? OBJECT_STORE_IDS.has(target.resourceId) : false;
+    });
+    if (toObjectStore.length === 0) continue;
+    const objectStore = nodeById.get(toObjectStore[0]?.target ?? "");
+    if (!objectStore) continue;
+    const entrySource = (incoming.get(node.id) ?? []).map((e) => nodeById.get(e.source)).find((n) => {
+      if (!n) return false;
+      const c = categoryOf(n);
+      return c === "edge" || c === "network" || c === "security" || c === "api";
+    });
+    if (!entrySource) continue;
+    const writeRatio = effectiveNumber(node, "writeRatio", 0.2);
+    if (writeRatio < 0.35) continue;
+    findings.push({
+      ruleId: "blob-through-compute",
+      severity: "warning",
+      title: `${nameOf(node)} proxies uploads straight to ${nameOf(objectStore)}`,
+      detail:
+        "Object bytes traverse the app tier on their way to storage: each large upload holds a connection and a memory buffer on a replica you sized for requests, and egress doubles (client -> compute -> store).",
+      suggestion:
+        "Hand clients a pre-signed upload URL so bytes go direct to object storage; the API keeps only the metadata and the CDN serves reads.",
+      nodeIds: [node.id, ...toObjectStore.map((e) => e.target)],
+      conceptId: null,
+    });
+  }
+
   const severityWeight: Record<DoctorSeverity, number> = { critical: 14, warning: 6, info: 2 };
   const penalty = findings.reduce((sum, f) => sum + severityWeight[f.severity], 0);
   const score = Math.max(0, Math.min(100, 100 - penalty));

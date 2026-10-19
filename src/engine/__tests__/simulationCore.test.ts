@@ -140,6 +140,80 @@ describe("cycles and circuit breakers", () => {
   });
 });
 
+describe("cache flush chaos", () => {
+  const flushTopology = (): GraphTopology => ({
+    nodes: [
+      node("svc", "rest_service", { clientRps: 2000 }),
+      { ...node("cache", "redis_cache"), cacheHitRate: 0.9 },
+      node("db", "postgres_db"),
+    ],
+    edges: [edge("e1", "svc", "cache"), edge("e2", "cache", "db")],
+  });
+
+  const FLUSH_CHAOS: ChaosState = { ...IDLE_CHAOS, active: true, kind: "cache_flush", startedAtTick: 1 };
+
+  it("collapses effective hit rate immediately, then re-warms deterministically", () => {
+    const topology = flushTopology();
+    const cold = stepSimulationTick(topology, FLUSH_CHAOS, createInitialEngineState());
+    const coldHit = cold.snapshot.nodes["cache"]?.cacheHitPct ?? 100;
+    expect(coldHit).toBeLessThan(15);
+
+    // DB absorbs the miss burst while the cache is cold.
+    const dbArrival = cold.snapshot.nodes["db"]?.arrivalRps ?? 0;
+    expect(dbArrival).toBeGreaterThan(1500);
+
+    // Three ticks-seconds later, still flushed: 3s is ~12% into the 25s
+    // LRU warm ramp, so the hit rate is climbing back but nowhere near base.
+    let state = cold.nextState;
+    for (let i = 0; i < 60; i += 1) {
+      state = stepSimulationTick(topology, FLUSH_CHAOS, state).nextState;
+    }
+    const warm = stepSimulationTick(topology, FLUSH_CHAOS, state);
+    const warmHit = warm.snapshot.nodes["cache"]?.cacheHitPct ?? 0;
+    expect(warmHit).toBeGreaterThan(coldHit);
+    expect(warmHit).toBeLessThan(40);
+  });
+
+  it("recovers to the configured hit rate once the flush clears", () => {
+    const topology = flushTopology();
+    let state = stepSimulationTick(topology, FLUSH_CHAOS, createInitialEngineState()).nextState;
+    let last = stepSimulationTick(topology, IDLE_CHAOS, state);
+    for (let i = 0; i < 40; i += 1) {
+      last = stepSimulationTick(topology, IDLE_CHAOS, last.nextState);
+    }
+    const recovered = last.snapshot.nodes["cache"]?.cacheHitPct ?? 0;
+    expect(recovered).toBeGreaterThan(80);
+  });
+});
+
+describe("concurrency telemetry", () => {
+  it("reports Little's-Law in-flight concurrency within the tier's slots", () => {
+    const topology: GraphTopology = {
+      nodes: [
+        node("gw", "api_gateway", { clientRps: 3000 }),
+        node("svc", "rest_service"),
+        node("db", "postgres_db"),
+      ],
+      edges: [edge("e1", "gw", "svc"), edge("e2", "svc", "db")],
+    };
+    const { snapshot } = stepSimulationTick(topology, IDLE_CHAOS, createInitialEngineState());
+    const busy = snapshot.nodes["svc"]?.concurrentInFlight ?? 0;
+    expect(busy).toBeGreaterThan(0);
+    expect(busy).toBeLessThanOrEqual(2 * 500); // replicas x maxConcurrency
+    const dbBusy = snapshot.nodes["db"]?.concurrentInFlight ?? 0;
+    expect(dbBusy).toBeGreaterThan(0);
+  });
+
+  it("stays zero when the tier receives no traffic", () => {
+    const topology: GraphTopology = {
+      nodes: [node("idle", "rest_service")],
+      edges: [],
+    };
+    const { snapshot } = stepSimulationTick(topology, IDLE_CHAOS, createInitialEngineState());
+    expect(snapshot.nodes["idle"]?.concurrentInFlight ?? 0).toBe(0);
+  });
+});
+
 describe("chaos and determinism", () => {
   it("zone outage removes roughly a third of capacity", () => {
     const topology: GraphTopology = {

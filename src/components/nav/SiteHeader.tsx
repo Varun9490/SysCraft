@@ -6,18 +6,20 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Menu, X } from "@/components/ui/icons";
 
+/**
+ * Four verbs, four destinations — no mode-flavored word soup. Everything else
+ * (practice, play, topics, flowchart, cloud drills, rooms) stays reachable
+ * from the surfaces it serves and from the footer, not from the top bar.
+ */
 const NAV_LINKS = [
-  { href: "/start", label: "Start" },
   { href: "/learn", label: "Learn" },
-  { href: "/wiki", label: "Wiki" },
+  { href: "/canvas", label: "Design" },
   { href: "/labs", label: "Labs" },
-  { href: "/flowchart", label: "Flowchart" },
-  { href: "/play", label: "Play" },
-  { href: "/practice", label: "Review" },
+  { href: "/wiki", label: "Reference" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/canvas") return pathname.startsWith("/canvas") || pathname.startsWith("/labs/");
+  if (href === "/canvas") return pathname === "/canvas" || pathname.startsWith("/canvas/");
   if (href === "/wiki") return pathname === "/wiki" || pathname.startsWith("/wiki/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -68,7 +70,7 @@ export function SiteHeader() {
         <Link href="/" className="flex items-center gap-2.5" aria-label="SysCraft home">
           <LogoMark />
           <span className="text-[15px] font-semibold tracking-tight text-zinc-100">
-            Sys<span className="text-sky-400">Craft</span>
+            Sys<span className="text-brass">Craft</span>
           </span>
         </Link>
 
@@ -97,6 +99,12 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2.5 md:flex">
+          <Link
+            href="/reference/numbers"
+            className="hidden text-[13px] font-medium text-zinc-400 transition-colors hover:text-zinc-200 lg:inline-flex"
+          >
+            Numbers
+          </Link>
           <Link
             href="/canvas"
             className="group inline-flex items-center gap-1.5 rounded-full bg-brass px-4 py-1.5 text-[13px] font-semibold text-zinc-950 shadow-card transition-transform hover:scale-[1.03]"

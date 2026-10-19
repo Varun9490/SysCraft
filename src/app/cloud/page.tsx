@@ -3,7 +3,7 @@ import { SiteChrome } from "@/components/nav/SiteChrome";
 import { CloudPageContent } from "@/components/cloud/CloudPageContent";
 
 export const metadata: Metadata = {
-  title: "Cloud & Networking — SysCraft",
+  title: "Cloud & networking drills",
   description:
     "Compare AWS, Azure, GCP, Cloudflare and OCI service-by-service, then learn the networking underneath: anycast, VPCs, DNS, NAT, private links, TLS, and service meshes.",
 };

@@ -3,11 +3,16 @@
 import Link from "next/link";
 import { ArrowRight, PlayCircle } from "@/components/ui/icons";
 import { Reveal } from "@/components/ui/motion";
+import { GUIDED_LABS } from "@/data/guidedLabs";
+
+/** Derived so meta copy can never drift from the lab data. */
+const LAB_MINUTES = new Map(GUIDED_LABS.map((lab) => [lab.id, lab.estimatedMinutes]));
+const labMinutes = (id: string): number => LAB_MINUTES.get(id) ?? 0;
 
 const QUICK_STARTS = [
-  { label: "Bitly URL shortener", meta: "45 min · url shortener", href: "/labs/bitly-url-shortener" },
-  { label: "Distributed rate limiter", meta: "30 min · rate limiting", href: "/labs/distributed-rate-limiter" },
-  { label: "WhatsApp chat", meta: "60 min · realtime messaging", href: "/labs/whatsapp-chat" },
+  { label: "Bitly URL shortener", meta: `${labMinutes("bitly-url-shortener")} min · url shortener`, href: "/labs/bitly-url-shortener" },
+  { label: "Distributed rate limiter", meta: `${labMinutes("distributed-rate-limiter")} min · rate limiting`, href: "/labs/distributed-rate-limiter" },
+  { label: "WhatsApp chat", meta: `${labMinutes("whatsapp-chat")} min · realtime messaging`, href: "/labs/whatsapp-chat" },
 ];
 
 export function CTASection() {
@@ -26,7 +31,7 @@ export function CTASection() {
               Design your first system this week.
             </h2>
             <p className="max-w-md text-[15px] leading-relaxed text-content-secondary">
-              Start with a 45-minute lab or follow the path from module one. Everything runs in your browser — no signup, no
+              Start with the Bitly lab or follow the path from module one. Everything runs in your browser — no signup, no
               setup, no backend.
             </p>
 

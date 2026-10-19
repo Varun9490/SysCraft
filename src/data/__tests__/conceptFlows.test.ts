@@ -16,7 +16,7 @@ const DIAGRAM_ROOTS = ["flowchart", "sequenceDiagram", "stateDiagram-v2", "graph
 describe("concept flows (plain words, diagrams, break points, read next)", () => {
   it("crowns modules with flow entries — at least base 19 plus new curriculum entries", () => {
     expect(CONCEPT_FLOW_IDS.length).toBeGreaterThanOrEqual(19);
-    // All 28 modules present; flows cover base 19 at minimum.
+    // Flows cover every base deep-dive article; curriculum articles may add more.
   });
 
   it("every diagram is real mermaid with a proper declaration line", () => {

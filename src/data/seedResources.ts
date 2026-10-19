@@ -2,13 +2,12 @@ import type { ResourceDefinition } from "@/types/resource";
 import { KUBERNETES_RESOURCES } from "./seedKubernetes";
 
 /**
- * Seed catalog of all 48 SysCraft canvas primitives (32 core cloud services +
- * 4 Kubernetes / container orchestration primitives + 16 Kubernetes control
- * plane / edge / observability / GitOps primitives).
- * Every entry carries production-realistic queuing defaults, FinOps cost,
- * hardened-security score, per-surface service ports with container mappings,
- * and a self-contained encyclopedia article so the simulator, BoE calculator,
- * and Almanac can run fully offline.
+ * Seed catalog of all SysCraft canvas primitives: 32 core cloud services +
+ * 16 Kubernetes control plane / edge / observability / GitOps primitives
+ * (total from SEED_RESOURCES.length). Every entry carries production-realistic
+ * queuing defaults, FinOps cost, hardened-security score, per-surface service
+ * ports with container mappings, and a self-contained encyclopedia article so
+ * the simulator, BoE calculator, and Almanac can run fully offline.
  */
 
 const CORE_RESOURCES: ResourceDefinition[] = [

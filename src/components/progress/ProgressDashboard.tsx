@@ -32,14 +32,17 @@ import {
   type PlayScoreRecord,
 } from '@/engine/practiceStats';
 import { useLearningStore } from '@/store/useLearningStore';
+import { usePredictionStore } from '@/store/usePredictionStore';
+import { GUIDED_LABS } from '@/data/guidedLabs';
 
 /**
  * Progress dashboard (Union Blueprint §5.5).
  *
- * A three-lens mastery map over the 19 curriculum modules:
+ * A four-lens mastery map over the curriculum:
  *   1. FSRS card state — scheduled, in review, or mastered (S ≥ 21 days),
- *   2. lab completion — graded stages across the 16 guided labs,
- *   3. play records — personal bests across the nine game modes.
+ *   2. lab completion — graded stages across the guided labs,
+ *   3. prediction accuracy — estimation drills committed in the sandboxes,
+ *   4. play records — personal bests across the game modes.
  * Plus the Weekly Rhythm tracker and an on-device retention estimate.
  * Everything is computed from local stores; nothing leaves the browser.
  */
@@ -311,9 +314,11 @@ export function ProgressDashboard() {
         )}
       </section>
 
+      {/* Prediction drills */}
+      <PredictionDrill />
       {/* Guided labs */}
       <section aria-label="Guided labs" className="mt-10">
-        <h2 className="text-[11px] font-semibold tracking-[0.18em] text-zinc-500">GUIDED LABS — 16 SCENARIOS</h2>
+        <h2 className="text-[11px] font-semibold tracking-[0.18em] text-zinc-500">GUIDED LABS — {GUIDED_LABS.length} SCENARIOS</h2>
         {labRows.length === 0 ? (
           <p className="mt-3 text-[12.5px] text-zinc-500">
             No lab attempts graded yet.{' '}
@@ -351,7 +356,7 @@ export function ProgressDashboard() {
       <section aria-label="Play records" className="mt-10">
         <div className="flex items-center gap-2">
           <Trophy className="h-4 w-4 text-amber-400" aria-hidden />
-          <h2 className="text-[11px] font-semibold tracking-[0.18em] text-zinc-500">PLAY — NINE MODES</h2>
+          <h2 className="text-[11px] font-semibold tracking-[0.18em] text-zinc-500">PLAY — {PLAY_MODES.length} MODES</h2>
         </div>
         <div className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {PLAY_MODES.map((mode) => {
@@ -409,6 +414,89 @@ export function ProgressDashboard() {
         </section>
       )}
     </div>
+  );
+}
+
+/**
+ * Prediction drill accuracy — the evidence-backed view of the predict-first
+ * loop. Counts only committed attempts; no attempt means an honest empty
+ * state that points at the drills, not a flattering placeholder.
+ */
+function PredictionDrill() {
+  const records = usePredictionStore((s) => s.records);
+  const hydrated = usePredictionStore((s) => s.hydrated);
+  const hydrate = usePredictionStore((s) => s.hydrate);
+  const stats = usePredictionStore((s) => s.stats);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  const overall = stats();
+  const attempts = useMemo(
+    () => Object.values(records).sort((a, b) => b.committedAt - a.committedAt),
+    [records],
+  );
+
+  const bySurface = useMemo(() => {
+    const map = new Map<string, { total: number; correct: number }>();
+    for (const record of attempts) {
+      const entry = map.get(record.surfaceId) ?? { total: 0, correct: 0 };
+      entry.total += 1;
+      if (record.chosen === record.correct) entry.correct += 1;
+      map.set(record.surfaceId, entry);
+    }
+    return [...map.entries()]
+      .map(([surfaceId, entry]) => ({
+        surfaceId,
+        ...entry,
+        accuracy: entry.total > 0 ? entry.correct / entry.total : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 4);
+  }, [attempts]);
+
+  if (!hydrated) return null;
+
+  return (
+    <section aria-label="Prediction drills" className="mt-10">
+      <div className="flex items-center gap-2">
+        <Gauge className="h-4 w-4 text-amber-400" aria-hidden />
+        <h2 className="text-[11px] font-semibold tracking-[0.18em] text-zinc-500">PREDICTION DRILLS — ESTIMATION ACCURACY</h2>
+      </div>
+      {attempts.length === 0 ? (
+        <p className="mt-3 max-w-2xl text-[12.5px] leading-relaxed text-zinc-500">
+          No predictions committed yet. The interactive topics ask you to predict a number — hit rate, shed share,
+          imbalance — before they reveal the truth, and every commitment lands here so you can watch your estimation
+          improve.{' '}
+          <Link href="/topics/caching-strategies" className="text-zinc-300 underline decoration-zinc-700 underline-offset-4 transition hover:text-white">
+            Try a caching scenario
+          </Link>{' '}
+          to start the loop.
+        </p>
+      ) : (
+        <div className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-3.5">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">All drills</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-zinc-100">
+              {Math.round(overall.accuracy * 100)}%
+            </p>
+            <p className="mt-0.5 text-[11px] text-zinc-500">
+              {overall.correct}/{overall.total} correct · streak {overall.streak} · best {overall.bestStreak}
+            </p>
+          </div>
+          {bySurface.map((surface) => (
+            <div key={surface.surfaceId} className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-3.5">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">{surface.surfaceId.replace('topic:', '')}</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-zinc-100">
+                {Math.round(surface.accuracy * 100)}%
+              </p>
+              <p className="mt-0.5 text-[11px] text-zinc-500">{surface.correct}/{surface.total} correct</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

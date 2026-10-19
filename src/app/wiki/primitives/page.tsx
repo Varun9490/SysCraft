@@ -2,7 +2,7 @@ import { SiteChrome } from "@/components/nav/SiteChrome";
 import { PrimitivesBrowser } from "@/components/wiki/PrimitivesBrowser";
 
 export const metadata = {
-  title: "Primitives — SysCraft Wiki",
+  title: "Primitives — wiki",
   description:
     "The full SysCraft primitives library: every cloud and Kubernetes canvas block documented with production-realistic defaults, trade-off matrices, and engineering walkthroughs.",
 };

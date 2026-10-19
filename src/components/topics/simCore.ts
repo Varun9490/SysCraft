@@ -153,6 +153,22 @@ export interface CacheResult {
 }
 
 export function simulateCache(cacheSize: number, keySpace: number, skew: number, requests: number): CacheResult {
+  return simulateCacheLab(cacheSize, keySpace, skew, requests, 0);
+}
+
+/**
+ * Extended LRU kernel with an optional full-flush period (ttl > 0): every
+ * ttl-th request invalidates the entire cache, producing the honest sawtooth
+ * of periodic expiry — hit ratio climbs, collapses, climbs again. Same seeded
+ * PRNG chain as the plain kernel, so predictions grade deterministically.
+ */
+export function simulateCacheLab(
+  cacheSize: number,
+  keySpace: number,
+  skew: number,
+  requests: number,
+  ttl: number,
+): CacheResult {
   const rand = mulberry32(11);
   const pick = () => {
     if (rand() < skew) return Math.floor(Math.pow(rand(), 2) * Math.max(1, keySpace * 0.15));
@@ -170,6 +186,10 @@ export function simulateCache(cacheSize: number, keySpace: number, skew: number,
   let bucketCount = 0;
 
   for (let i = 0; i < requests; i++) {
+    if (ttl > 0 && i > 0 && i % ttl === 0) {
+      cache.clear();
+      order.length = 0;
+    }
     const k = pick();
     bucketCount++;
     if (cache.has(k)) {

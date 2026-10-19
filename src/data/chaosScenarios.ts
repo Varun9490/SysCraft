@@ -1,7 +1,7 @@
 import type { ChaosScenario } from "@/types/challenges";
 
 /**
- * Incident Arena: 20 timed outage and chaos drills with fix budgets and SLOs.
+ * Incident Arena: timed outage and chaos drills with fix budgets and SLOs.
  * Each scenario maps to a simulation chaosKind the worker can inject, so play
  * and grading stay deterministic between practice and scored runs.
  */
@@ -246,6 +246,18 @@ export const CHAOS_SCENARIOS: ChaosScenario[] = [
     chaosKind: "dependency_down",
     targetHint: "One storage prefix untrusted; restore from versions.",
     successCriteria: ["Clean restore to RPO 5 min", "Versioning + object lock verified", "Blast radius documented in post-mortem"],
+  },
+  {
+    id: "exec-flush-cache-purge",
+    title: "Full Flush: The Careless Purge",
+    narrativeMarkdown: "# Cache Flush\n\nA rollback script runs FLUSHALL against the entire Redis fleet during peak. Effective hit rates collapse to a few percent and every read becomes a cold miss. Single-flight coalescing, pool guards, and patient LRU re-warm are the whole job — the durable tier must absorb misses without a collapse.",
+    durationSeconds: 300,
+    budgetUsd: 70,
+    sloP99Ms: 450,
+    maxErrorRate: 0.06,
+    chaosKind: "cache_flush",
+    targetHint: "All cache tiers re-cold; hit ratio near 5 percent, then warm over ~25s.",
+    successCriteria: ["No cascade: origin error under 6 percent", "Single-flight coalescing on the miss path", "Hit ratio back past 85 percent before the clock ends"],
   },
 ];
 

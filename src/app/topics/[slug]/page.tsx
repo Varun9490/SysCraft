@@ -11,9 +11,16 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const topic = getTopic(slug);
+  if (!topic) return { title: "Topic — SysCraft" };
   return {
-    title: topic ? `${topic.title} — SysCraft Topics` : "Topic — SysCraft",
-    description: topic?.tagline,
+    title: `${topic.title} — Topic`,
+    description: topic.tagline,
+    openGraph: {
+      title: `${topic.title} — Topic`,
+      description: topic.tagline,
+      type: "article",
+    },
+    twitter: { card: "summary_large_image" as const },
   };
 }
 

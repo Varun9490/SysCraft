@@ -147,7 +147,7 @@ export const TOPICS: Topic[] = [
     howItWorks: [
       {
         title: "Serve from memory",
-        body: "A hit returns in microseconds without touching the database. A miss pays both the lookup and the origin read.",
+        body: "An in-process hit never leaves the box: sub-microsecond. A networked cache hit (Redis, Memcached) still pays a ~1 ms round trip — close to 100x better than a typical DB read, but not free. A miss pays the cache round trip plus the origin read.",
       },
       {
         title: "Evict by policy",
@@ -177,6 +177,7 @@ export const TOPICS: Topic[] = [
       { id: "keySpace", label: "Distinct keys", kind: "range", min: 10, max: 200, step: 5, default: 60 },
       { id: "skew", label: "Access skew", kind: "range", min: 0, max: 1, step: 0.05, default: 0.8 },
       { id: "requests", label: "Requests", kind: "range", min: 200, max: 2000, step: 100, default: 800 },
+      { id: "ttlFlushEvery", label: "Full flush every (requests, 0 = off)", kind: "range", min: 0, max: 600, step: 20, default: 0 },
     ],
     relatedLabId: "bitly-url-shortener",
   },
@@ -603,6 +604,7 @@ export const TOPICS: Topic[] = [
       { id: "keySpace", label: "Distinct keys", kind: "range", min: 10, max: 200, step: 5, default: 70 },
       { id: "skew", label: "Access skew", kind: "range", min: 0, max: 1, step: 0.05, default: 0.75 },
       { id: "requests", label: "Requests", kind: "range", min: 200, max: 2000, step: 100, default: 900 },
+      { id: "ttlFlushEvery", label: "Full flush every (requests, 0 = off)", kind: "range", min: 0, max: 600, step: 20, default: 0 },
     ],
     relatedLabId: "twitter-timeline",
   },

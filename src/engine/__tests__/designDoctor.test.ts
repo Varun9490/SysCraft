@@ -78,6 +78,53 @@ describe("designDoctor", () => {
     expect(report.findings.some((f) => f.ruleId === "datastore-write-contention")).toBe(true);
   });
 
+  it("flags a scaled websocket-style tier with no shared backplane", () => {
+    const report = runDesignDoctor(
+      [
+        { id: "gw", resourceId: "api_gateway", label: "WS / gateway", overrides: {} },
+        node("api", "rest_service"),
+      ],
+      [edge("gw", "api")],
+    );
+    expect(report.findings.some((f) => f.ruleId === "stateful-tier-no-backplane" && f.nodeIds.includes("gw"))).toBe(true);
+  });
+
+  it("does not flag a connection tier backed by Redis presence", () => {
+    const gw = { id: "gw", resourceId: "api_gateway", label: "WS / gateway", overrides: {} };
+    const report = runDesignDoctor(
+      [gw, node("api", "rest_service"), node("presence", "redis_cache")],
+      [edge("gw", "api"), edge("api", "presence")],
+    );
+    expect(report.findings.some((f) => f.ruleId === "stateful-tier-no-backplane")).toBe(false);
+  });
+
+  it("flags uploads proxying through a write-heavy compute tier into object storage", () => {
+    const report = runDesignDoctor(
+      [
+        node("edge", "cdn_edge"),
+        { id: "api", resourceId: "rest_service", label: "Upload API", overrides: { writeRatio: 0.9 } },
+        node("store", "blob_storage"),
+      ],
+      [edge("edge", "api"), edge("api", "store")],
+    );
+    const finding = report.findings.find((f) => f.ruleId === "blob-through-compute");
+    expect(finding).toBeDefined();
+    expect(finding?.nodeIds).toContain("api");
+    expect(finding?.nodeIds).toContain("store");
+  });
+
+  it("does not flag a metadata-only service with low write ratio", () => {
+    const report = runDesignDoctor(
+      [
+        node("edge", "cdn_edge"),
+        { id: "api", resourceId: "rest_service", label: "Catalog API", overrides: { writeRatio: 0.1 } },
+        node("store", "blob_storage"),
+      ],
+      [edge("edge", "api"), edge("api", "store")],
+    );
+    expect(report.findings.some((f) => f.ruleId === "blob-through-compute")).toBe(false);
+  });
+
   it("flags missing edge protection for high-traffic designs", () => {
     const report = runDesignDoctor(
       [

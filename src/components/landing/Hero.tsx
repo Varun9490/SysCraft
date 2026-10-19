@@ -5,13 +5,9 @@ import { motion } from "framer-motion";
 import { ArrowRight, PlayCircle } from "@/components/ui/icons";
 import { Counter, Magnetic, StaggerChild, StaggerGroup } from "@/components/ui/motion";
 import { IsometricArchitecture } from "@/components/diagrams/IsometricArchitecture";
+import { CONTENT_COUNTS, HERO_STATS } from "@/data/contentManifest";
 
-const STATS = [
-  { label: "Modules", value: 19 },
-  { label: "Lessons", value: 137 },
-  { label: "Labs", value: 16 },
-  { label: "Primitives", value: 32 },
-];
+const STATS = HERO_STATS;
 
 export function Hero() {
   return (
@@ -60,7 +56,7 @@ export function Hero() {
                 className="group inline-flex items-center gap-2 rounded-full border border-line-strong bg-app-raised/60 px-6 py-3 text-sm font-medium text-content-secondary transition-colors hover:border-brass/50 hover:text-content"
               >
                 <PlayCircle size={15} className="text-brass" />
-                Explore 16 labs
+                Explore all {CONTENT_COUNTS.labs} labs
               </Link>
             </div>
           </StaggerChild>

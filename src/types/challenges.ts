@@ -86,6 +86,7 @@ export const ChaosScenarioSchema = z.object({
     "traffic_surge",
     "dependency_down",
     "dns_failure",
+    "cache_flush",
   ]),
   targetHint: z.string().default(""),
   successCriteria: z.array(z.string()).default([]),

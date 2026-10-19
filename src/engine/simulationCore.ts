@@ -3,6 +3,7 @@ import { getOneWayLatencyMs } from "@/data/regionLatency";
 import { getCustomResource } from "@/store/customResourceRegistry";
 import type { ResourceCategory, StorageEngine } from "@/types/resource";
 import {
+  CACHE_FLUSH_WARMUP_S,
   CYCLE_DAMPING_BASE,
   TICK_INTERVAL_S,
   type ChaosState,
@@ -134,6 +135,8 @@ export interface NodeChaosPenalty {
   latencyMs: number;
   arrivalMultiplier: number;
   extraError: number;
+  /** True when a cache_flush targets this node — effective hit re-warms from cold. */
+  cacheFlushed: boolean;
 }
 
 const NO_PENALTY: NodeChaosPenalty = {
@@ -141,6 +144,7 @@ const NO_PENALTY: NodeChaosPenalty = {
   latencyMs: 0,
   arrivalMultiplier: 1,
   extraError: 0,
+  cacheFlushed: false,
 };
 
 function clamp01(value: number): number {
@@ -174,6 +178,7 @@ export function chaosPenaltyForNode(node: GraphNode, chaos: ChaosState): NodeCha
     latencyMs: baseLatency,
     arrivalMultiplier: 1,
     extraError: 0,
+    cacheFlushed: false,
   };
   switch (chaos.kind) {
     case "zone_outage":
@@ -198,6 +203,12 @@ export function chaosPenaltyForNode(node: GraphNode, chaos: ChaosState): NodeCha
       break;
     case "traffic_surge":
       penalty.arrivalMultiplier = 2.5;
+      break;
+    case "cache_flush":
+      // A purge removes no compute capacity and adds no latency — it empties
+      // the cache. The queued math in stepSimulationTick re-warms effective
+      // hit rate from cold over CACHE_FLUSH_WARMUP_S.
+      penalty.cacheFlushed = true;
       break;
     default:
       break;
@@ -354,6 +365,14 @@ export function stepSimulationTick(
   for (const edge of topology.edges) edgeRps.set(edge.id, 0);
 
   const effectiveHit = new Map<string, number>();
+  // A cache_flush empties cache tiers: effective hit rate collapses to a cold
+  // sliver, then LRU re-warms linearly over CACHE_FLUSH_WARMUP_S. Seeded from
+  // the tick the chaos started so the ramp is deterministic under replay.
+  const CHAOS_FLUSH_COLD_HIT = 0.05;
+  const flushActiveTicks =
+    chaosState.active && chaosState.kind === "cache_flush"
+      ? Math.max(0, prevTick.tick - chaosState.startedAtTick)
+      : 0;
   for (const node of topology.nodes) {
     const meta = getResourceMeta(node.resourceId);
     if (!isCacheLike(node.resourceId, meta.category)) continue;
@@ -361,7 +380,14 @@ export function stepSimulationTick(
     const prev = prevTick.cacheEffectiveHit[node.id];
     const smoothed = typeof prev === "number" && Number.isFinite(prev) ? prev : base;
     const surgeCollapse = (penalties.get(node.id)?.arrivalMultiplier ?? 1) > 1 ? 0.05 : base;
-    effectiveHit.set(node.id, clamp01(0.7 * smoothed + 0.3 * surgeCollapse));
+    const seeded = clamp01(0.7 * smoothed + 0.3 * surgeCollapse);
+    if (penalties.get(node.id)?.cacheFlushed ?? false) {
+      const warmAlpha = Math.min(1, (flushActiveTicks * TICK_INTERVAL_S) / CACHE_FLUSH_WARMUP_S);
+      const warmTarget = CHAOS_FLUSH_COLD_HIT + (base - CHAOS_FLUSH_COLD_HIT) * warmAlpha;
+      effectiveHit.set(node.id, Math.min(seeded, warmTarget));
+      continue;
+    }
+    effectiveHit.set(node.id, seeded);
   }
 
   const computeOutput = (node: GraphNode, arrivalRps: number): number => {
@@ -445,12 +471,18 @@ export function stepSimulationTick(
 
     if (isCacheLike(node.resourceId, meta.category)) {
       const base = clamp01(node.cacheHitRate);
-      const rhoGuess = utilization(lambda, capacity);
-      const overloadDecay = Math.min(0.6, Math.max(0, rhoGuess - 0.8) * 0.8);
-      const target = (effectiveHit.get(node.id) ?? base) * (1 - overloadDecay);
-      const smoothed = clamp01(0.85 * (effectiveHit.get(node.id) ?? base) + 0.15 * target);
-      nextCacheHit[node.id] = smoothed;
-      effectiveHit.set(node.id, smoothed);
+      if (penalty.cacheFlushed) {
+        // The purge ramp set the authoritative value in the seed pass; keep it
+        // stable for this tick. Warm-up resumes through the ramp next tick.
+        nextCacheHit[node.id] = effectiveHit.get(node.id) ?? base;
+      } else {
+        const rhoGuess = utilization(lambda, capacity);
+        const overloadDecay = Math.min(0.6, Math.max(0, rhoGuess - 0.8) * 0.8);
+        const target = (effectiveHit.get(node.id) ?? base) * (1 - overloadDecay);
+        const smoothed = clamp01(0.85 * (effectiveHit.get(node.id) ?? base) + 0.15 * target);
+        nextCacheHit[node.id] = smoothed;
+        effectiveHit.set(node.id, smoothed);
+      }
     }
 
     const served = Math.min(lambda, capacity);
@@ -460,7 +492,6 @@ export function stepSimulationTick(
     const overloadDrops = Math.max(0, lambda - served) * (queue.dropped ? 1 : 0.25);
     const accountedDrops = Math.max(combinedError * lambda, overloadDrops);
     const outputRps = Math.max(0, forwarded);
-
     const lat = nodeLatency({
       baseP50Ms: node.baseP50Ms,
       baseP95Ms: node.baseP95Ms,
@@ -498,6 +529,16 @@ export function stepSimulationTick(
       }
     }
 
+    // Little's-Law in-service estimate: RPS currently occupying service slots,
+    // bounded by the tier's total concurrency (max in flight x replicas).
+    const concurrentInFlight =
+      lambda > 0 && lat.p50Ms > 0
+        ? Math.min(
+            Math.max(1, node.replicationFactor) * Math.max(1, node.maxConcurrency),
+            lambda * (lat.p50Ms / 1000),
+          )
+        : 0;
+
     const cacheHitPct = isCacheLike(node.resourceId, meta.category)
       ? (effectiveHit.get(node.id) ?? clamp01(node.cacheHitRate)) * 100
       : 0;
@@ -512,6 +553,7 @@ export function stepSimulationTick(
       p95Ms: p95,
       p99Ms: p99,
       queueDepth: queue.queueDepth,
+      concurrentInFlight,
       errorRate: combinedError,
       cpuPct: cpuPercent(utilization(lambda, capacity), queue.queueDepth, capacity),
       cacheHitPct,

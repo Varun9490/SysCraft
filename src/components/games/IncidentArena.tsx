@@ -10,7 +10,7 @@ import { useSimStore } from "@/store/useSimStore";
 import { Markdown } from "../Markdown";
 
 /**
- * Timed outage-response game: pick one of 20 incident scenarios, keep the
+ * Timed outage-response game: pick one of the incident scenarios, keep the
  * live topology inside its p99/error SLOs before the clock and fix budget
  * run out. Peak impact, MTTR, and spend are scored; best runs persist to
  * localStorage per scenario.
@@ -29,6 +29,7 @@ const KIND_DEFAULTS: Record<Exclude<ChaosKind, "none">, { capacityPenalty: numbe
   traffic_surge: { capacityPenalty: 0, latencyPenaltyMs: 0 },
   dependency_down: { capacityPenalty: 0.9, latencyPenaltyMs: 0 },
   dns_failure: { capacityPenalty: 0.6, latencyPenaltyMs: 0 },
+  cache_flush: { capacityPenalty: 0, latencyPenaltyMs: 0 },
 };
 
 const SCORE_KEY = "syscraft.incidentScores";

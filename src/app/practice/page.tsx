@@ -3,7 +3,7 @@ import { SiteChrome } from "@/components/nav/SiteChrome";
 import { PracticeRunner } from "@/components/practice/PracticeRunner";
 
 export const metadata = {
-  title: "Practice — FSRS Spaced Review | SysCraft",
+  title: "Practice — spaced review",
   description:
     "Your FSRS spaced-repetition queue: quiz items and flashcards from every SysCraft concept module, scheduled at 90% desired retention with a daily cap and catch-up mode.",
 };
