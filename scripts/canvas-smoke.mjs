@@ -192,6 +192,36 @@ if (!textareaUp) {
   console.log(`[loop] comment chip rendered: ${chipUp}`);
 }
 
+// --- Probe E/F: auto-save + restore on refresh ---------------------------
+// The topology is persisted (debounced 500ms) in localStorage under
+// syscraft-canvas-v1 and rehydrated before first paint on the shell.
+await page.waitForTimeout(900); // clear the debounce window
+const saved = await page
+  .evaluate(() => {
+    try {
+      return Boolean(window.localStorage.getItem("syscraft-canvas-v1"));
+    } catch {
+      return false;
+    }
+  })
+  .catch(() => false);
+if (!saved) failures.push({ probe: "E auto-save snapshot in localStorage" });
+console.log(`[loop] auto-save snapshot present: ${saved}`);
+
+let restored = 0;
+if (saved) {
+  try {
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector(".react-flow__node", { state: "visible", timeout: 60_000 });
+    await page.waitForTimeout(1200);
+    restored = await page.locator(".react-flow__node").count();
+  } catch {
+    restored = 0;
+  }
+  if (restored < 4) failures.push({ probe: "F refresh restores canvas", restored });
+  console.log(`[loop] nodes after reload: ${restored}`);
+}
+
 await page.screenshot({ path: "scripts/canvas-smoke-last.png", fullPage: false });
 
 console.log(JSON.stringify({ verdict: { failures } }, null, 2));

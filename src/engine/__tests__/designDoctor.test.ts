@@ -53,6 +53,24 @@ describe("designDoctor", () => {
     expect(report.findings.some((f) => f.ruleId === "queue-without-consumer" && f.nodeIds.includes("q"))).toBe(true);
   });
 
+  it("flags an entry tier pushing straight into an internal queue", () => {
+    const report = runDesignDoctor(
+      [node("edge", "cdn_edge"), node("q", "message_queue"), node("w", "async_worker")],
+      [edge("edge", "q"), edge("q", "w")],
+    );
+    const finding = report.findings.find((f) => f.ruleId === "client-to-queue-direct");
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("warning");
+    expect(finding?.nodeIds).toContain("edge");
+
+    // The same wiring through an app tier is fine.
+    const fixed = runDesignDoctor(
+      [node("edge", "cdn_edge"), node("api", "rest_service"), node("q", "message_queue")],
+      [edge("edge", "api"), edge("api", "q")],
+    );
+    expect(fixed.findings.some((f) => f.ruleId === "client-to-queue-direct")).toBe(false);
+  });
+
   it("detects cycles", () => {
     const nodes = [node("a", "rest_service"), node("b", "rest_service"), node("c", "rest_service")];
     const edges = [edge("a", "b"), edge("b", "c"), edge("c", "a")];

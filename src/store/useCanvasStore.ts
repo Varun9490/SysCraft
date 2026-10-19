@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { temporal } from "zundo";
 import type { CSSProperties } from "react";
 import {
@@ -28,6 +29,13 @@ import {
 import type { GraphNode, GraphTopology } from "@/types/simulation";
 import { getCustomResource } from "./customResourceRegistry";
 import { loadBlueprint as loadBlueprintRecord } from "./db";
+import {
+  CANVAS_STORAGE_KEY,
+  CANVAS_PERSIST_VERSION,
+  createDebouncedCanvasStorage,
+  migratePersistedCanvas,
+  type PersistedCanvasState,
+} from "./canvasPersistence";
 
 /**
  * Structural canvas topology store (Milestone 3).
@@ -397,7 +405,8 @@ function topologyFromPayload(payload: ScenePayload): { nodes: CanvasFlowNode[]; 
 }
 
 export const useCanvasStore = create<CanvasState>()(
-  temporal(
+  persist(
+    temporal(
     (set, get) => ({
       nodes: [],
       edges: [],
@@ -884,6 +893,24 @@ export const useCanvasStore = create<CanvasState>()(
     {
       partialize: (state) => ({ nodes: state.nodes, edges: state.edges }),
       limit: 100,
+    },
+    ),
+    {
+      // Auto-save: the full topology + user settings persist to localStorage
+      // (debounced writes) after every mutation, restored by the workspace
+      // shell before first paint. Everything else is transient session state.
+      name: CANVAS_STORAGE_KEY,
+      version: CANVAS_PERSIST_VERSION,
+      storage: createJSONStorage(() => createDebouncedCanvasStorage(() => window.localStorage)),
+      skipHydration: true,
+      partialize: (state): PersistedCanvasState => ({
+        nodes: state.nodes,
+        edges: state.edges,
+        sceneName: state.sceneName,
+        edgeStyle: state.edgeStyle,
+        semanticZoomLevel: state.semanticZoomLevel,
+      }),
+      migrate: migratePersistedCanvas,
     },
   ),
 );

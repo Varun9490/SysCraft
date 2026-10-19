@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Command } from "cmdk";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/icons";
 import { SysCraftCanvas } from "@/components/canvas/SysCraftCanvas";
 import { ConnectionInspector } from "@/components/canvas/ConnectionInspector";
+import { CanvasErrorBoundary } from "@/components/canvas/CanvasErrorBoundary";
+import { flushPendingCanvasWrite } from "@/store/canvasPersistence";
 import { CostAnalysisPanel } from "@/components/canvas/CostAnalysisPanel";
 import { InternalSimModal } from "@/components/canvas/InternalSimModal";
 import { NodeInspector } from "@/components/canvas/NodeInspector";
@@ -306,6 +308,34 @@ export default function CleanWorkspaceShell() {
     setSoundOn(isSoundEnabled());
   }, []);
 
+  // Auto-save restore: pull the last serialized topology into the store
+  // BEFORE first paint (layout effect) so returning users see their canvas,
+  // never an empty one, with no onboarding flash. skipHydration is set on
+  // the persist middleware precisely so this call is the single hydrate path.
+  useLayoutEffect(() => {
+    void Promise.resolve(useCanvasStore.persist.rehydrate())
+      .then(() => {
+        // Restored coordinates may sit off the previous viewport: refit once.
+        useCanvasStore.setState((state) => ({ fitViewNonce: state.fitViewNonce + 1 }));
+      })
+      .catch(() => {
+        /* corrupt storage already sanitised by migrate — start fresh */
+      });
+  }, []);
+
+  // Flush any debounced auto-save before the tab closes so trailing edits
+  // (<=500ms old) survive an accidental refresh, the browser Back button,
+  // and full tab shutdowns.
+  useEffect(() => {
+    const flush = () => flushPendingCanvasWrite();
+    window.addEventListener("pagehide", flush);
+    window.addEventListener("beforeunload", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("beforeunload", flush);
+    };
+  }, []);
+
   useEffect(() => {
     if (selectedNodeId) setInspectorOpen(true);
   }, [selectedNodeId]);
@@ -544,10 +574,12 @@ export default function CleanWorkspaceShell() {
         </AnimatePresence>
 
         <div className="relative min-w-0 flex-1">
-          <SysCraftCanvas className="h-full w-full" />
-          <ConnectionInspector />
-          <RoomSession />
-          <TimeTravelScrubber />
+          <CanvasErrorBoundary>
+            <SysCraftCanvas className="h-full w-full" />
+            <ConnectionInspector />
+            <RoomSession />
+            <TimeTravelScrubber />
+          </CanvasErrorBoundary>
         </div>
 
         {selectedNodeId && inspectorOpen && (

@@ -272,6 +272,29 @@ export function runDesignDoctor(
     }
   }
 
+  // Rule 4b — entry tiers publishing straight into internal brokers.
+  for (const edge of validEdges) {
+    const from = nodeById.get(edge.source);
+    const to = nodeById.get(edge.target);
+    if (!from || !to) continue;
+    if (!QUEUE_CATEGORIES.has(categoryOf(to))) continue;
+    const fromCategory = categoryOf(from);
+    const isClientEntry =
+      fromCategory === "edge" || fromCategory === "network" || (from.resourceId.includes("client") && fromCategory !== "compute");
+    if (!isClientEntry) continue;
+    findings.push({
+      ruleId: "client-to-queue-direct",
+      severity: "warning",
+      title: `${nameOf(from)} pushes straight into ${nameOf(to)}`,
+      detail:
+        "Internal brokers expect a trusted producer. A queue exposed to the entry tier accepts arbitrary payloads, unbounded fan-in, and nothing back-pressures the real client load.",
+      suggestion:
+        "Have the request-handling API tier publish validated, size-checked messages and return its own ack; the edge only sees the accepted response.",
+      nodeIds: [from.id, to.id],
+      conceptId: "message-queues",
+    });
+  }
+
   // Rule 5 — orphaned nodes.
   for (const node of nodes) {
     const degree = (incoming.get(node.id)?.length ?? 0) + (out.get(node.id)?.length ?? 0);
