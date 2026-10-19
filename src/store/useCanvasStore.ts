@@ -1,9 +1,12 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
+import type { CSSProperties } from "react";
 import {
   applyEdgeChanges,
   applyNodeChanges,
+  MarkerType,
   type Edge,
+  type EdgeMarkerType,
   type Node,
   type OnEdgesChange,
   type OnNodesChange,
@@ -74,7 +77,15 @@ export interface CanvasEdgeData extends Record<string, unknown> {
   /** Free-text label for the link, e.g. "gRPC fanout" or "orders topic". */
   label?: string;
   condition?: EdgeCondition;
+  /** Appearance overrides chosen in the connection inspector. */
+  color?: string;
+  lineStyle?: EdgeLineStyle;
+  width?: number;
+  marker?: EdgeMarker;
 }
+
+export type EdgeLineStyle = "solid" | "dashed" | "dotted";
+export type EdgeMarker = "none" | "arrow" | "arrowClosed";
 
 export type CanvasFlowNode = Node<ResourceNodeData, "resource" | "region">;
 export type CanvasFlowEdge = Edge<CanvasEdgeData>;
@@ -88,6 +99,7 @@ interface SceneNodePayload {
   width?: number;
   height?: number;
   accentColor?: string;
+  comment?: string;
 }
 
 interface SceneEdgePayload {
@@ -96,6 +108,10 @@ interface SceneEdgePayload {
   target: string;
   label?: string;
   condition?: EdgeCondition;
+  color?: string;
+  lineStyle?: EdgeLineStyle;
+  width?: number;
+  marker?: EdgeMarker;
 }
 
 interface ScenePayload {
@@ -135,14 +151,26 @@ interface CanvasState {
   /** Accent colour override for block chrome (hex), null restores the primitive's colour. */
   setNodeAccent: (nodeId: string, color: string | null) => void;
   renameNode: (nodeId: string, label: string) => void;
+  /** Pin a creator comment/annotation onto a block; null removes it. */
+  setNodeComment: (nodeId: string, comment: string | null) => void;
   duplicateNode: (nodeId: string) => string | null;
   removeNode: (nodeId: string) => void;
   /** Removes the currently selected node(s)/edge(s). Returns how many items were removed. */
   deleteSelection: () => number;
   addEdge: (source: string, target: string) => string | null;
   removeEdge: (edgeId: string) => void;
-  /** Edit an edge's flowchart label / routing condition (Connection inspector). */
-  updateEdgeData: (edgeId: string, partial: { label?: string | null; condition?: EdgeCondition }) => void;
+  /** Edit an edge's label / condition / appearance (Connection inspector). */
+  updateEdgeData: (
+    edgeId: string,
+    partial: {
+      label?: string | null;
+      condition?: EdgeCondition;
+      color?: string | null;
+      lineStyle?: EdgeLineStyle | null;
+      width?: number | null;
+      marker?: EdgeMarker | null;
+    },
+  ) => void;
   /** Re-route every edge (existing + future) with the chosen style. */
   setEdgeStyle: (style: CanvasEdgeRouting) => void;
   setSemanticZoomLevel: (level: 1 | 2 | 3) => void;
@@ -196,8 +224,29 @@ export function conditionColor(condition: EdgeCondition | undefined): string {
   return CONDITION_COLORS[condition ?? "none"];
 }
 
-/** Native React Flow label chip that renders the link text + condition. */
-function decorateEdge(edge: CanvasFlowEdge, style: CanvasEdgeRouting): CanvasFlowEdge {
+const DEFAULT_EDGE_WIDTH = 1.6;
+
+const LINE_DASH_SEGMENTS: Record<EdgeLineStyle, string | undefined> = {
+  solid: undefined,
+  // Segment sums of 11 divide the 22px marching loop, so custom dashes stay
+  // seamless while `.sim-running` shifts stroke-dashoffset.
+  dashed: "6 5",
+  dotted: "2 9",
+};
+
+export function isHexColor(value: unknown): value is string {
+  return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value);
+}
+
+function clampEdgeWidth(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.min(5, Math.max(0.75, value)) : DEFAULT_EDGE_WIDTH;
+}
+
+/**
+ * Native React Flow label chip + per-edge appearance. Exports the pure seam
+ * used by unit tests to lock color/weight/dash/marker mapping.
+ */
+export function decorateEdge(edge: CanvasFlowEdge, style: CanvasEdgeRouting): CanvasFlowEdge {
   const data = (edge.data ?? {}) as CanvasEdgeData;
   const condition = data.condition ?? "none";
   const labelText = (data.label ?? "").trim();
@@ -206,7 +255,10 @@ function decorateEdge(edge: CanvasFlowEdge, style: CanvasEdgeRouting): CanvasFlo
     labelText && condition !== "none"
       ? `${labelText} · ${conditionText}`
       : labelText || (condition !== "none" ? conditionText : undefined);
-  const color = conditionColor(condition);
+  const color = isHexColor(data.color) ? data.color : conditionColor(condition);
+  const width = clampEdgeWidth(data.width);
+  const dash = data.lineStyle ? LINE_DASH_SEGMENTS[data.lineStyle] : undefined;
+  const markerEnd = renderEdgeMarker(data.marker, color);
   const nextLabelStyle = rendered ? { fill: color, fontSize: 10, fontWeight: 600 as const } : undefined;
   const nextLabelBgStyle =
     rendered
@@ -228,7 +280,24 @@ function decorateEdge(edge: CanvasFlowEdge, style: CanvasEdgeRouting): CanvasFlo
     labelBgStyle: nextLabelBgStyle,
     labelBgPadding: nextLabelBgPadding,
     labelBgBorderRadius: nextLabelBgBorderRadius,
+    style: {
+      stroke: color,
+      strokeWidth: width,
+      ...(dash ? { strokeDasharray: dash } : {}),
+      "--edge-width": `${width}px`,
+    } as CSSProperties,
+    markerEnd,
   };
+}
+
+function renderEdgeMarker(kind: EdgeMarker | undefined, color: string): EdgeMarkerType | undefined {
+  if (kind === "arrow") {
+    return { type: MarkerType.Arrow, color, width: 18, height: 18 };
+  }
+  if (kind === "arrowClosed") {
+    return { type: MarkerType.ArrowClosed, color, width: 16, height: 16 };
+  }
+  return undefined;
 }
 
 function buildFlowNode(resourceId: string, position: { x: number; y: number }, label: string): CanvasFlowNode {
@@ -261,6 +330,9 @@ function payloadFromState(nodes: CanvasFlowNode[], edges: CanvasFlowEdge[]): Sce
         ? { width: node.data.width, height: node.data.height }
         : {}),
       ...(typeof node.data.accentColor === "string" ? { accentColor: node.data.accentColor } : {}),
+      ...(typeof node.data.comment === "string" && node.data.comment.length > 0
+        ? { comment: node.data.comment }
+        : {}),
     })),
     edges: edges.map((edge) => {
       const data = (edge.data ?? {}) as CanvasEdgeData;
@@ -270,6 +342,10 @@ function payloadFromState(nodes: CanvasFlowNode[], edges: CanvasFlowEdge[]): Sce
         target: edge.target,
         ...(typeof data.label === "string" && data.label.length > 0 ? { label: data.label } : {}),
         ...(data.condition && data.condition !== "none" ? { condition: data.condition } : {}),
+        ...(isHexColor(data.color) ? { color: data.color } : {}),
+        ...(data.lineStyle ? { lineStyle: data.lineStyle } : {}),
+        ...(data.width ? { width: data.width } : {}),
+        ...(data.marker ? { marker: data.marker } : {}),
       };
     }),
   };
@@ -289,6 +365,7 @@ function topologyFromPayload(payload: ScenePayload): { nodes: CanvasFlowNode[]; 
         ? { width: n.width, height: n.height, manualSize: true }
         : {}),
       ...(typeof n.accentColor === "string" ? { accentColor: n.accentColor } : {}),
+      ...(typeof n.comment === "string" ? { comment: n.comment } : {}),
     },
   }));
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -301,6 +378,10 @@ function topologyFromPayload(payload: ScenePayload): { nodes: CanvasFlowNode[]; 
       data: {
         ...(typeof e.label === "string" ? { label: e.label } : {}),
         ...(e.condition ? { condition: e.condition } : {}),
+        ...(isHexColor(e.color) ? { color: e.color } : {}),
+        ...(e.lineStyle ? { lineStyle: e.lineStyle } : {}),
+        ...(e.width ? { width: e.width } : {}),
+        ...(e.marker ? { marker: e.marker } : {}),
       },
     }));
   const seen = new Set<string>();
@@ -414,6 +495,19 @@ export const useCanvasStore = create<CanvasState>()(
         }));
       },
 
+      setNodeComment: (nodeId, comment) => {
+        set((state) => ({
+          nodes: state.nodes.map((node) => {
+            if (node.id !== nodeId) return node;
+            const data = { ...(node.data as ResourceNodeData) };
+            const text = typeof comment === "string" ? comment.trim() : "";
+            if (text.length > 0) data.comment = text;
+            else delete data.comment;
+            return { ...node, data };
+          }),
+        }));
+      },
+
       duplicateNode: (nodeId) => {
         const source = get().nodes.find((node) => node.id === nodeId);
         if (!source) return null;
@@ -487,6 +581,23 @@ export const useCanvasStore = create<CanvasState>()(
           if (partial.condition !== undefined) {
             if (partial.condition === "none") delete data.condition;
             else data.condition = partial.condition;
+          }
+          if (partial.color !== undefined) {
+            if (isHexColor(partial.color)) data.color = partial.color;
+            else delete data.color;
+          }
+          if (partial.lineStyle !== undefined) {
+            if (partial.lineStyle) data.lineStyle = partial.lineStyle;
+            else delete data.lineStyle;
+          }
+          if (partial.width !== undefined) {
+            if (typeof partial.width === "number" && Number.isFinite(partial.width) && partial.width > 0) {
+              data.width = partial.width;
+            } else delete data.width;
+          }
+          if (partial.marker !== undefined) {
+            if (partial.marker) data.marker = partial.marker;
+            else delete data.marker;
           }
           const updated = { ...target, data };
           const rest = state.edges.filter((edge) => edge.id !== edgeId);

@@ -23,6 +23,7 @@ import {
   LineChart,
   Lock,
   MemoryStick,
+  MessageSquare,
   Network,
   Radio,
   Search,
@@ -195,6 +196,7 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
   const degraded = Boolean(telemetry && telemetry.errorRate >= 0.05);
 
   const tooltip = `${seed?.name ?? custom?.name ?? resourceId} — ${seed?.description ?? ""}`.trim();
+  const comment = typeof data.comment === "string" ? data.comment.trim() : "";
 
   return (
     <>
@@ -228,19 +230,6 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
             style={{ background: `radial-gradient(140px circle at 85% -10%, ${accent}26, transparent 70%)` }}
           />
 
-          <Handle
-            type="target"
-            position={Position.Left}
-            className="syscraft-handle"
-            style={{ background: accent }}
-          />
-          <Handle
-            type="source"
-            position={Position.Right}
-            className="syscraft-handle"
-            style={{ background: accent }}
-          />
-
           <div className="relative flex min-h-0 flex-1 flex-col justify-center gap-1 px-3 py-2">
             <div className="flex items-center gap-2">
               <span
@@ -268,39 +257,66 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
             </div>
 
             {zoom >= 2 && (
-              <div className="flex items-center gap-2 text-[11px] font-medium tabular-nums">
-                <span className="text-zinc-200">{formatRps(arrivalRps)} rps</span>
-                <span className="text-zinc-600">·</span>
-                <span className={cpuTone(cpuPct)}>{cpuPct.toFixed(0)}% cpu</span>
-                <span className="text-zinc-600">·</span>
-                <span className="text-zinc-300">p99 {formatMs(p99Ms)}</span>
+              <div className="flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-[11px] font-medium tabular-nums">
+                <span className="truncate text-zinc-200">{formatRps(arrivalRps)} rps</span>
+                <span className="shrink-0 text-zinc-600">·</span>
+                <span className={`min-w-0 truncate ${cpuTone(cpuPct)}`}>{cpuPct.toFixed(0)}% cpu</span>
+                <span className="shrink-0 text-zinc-600">·</span>
+                <span className="min-w-0 truncate text-zinc-300">p99 {formatMs(p99Ms)}</span>
               </div>
             )}
 
             {zoom >= 3 && (
-              <div className="flex items-center gap-2 border-t border-zinc-800/80 pt-1 text-[10px] tabular-nums">
-                <span className={errorTone(errorRate)}>err {(errorRate * 100).toFixed(1)}%</span>
-                <span className="text-zinc-500">q {queueDepth.toFixed(0)}</span>
+              <div className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap border-t border-zinc-800/80 pt-1 text-[10px] tabular-nums">
+                <span className={`truncate ${errorTone(errorRate)}`}>err {(errorRate * 100).toFixed(1)}%</span>
+                <span className="shrink-0 text-zinc-500">q {queueDepth.toFixed(0)}</span>
                 {telemetry && maxConcurrency > 0 && (
                   <span className={inFlight >= maxConcurrency ? "text-amber-300" : "text-zinc-500"}>
                     c {Math.min(inFlight, maxConcurrency).toFixed(0)}/{maxConcurrency}
                   </span>
                 )}
-                <span className="text-zinc-500">out {formatRps(telemetry?.outputRps ?? 0)} rps</span>
+                <span className="truncate text-zinc-500">out {formatRps(telemetry?.outputRps ?? 0)} rps</span>
                 {telemetry && telemetry.ttftMs > 0 && (
-                  <span className="text-violet-300">ttft {formatMs(telemetry.ttftMs)}</span>
+                  <span className="truncate text-violet-300">ttft {formatMs(telemetry.ttftMs)}</span>
                 )}
               </div>
             )}
           </div>
-
-          {zoom >= 2 && (data.overrides?.region || data.overrides?.multiAz) && (
-            <span className="pointer-events-none absolute -top-[7px] left-2 flex items-center gap-1 rounded-full border border-zinc-700/80 bg-zinc-900 px-1.5 py-[1px] text-[8.5px] font-medium uppercase tracking-wide text-zinc-300 shadow-sm">
-              {data.overrides?.region && <span>{String(data.overrides.region)}</span>}
-              {data.overrides?.multiAz && <span className="text-brass">· multi-AZ</span>}
-            </span>
-          )}
         </div>
+
+        {/* Region / multi-AZ + creator comment chips sit OUTSIDE the overflow-hidden
+            border box, so the top/bottom half of the pill is never clipped away. */}
+        {zoom >= 2 && (data.overrides?.region || data.overrides?.multiAz) && (
+          <span className="pointer-events-none absolute -top-[7px] left-2 z-20 flex items-center gap-1 rounded-full border border-zinc-700/80 bg-zinc-900 px-1.5 py-[1px] text-[8.5px] font-medium uppercase tracking-wide text-zinc-300 shadow-sm">
+            {data.overrides?.region && <span>{String(data.overrides.region)}</span>}
+            {data.overrides?.multiAz && <span className="text-brass">· multi-AZ</span>}
+          </span>
+        )}
+        {comment.length > 0 && (
+          <span
+            className="absolute -bottom-[7px] left-2 z-20 flex max-w-[calc(100%-24px)] items-center gap-1 rounded-full border border-sky-500/50 bg-zinc-900 px-1.5 py-[1px] text-[9px] font-medium text-sky-200 shadow-sm"
+            title={comment}
+            aria-label="Block comment chip"
+          >
+            <MessageSquare size={9} weight="fill" className="shrink-0 text-sky-300" />
+            <span className="truncate">{comment}</span>
+          </span>
+        )}
+
+        {/* Handles live outside the overflow-hidden border box so the full disc
+            is grabbable (React Flow hit-tests against the visible box). */}
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="syscraft-handle"
+          style={{ background: accent }}
+        />
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="syscraft-handle"
+          style={{ background: accent }}
+        />
       </div>
     </>
   );

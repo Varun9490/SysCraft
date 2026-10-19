@@ -53,6 +53,7 @@ export {
   MapTrifold as Map,
   Memory as MemoryStick,
   List as Menu,
+  ChatText as MessageSquare,
   Microphone as Mic,
   MicrophoneSlash as MicOff,
   ShareNetwork as Network,

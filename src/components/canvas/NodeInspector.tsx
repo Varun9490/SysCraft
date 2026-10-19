@@ -161,6 +161,7 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
   const resetNodeSize = useCanvasStore((s) => s.resetNodeSize);
   const setNodeAccent = useCanvasStore((s) => s.setNodeAccent);
   const renameNode = useCanvasStore((s) => s.renameNode);
+  const setNodeComment = useCanvasStore((s) => s.setNodeComment);
   const duplicateNode = useCanvasStore((s) => s.duplicateNode);
   const removeNode = useCanvasStore((s) => s.removeNode);
   const nodeCount = useCanvasStore((s) => s.nodes.length);
@@ -222,6 +223,7 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
   if (!node) return null;
 
   const overrides = node.data.overrides ?? {};
+  const comment = typeof node.data.comment === "string" ? node.data.comment : "";
   const label = String(node.data.label ?? "Node");
   const category: ResourceCategory = seed?.category ?? custom?.category ?? "compute";
   const Icon = resourceIconFor(resourceId, category);
@@ -730,6 +732,32 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
               a custom primitive. Declare <span className="text-zinc-400">servicePorts</span> when a block fronts a real
               listener.
             </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-600">Block comment</p>
+          <textarea
+            value={comment}
+            onChange={(event) => setNodeComment(node.id, event.target.value)}
+            placeholder="Why this tier? Trade-offs, assumptions, follow-up questions for the interviewer…"
+            rows={3}
+            maxLength={2000}
+            aria-label="Block comment"
+            className="w-full resize-y rounded-lg border border-zinc-800 bg-zinc-900/70 px-2.5 py-2 text-[12.5px] leading-relaxed text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-brass/60"
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-[10.5px] text-zinc-600">Pins a note chip on the block — hover it to read.</span>
+            <span className="tabular-nums text-[10.5px] text-zinc-600">{comment.length}/2000</span>
+          </div>
+          {comment.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setNodeComment(node.id, null)}
+              className="text-[10.5px] text-sky-300 underline underline-offset-2 transition-colors hover:text-sky-200"
+            >
+              Remove comment
+            </button>
           )}
         </div>
 

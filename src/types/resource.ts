@@ -192,6 +192,8 @@ export interface ResourceNodeData extends Record<string, unknown> {
   manualSize?: boolean;
   /** Optional accent override that recolours the block chrome. */
   accentColor?: string;
+  /** Pinned creator comment shown as a chip on the block. */
+  comment?: string;
 }
 
 export const ResourceNodeDataSchema = z.object({
@@ -203,6 +205,7 @@ export const ResourceNodeDataSchema = z.object({
   height: z.number().min(56).max(320).optional(),
   manualSize: z.boolean().optional(),
   accentColor: z.string().optional(),
+  comment: z.string().max(2000).optional(),
 });
 
 /** AI / LLM provider + local model types used by aiClient.ts (Milestone 6). */
