@@ -28,6 +28,7 @@ import {
   type CveSeverity,
 } from '@/data/cveIntelligence';
 import { SEED_RESOURCE_MAP } from '@/data/seedResources';
+import { SecurityPractices } from '@/components/security/SecurityPractices';
 import { auditCanvasSecurityArchitecture, scrapeLiveCveFeed } from '@/engine/cveScanner';
 import { flushPendingCanvasWrite } from '@/store/canvasPersistence';
 import { useCanvasStore } from '@/store/useCanvasStore';
@@ -291,7 +292,7 @@ export function SecurityHubContent() {
   const circumference = 2 * Math.PI * radius;
 
   return (
-    <div className="section-container py-12 md:py-16">
+    <div className="section-container min-w-0 py-12 md:py-16">
       {/* Hero */}
       <div className="grid items-end gap-8 lg:grid-cols-12">
         <div className="min-w-0 lg:col-span-7">
@@ -356,6 +357,8 @@ export function SecurityHubContent() {
           </div>
         </div>
       </div>
+
+      <SecurityPractices />
 
       {/* Live scraper */}
       <section className="mt-12 overflow-hidden rounded-2xl border border-line bg-app/50 shadow-card">

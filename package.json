@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "ai": "node server/opencode-ai-bridge.mjs",
     "test": "vitest run"
   },
   "dependencies": {

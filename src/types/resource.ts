@@ -219,7 +219,7 @@ export const AiProviderSchema = z.enum([
 
 export type AiProvider = z.infer<typeof AiProviderSchema>;
 
-export const AiTierSchema = z.enum(["byok_cloud", "webgpu_local", "offline_heuristic"]);
+export const AiTierSchema = z.enum(["byok_cloud", "webgpu_local", "offline_heuristic", "opencode_free"]);
 
 export type AiTier = z.infer<typeof AiTierSchema>;
 

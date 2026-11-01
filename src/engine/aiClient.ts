@@ -69,6 +69,28 @@ export interface ReviewResult {
 
 const BYOK_STORAGE_KEY = "syscraft.byok";
 
+export const OPENCODE_BRIDGE_URL = "http://127.0.0.1:8787";
+const OPENCODE_BRIDGE_STORAGE_KEY = "syscraft.opencodeBridge";
+
+export function setOpenCodeBridgeEnabled(on: boolean): void {
+  try {
+    if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
+    if (on) window.localStorage.setItem(OPENCODE_BRIDGE_STORAGE_KEY, "1");
+    else window.localStorage.removeItem(OPENCODE_BRIDGE_STORAGE_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function isOpenCodeBridgeEnabled(): boolean {
+  try {
+    if (typeof window === "undefined" || typeof window.localStorage === "undefined") return false;
+    return window.localStorage.getItem(OPENCODE_BRIDGE_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function findingId(area: string, index: number): string {
   return `f_${area}_${index}`;
 }
@@ -388,17 +410,30 @@ function briefToPrompt(brief: TopologyBrief): string {
   ].join("\n");
 }
 
-function coerceFindings(input: unknown): AiFinding[] | null {
+function coerceSeverity(value: unknown): AiFindingSeverity {
+  if (typeof value === "string") {
+    const v = value.toLowerCase().trim();
+    if (v === "critical" || v === "high" || v === "error" || v === "severe" || v === "fatal") return "critical";
+    if (v === "warn" || v === "warning" || v === "medium" || v === "moderate") return "warn";
+    if (v === "info" || v === "low" || v === "note" || v === "debug" || v === "trace") return "info";
+  }
+  if (typeof value === "number") {
+    if (value >= 3) return "critical";
+    if (value >= 2) return "warn";
+    return "info";
+  }
+  return "info";
+}
+
+function coerceFindings(input: unknown, idPrefix = "byok"): AiFinding[] | null {
   if (!Array.isArray(input)) return null;
   const findings: AiFinding[] = [];
   input.forEach((entry, i) => {
     if (typeof entry !== "object" || entry === null) return;
     const row = entry as Record<string, unknown>;
-    const severity = row["severity"];
-    if (severity !== "info" && severity !== "warn" && severity !== "critical") return;
     findings.push({
-      id: `byok_${i}`,
-      severity,
+      id: `${idPrefix}_${i}`,
+      severity: coerceSeverity(row["severity"]),
       area: typeof row["area"] === "string" ? (row["area"] as string).slice(0, 80) : "Review",
       message: typeof row["message"] === "string" ? (row["message"] as string).slice(0, 500) : "",
       recommendation: typeof row["recommendation"] === "string" ? (row["recommendation"] as string).slice(0, 500) : "",
@@ -551,6 +586,117 @@ async function reviewWithWebLlm(brief: TopologyBrief): Promise<AiFinding[] | nul
   }
 }
 
+/* ---------------- OpenCode free-plan bridge ---------------- */
+
+function findJsonArrays(text: string): unknown[] {
+  const results: unknown[] = [];
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === "[") {
+      let depth = 0;
+      let inStr = false;
+      let esc = false;
+      let j = i;
+      for (; j < text.length; j++) {
+        const ch = text[j];
+        if (inStr) {
+          if (esc) { esc = false; continue; }
+          if (ch === "\\") { esc = true; continue; }
+          if (ch === '"') inStr = false;
+        } else {
+          if (ch === '"') inStr = true;
+          else if (ch === "[") depth++;
+          else if (ch === "]") { depth--; if (depth === 0) break; }
+        }
+      }
+      if (j < text.length) {
+        const slice = text.slice(i, j + 1);
+        try { results.push(JSON.parse(slice)); } catch { /* skip */ }
+        i = j + 1;
+        continue;
+      }
+      break;
+    }
+    i++;
+  }
+  return results;
+}
+
+function collectTextPayloads(text: string): string[] {
+  const payloads: string[] = [text];
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    try {
+      const obj = JSON.parse(trimmed);
+      const visit = (value: unknown, depth: number): void => {
+        if (depth > 5) return;
+        if (typeof value === "string") { payloads.push(value); return; }
+        if (Array.isArray(value)) { value.forEach((v) => visit(v, depth + 1)); return; }
+        if (value && typeof value === "object") {
+          for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+            if (typeof val === "string" && /text|content|message|output|response|assistant|result|delta/i.test(key)) {
+              payloads.push(val);
+            }
+            visit(val, depth + 1);
+          }
+        }
+      };
+      visit(obj, 0);
+    } catch {
+      /* not json line */
+    }
+  }
+  return payloads;
+}
+
+export function extractFindingsJson(text: string): AiFinding[] | null {
+  if (typeof text !== "string") return null;
+  const payloads = collectTextPayloads(text);
+  for (const payload of payloads) {
+    for (const arr of findJsonArrays(payload)) {
+      const findings = coerceFindings(arr, "oc");
+      if (findings) return findings;
+    }
+    try {
+      const parsed: unknown = JSON.parse(payload);
+      const findings = coerceFindings(parsed, "oc");
+      if (findings) return findings;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        for (const value of Object.values(parsed as Record<string, unknown>)) {
+          const nested = coerceFindings(value, "oc");
+          if (nested) return nested;
+        }
+      }
+    } catch {
+      /* skip */
+    }
+  }
+  return null;
+}
+
+export async function reviewWithOpenCodeBridge(brief: TopologyBrief): Promise<AiFinding[] | null> {
+  try {
+    const res = await fetch(`${OPENCODE_BRIDGE_URL}/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ brief }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as unknown;
+    let raw: unknown = data;
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      const obj = data as Record<string, unknown>;
+      if (Array.isArray(obj["findings"])) raw = obj["findings"];
+      else if (Array.isArray(obj["data"])) raw = obj["data"];
+    }
+    return coerceFindings(raw, "oc");
+  } catch {
+    return null;
+  }
+}
+
 /* ---------------- Tier router ---------------- */
 
 export interface ReviewOptions {
@@ -566,6 +712,12 @@ export async function reviewTopology(brief: TopologyBrief, options: ReviewOption
     summary: `Heuristic pass over ${brief.nodes.length} nodes found structural risks with zero network dependency.`,
   });
   try {
+    if (isOpenCodeBridgeEnabled()) {
+      const bridge = await reviewWithOpenCodeBridge(brief);
+      if (bridge) {
+        return { tier: "opencode_free", findings: bridge, summary: "Reviewed with the local OpenCode free plan." };
+      }
+    }
     if (options.byok?.apiKey) {
       let findings: AiFinding[] | null = null;
       if (options.byok.provider === "gemini") findings = await reviewWithGemini(brief, options.byok);

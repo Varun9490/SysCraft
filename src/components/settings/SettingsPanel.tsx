@@ -23,9 +23,12 @@ import {
 import {
   WEBLLM_MODEL,
   getByokConfig,
+  isOpenCodeBridgeEnabled,
   isWebGpuAvailable,
   loadWebLlmEngine,
+  OPENCODE_BRIDGE_URL,
   saveByokConfig,
+  setOpenCodeBridgeEnabled,
   type ByokConfig,
 } from '@/engine/aiClient';
 import {
@@ -68,6 +71,9 @@ export function SettingsPanel() {
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
   const [byokSaved, setByokSaved] = useState(false);
+  const [opencodeEnabled, setOpencodeEnabled] = useState(false);
+  const [bridgeStatus, setBridgeStatus] = useState<'unknown' | 'ready' | 'not running'>('unknown');
+  const [bridgeChecking, setBridgeChecking] = useState(false);
   const [webgpuSupported, setWebgpuSupported] = useState(false);
   const [llmState, setLlmState] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle');
   const [llmProgress, setLlmProgress] = useState('');
@@ -94,6 +100,7 @@ export function SettingsPanel() {
       setModel(byok.model ?? '');
     }
     setWebgpuSupported(isWebGpuAvailable());
+    setOpencodeEnabled(isOpenCodeBridgeEnabled());
     setSoundOn(isSoundEnabled());
     setPractice(loadPracticeSettings());
     setTodayCount(reviewsToday(loadPracticeHistory()));
@@ -238,6 +245,62 @@ export function SettingsPanel() {
             active={llmState === 'ready'}
             note={`${WEBLLM_MODEL} downloaded once, then inference is fully local.`}
           />
+        </div>
+
+        <div className="mt-5 rounded-xl border border-zinc-800/80 bg-zinc-900/30 p-4">
+          <h3 className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.12em] text-zinc-400">
+            <Cpu className="h-3.5 w-3.5" aria-hidden />
+            OpenCode free plan
+          </h3>
+          <p className="mt-2 text-[13px] leading-relaxed text-zinc-300">
+            Runs on your machine through the OpenCode CLI you already logged into. Nothing is sent to SysCraft.
+          </p>
+          <p className="mt-2 text-[12px] leading-relaxed text-zinc-500">
+            Open a terminal in this project and run <code className="font-mono text-zinc-300">npm run ai</code>. Leave it running. Then turn this on and review a design.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <label className="inline-flex items-center gap-2 text-[13px] text-zinc-200">
+              <input
+                type="checkbox"
+                checked={opencodeEnabled}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  setOpencodeEnabled(on);
+                  setOpenCodeBridgeEnabled(on);
+                }}
+                className="h-4 w-4 rounded border-zinc-600 bg-zinc-900"
+              />
+              Use local OpenCode free plan
+            </label>
+            <button
+              type="button"
+              onClick={async () => {
+                setBridgeChecking(true);
+                try {
+                  const res = await fetch(`${OPENCODE_BRIDGE_URL}/health`, { method: "GET" });
+                  if (res.ok) {
+                    const json = (await res.json()) as { ok?: boolean };
+                    setBridgeStatus(json?.ok ? "ready" : "not running");
+                  } else {
+                    setBridgeStatus("not running");
+                  }
+                } catch {
+                  setBridgeStatus("not running");
+                } finally {
+                  setBridgeChecking(false);
+                }
+              }}
+              className="rounded-lg border border-zinc-700 px-3.5 py-2 text-[13px] text-zinc-300 transition hover:border-zinc-500"
+              disabled={bridgeChecking}
+            >
+              {bridgeChecking ? "Checking..." : "Check bridge"}
+            </button>
+            {bridgeStatus !== "unknown" && (
+              <span className="text-[12px] text-zinc-400">
+                {bridgeStatus === "ready" ? "Ready" : "Not running"}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="mt-5 rounded-xl border border-zinc-800/80 bg-zinc-900/30 p-4">
