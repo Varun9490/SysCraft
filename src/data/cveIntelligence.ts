@@ -131,6 +131,26 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-21626",
   },
   {
+    id: "CVE-2026-53495",
+    title: "containerd CRI ExecSync Goroutine Leak Leads to Node-Level Denial of Service",
+    published: "2026-09-14",
+    cvss: 6.8,
+    severity: "MEDIUM",
+    cwe: "CWE-400",
+    stride: "Denial of Service",
+    ecosystem: "Kubernetes",
+    affectedPrimitives: ["k8s_cluster", "k8s_deployment", "container_registry"],
+    summary:
+      "containerd's CRI ExecSync handler drained the attach IO stream with a select block that never waited on the request context being canceled. When an exec probe or lifecycle hook spawned a background child process that inherited stdout/stderr, the pipe never completed and the drain goroutine parked forever. Kubernetes repeats exec probes on short intervals, so blocked goroutines accumulated linearly, host memory grew, and the kernel OOM killer terminated containerd — taking the runtime and every workload managing container that depends on it down until a manual restart.",
+    architecturalRootCause:
+      "The runtime trusted that a child process would always close its inherited standard streams, and it never bounded the IO drain with a context cancellation or a hard timeout. Every orchestrator retry converted a probe failure into a permanently held resource, so node availability depended on workload behavior instead of a runtime budget.",
+    mitigationPattern:
+      "Upgrade containerd to 1.7.35, 2.0.12, 2.2.8, or 2.3.5, which adds a ctx.Done() branch to the drain select and uses a deferred context for execProcess.Delete. Replace exec probes with httpGet or tcpSocket probes where feasible, and make any process a probe spawns redirect its standard streams to /dev/null. Constrain containerd memory with a systemd MemoryHigh limit only as a last resort, and alert on goroutine and RSS growth so a leak is caught before the OOM killer fires.",
+    recommendedDefensePrimitives: ["rate_limiter", "web_application_firewall", "api_gateway", "observability_stack"],
+    exploitedInWild: false,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2026-53495",
+  },
+  {
     id: "CVE-2023-44487",
     title: "HTTP/2 Rapid Reset DDoS Attack on L7 Load Balancers & Gateways",
     published: "2023-10-10",

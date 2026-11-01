@@ -18,7 +18,7 @@ function edge(source: string, target: string): DoctorEdgeInput {
 
 describe("cveAndPlugins", () => {
   it("curated CVE feed has twelve items with valid primitives", () => {
-    expect(CURATED_CVE_FEED).toHaveLength(12);
+    expect(CURATED_CVE_FEED).toHaveLength(13);
     for (const cve of CURATED_CVE_FEED) {
       for (const primitive of cve.affectedPrimitives) {
         expect(SEED_RESOURCE_MAP[primitive], `${cve.id} affected ${primitive}`).toBeTruthy();
@@ -45,6 +45,22 @@ describe("cveAndPlugins", () => {
     }
     for (const primitive of first.recommendedDefensePrimitives) {
       expect(SEED_RESOURCE_MAP[primitive]).toBeTruthy();
+    }
+  });
+
+  it("CVE-2026-53495 is a containerd CRI goroutine-leak DoS in the Kubernetes ecosystem", () => {
+    const cve = CURATED_CVE_FEED.find((entry) => entry.id === "CVE-2026-53495");
+    expect(cve).toBeDefined();
+    expect(cve!.severity).toBe("MEDIUM");
+    expect(cve!.cvss).toBe(6.8);
+    expect(cve!.cwe).toBe("CWE-400");
+    expect(cve!.stride).toBe("Denial of Service");
+    expect(cve!.ecosystem).toBe("Kubernetes");
+    for (const primitive of cve!.affectedPrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();
+    }
+    for (const primitive of cve!.recommendedDefensePrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} defense ${primitive}`).toBeTruthy();
     }
   });
 
