@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   LineChart,
   ListChecks,
+  PenTool,
   Plus,
   Redo2,
   RotateCcw,
@@ -32,6 +33,7 @@ import { SEED_RESOURCES } from "@/data/seedResources";
 import { CLOUD_REGIONS } from "@/data/regionLatency";
 import type { ChaosKind } from "@/types/simulation";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useCanvasPrefsStore } from "@/store/useCanvasPrefsStore";
 import { useSimStore } from "@/store/useSimStore";
 import { CanvasPreferences } from "./CanvasPreferences";
 
@@ -194,7 +196,7 @@ function DockIcon({
       className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors ${disabled ? "cursor-not-allowed opacity-35" : ""} ${toneClass}`}
     >
       {children}
-      {label && <span className="hidden md:inline">{label}</span>}
+      {label && <span className="hidden lg:inline">{label}</span>}
     </motion.button>
   );
 }
@@ -230,6 +232,8 @@ export function FloatingToolbar() {
   );
   const chaosActive = useSimStore((s) => s.chaos.active);
   const activeChaos = useSimStore((s) => s.chaos);
+  const sketchy = useCanvasPrefsStore((s) => s.sketchy);
+  const setSketchy = useCanvasPrefsStore((s) => s.setPref);
   // Pre-run ward: subscribe to a derived string signature (ids + categories +
   // edge wiring) instead of the nodes array — drags mutate positions at 60fps
   // and must never re-render this dock. The memo re-derives cheaply only when
@@ -355,7 +359,10 @@ export function FloatingToolbar() {
     graph.setGraph({ rankdir: "LR", nodesep: 70, ranksep: 140, marginx: 40, marginy: 40 });
     graph.setDefaultEdgeLabel(() => ({}));
     for (const node of nodes) {
-      graph.setNode(node.id, { width: 232, height: 140 });
+      graph.setNode(node.id, {
+        width: node.data.width ?? 232,
+        height: node.data.height ?? 140,
+      });
     }
     for (const edge of edges) {
       graph.setEdge(edge.source, edge.target);
@@ -364,11 +371,13 @@ export function FloatingToolbar() {
     replaceTopology(
       nodes.map((node) => {
         const placed = graph.node(node.id);
+        const width = node.data.width ?? 232;
+        const height = node.data.height ?? 140;
         return {
           ...node,
           position: {
-            x: (placed?.x ?? 0) - 116,
-            y: (placed?.y ?? 0) - 70,
+            x: (placed?.x ?? 0) - width / 2,
+            y: (placed?.y ?? 0) - height / 2,
           },
         };
       }),
@@ -474,6 +483,8 @@ export function FloatingToolbar() {
       const tag = target?.tagName ?? "";
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      // Space on a focused button/link already fires a click — don't double-toggle.
+      if (event.key === " " && (tag === "BUTTON" || tag === "A")) return;
       const canvas = useCanvasStore.getState();
       switch (event.key) {
         case "l":
@@ -529,12 +540,12 @@ export function FloatingToolbar() {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex flex-col items-center gap-2 px-3">
       {/* ── Command dock ─────────────────────────────────────────────────── */}
-      <div className="pointer-events-auto flex max-w-full items-center gap-1 rounded-2xl border border-zinc-800 bg-zinc-950 p-1.5 shadow-2xl">
+      <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl border border-zinc-800 bg-zinc-950 p-1 shadow-2xl sm:gap-1.5 sm:p-1.5">
         {/* Build */}
         <select
           value={resourceId}
           onChange={(e) => setResourceId(e.target.value)}
-          className="h-9 max-w-36 rounded-lg border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-200 outline-none transition-colors focus:border-zinc-600"
+          className="h-9 w-[104px] min-w-0 shrink rounded-lg border border-zinc-800 bg-zinc-900 px-1.5 text-xs text-zinc-200 outline-none transition-colors focus:border-zinc-600 sm:w-auto sm:max-w-36 sm:px-2"
           title="Pick a primitive, then Add (or Ctrl-K → Add resource)"
           aria-label="Resource palette"
         >
@@ -579,6 +590,14 @@ export function FloatingToolbar() {
         <DockIcon onClick={redoCanvas} title="Redo [y]">
           <Redo2 size={15} />
         </DockIcon>
+        <DockIcon
+          onClick={() => setSketchy("sketchy", !sketchy)}
+          title={sketchy ? "Sketchy blocks on — click for crisp blocks" : "Sketchy blocks off — click for hand-drawn Rough.js frames"}
+          ariaLabel="Toggle sketchy hand-drawn blocks"
+          active={sketchy}
+        >
+          <PenTool size={15} />
+        </DockIcon>
         {/* Pre-run check: a broken topology deserves the warning whether the
             clock is ticking or not (the refresh-restore boots the sim live). */}
         {preflight.length > 0 && (
@@ -592,7 +611,8 @@ export function FloatingToolbar() {
             className="flex h-9 items-center gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 text-[11px] font-semibold text-amber-300 transition-colors hover:bg-amber-500/20"
           >
             <AlertTriangle size={13} weight="fill" className="shrink-0" />
-            Run check: {preflight.length} problem{preflight.length > 1 ? "s" : ""}
+            <span className="hidden 2xl:inline">Run check:&nbsp;</span>
+            {preflight.length} problem{preflight.length > 1 ? "s" : ""}
           </motion.button>
         )}
         <DockDivider />
@@ -612,7 +632,7 @@ export function FloatingToolbar() {
           className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors ${clearToneDanger(clearArmed)}`}
         >
           {clearArmed ? <Check size={15} /> : <Eraser size={15} />}
-          <span className="hidden md:inline">{clearArmed ? "Sure?" : "Clear"}</span>
+          <span className="hidden lg:inline">{clearArmed ? "Sure?" : "Clear"}</span>
         </motion.button>
 
         {/* Tools flyout */}
@@ -634,7 +654,7 @@ export function FloatingToolbar() {
             }`}
           >
             <Wrench size={15} />
-            <span className="hidden md:inline">Tools</span>
+            <span className="hidden lg:inline">Tools</span>
           </motion.button>
           <AnimatePresence initial={false}>
             {toolsOpen && (
@@ -696,7 +716,7 @@ export function FloatingToolbar() {
             <motion.span animate={chaosActive ? { scale: [1, 1.25, 1] } : { scale: 1 }} transition={chaosActive ? { repeat: Infinity, duration: 1.1 } : { duration: 0.2 }}>
               <Flame size={15} />
             </motion.span>
-            <span className="hidden md:inline">{chaosActive ? "Incident" : "Chaos"}</span>
+            <span className="hidden lg:inline">{chaosActive ? "Incident" : "Chaos"}</span>
             {chaosActive && <span className="h-1.5 w-1.5 rounded-full bg-red-400" />}
           </motion.button>
           <AnimatePresence initial={false}>

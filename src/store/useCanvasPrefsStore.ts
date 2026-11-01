@@ -56,6 +56,8 @@ export interface CanvasPrefs {
   edgeStyle: EdgeRouting;
   /** When off, CSS animations (dash flow, node enter, pulses) are disabled. */
   animations: boolean;
+  /** Render every block with a Rough.js hand-drawn frame instead of a crisp border. */
+  sketchy: boolean;
   /** Accent theme applied to the whole app. */
   theme: AccentThemeId;
 }
@@ -70,6 +72,7 @@ export const DEFAULT_CANVAS_PREFS: CanvasPrefs = {
   snapGridSize: 16,
   edgeStyle: "smoothstep",
   animations: true,
+  sketchy: false,
   theme: "brass",
 };
 
@@ -90,6 +93,7 @@ export function sanitizePrefs(raw: unknown): CanvasPrefs {
   if (typeof input.showGrid === "boolean") prefs.showGrid = input.showGrid;
   if (typeof input.snapToGrid === "boolean") prefs.snapToGrid = input.snapToGrid;
   if (typeof input.animations === "boolean") prefs.animations = input.animations;
+  if (typeof input.sketchy === "boolean") prefs.sketchy = input.sketchy;
   if (typeof input.particleDensity === "number" && Number.isFinite(input.particleDensity)) {
     prefs.particleDensity = Math.min(2, Math.max(0.25, input.particleDensity));
   }
@@ -147,6 +151,7 @@ function snapshotPrefs(state: CanvasPrefsState): CanvasPrefs {
     snapGridSize: state.snapGridSize,
     edgeStyle: state.edgeStyle,
     animations: state.animations,
+    sketchy: state.sketchy,
     theme: state.theme,
   };
 }

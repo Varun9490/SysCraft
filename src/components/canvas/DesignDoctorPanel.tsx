@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, ChevronDown, CheckCircle2, HelpCircle, X } from "@/components/ui/icons";
 import { runDesignDoctor, type DoctorFinding, type DoctorSeverity } from "@/engine/designDoctor";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { usePluginStore } from "@/store/usePluginStore";
 
 /**
  * Design Doctor — a floating card docked top-right so it NEVER squeezes the
@@ -30,18 +31,31 @@ export function DesignDoctorPanel({ open, onClose }: DesignDoctorPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [filter, setFilter] = useState<DoctorSeverity | "all">("all");
 
-  const report = useMemo(
+  useEffect(() => {
+    usePluginStore.getState().hydratePlugins();
+  }, []);
+
+  const doctorNodes = useMemo(
     () =>
-      runDesignDoctor(
-        nodes.map((node) => ({
-          id: node.id,
-          resourceId: String(node.data.resourceId ?? "rest_service"),
-          label: String(node.data.label ?? node.id),
-          overrides: node.data.overrides ?? {},
-        })),
-        edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target })),
-      ),
-    [nodes, edges],
+      nodes.map((node) => ({
+        id: node.id,
+        resourceId: String(node.data.resourceId ?? "rest_service"),
+        label: String(node.data.label ?? node.id),
+        overrides: node.data.overrides ?? {},
+      })),
+    [nodes],
+  );
+  const doctorEdges = useMemo(
+    () => edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target })),
+    [edges],
+  );
+
+  const report = useMemo(() => runDesignDoctor(doctorNodes, doctorEdges), [doctorNodes, doctorEdges]);
+
+  const evaluateActivePlugins = usePluginStore((s) => s.evaluateActivePlugins);
+  const pluginFindings = useMemo(
+    () => evaluateActivePlugins(doctorNodes, doctorEdges),
+    [doctorNodes, doctorEdges, evaluateActivePlugins],
   );
 
   const scoreTone =
@@ -195,6 +209,42 @@ export function DesignDoctorPanel({ open, onClose }: DesignDoctorPanelProps) {
                       findings{filter === "all" ? " on this topology." : "."}
                     </p>
                   )}
+                </div>
+
+                <div className="mt-3 rounded-lg border border-violet-500/30 bg-violet-500/5 p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[12px] font-semibold text-violet-200">
+                      Active plugin findings{" "}
+                      <span className="rounded-full border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[10px] text-violet-300">
+                        {pluginFindings.length}
+                      </span>
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <Link
+                        href="/plugins"
+                        className="rounded border border-zinc-700 px-2 py-0.5 text-[10.5px] text-violet-300 hover:border-violet-500/60"
+                      >
+                        Manage plugins
+                      </Link>
+                      <Link
+                        href="/security"
+                        className="rounded border border-zinc-700 px-2 py-0.5 text-[10.5px] text-violet-300 hover:border-violet-500/60"
+                      >
+                        Live CVE & Zero-Trust Audit
+                      </Link>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-col gap-1.5">
+                    {pluginFindings.slice(0, 8).map((finding) => (
+                      <div key={`${finding.ruleId}-${finding.nodeIds.join(",")}`} className="rounded border border-zinc-800/80 bg-zinc-900/40 p-2">
+                        <p className="text-[11.5px] font-semibold text-zinc-100">{finding.title}</p>
+                        <p className="mt-0.5 text-[10.5px] leading-relaxed text-zinc-400">{finding.detail}</p>
+                      </div>
+                    ))}
+                    {pluginFindings.length === 0 && (
+                      <p className="text-[11px] text-zinc-500">No active plugin findings on this topology.</p>
+                    )}
+                  </div>
                 </div>
 
                 {nodes.length === 0 && (

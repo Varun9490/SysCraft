@@ -15,6 +15,10 @@ const NAV_LINKS = [
   { href: "/learn", label: "Learn" },
   { href: "/canvas", label: "Design" },
   { href: "/labs", label: "Labs" },
+  { href: "/cloud", label: "Cloud & K8s" },
+  { href: "/security", label: "Security & CVEs" },
+  { href: "/plugins", label: "Plugins" },
+  { href: "/enterprise", label: "Enterprise" },
   { href: "/wiki", label: "Wiki" },
 ];
 
@@ -74,14 +78,14 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-1 lg:flex overflow-x-auto max-w-full" aria-label="Primary">
           {NAV_LINKS.map((link) => {
             const active = isActive(pathname, link.href);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`relative rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                className={`relative rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-colors whitespace-nowrap ${
                   active ? "text-zinc-100" : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -98,7 +102,7 @@ export function SiteHeader() {
           })}
         </nav>
 
-        <div className="hidden items-center gap-2.5 md:flex">
+        <div className="hidden items-center gap-2.5 lg:flex">
           <Link
             href="/reference/numbers"
             className="hidden text-[13px] font-medium text-zinc-400 transition-colors hover:text-zinc-200 lg:inline-flex"
@@ -117,7 +121,7 @@ export function SiteHeader() {
         <button
           type="button"
           onClick={() => setMobileOpen((o) => !o)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 md:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 lg:hidden"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
         >
           {mobileOpen ? <X size={18} /> : <Menu size={18} />}

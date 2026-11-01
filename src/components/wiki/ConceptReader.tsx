@@ -7,6 +7,7 @@ import { FocusBlurResolve, MaskRevealUp, SoftBlurIn } from '@/components/ui/reac
 import { Markdown, extractHeadings } from '@/components/Markdown';
 import { ContextualQuizCard } from '@/components/encyclopedia/ContextualQuizCard';
 import { ConceptDiagram } from '@/components/wiki/ConceptDiagram';
+import { InternalSimModal } from '@/components/canvas/InternalSimModal';
 import { ENCYCLOPEDIA_MODULES, getEncyclopediaModule } from '@/data/encyclopediaData';
 import { CONCEPT_FLOW_MAP, type ConceptFlow } from '@/data/conceptFlows';
 import type { ConceptDefinition } from '@/data/conceptSources';
@@ -150,6 +151,204 @@ function FlashcardDeck({ cards, moduleId }: { cards: Flashcard[]; moduleId: stri
   );
 }
 
+const SIM_SUPPORTED = new Set([
+  'btree_vs_lsm',
+  'raft_election',
+  'consistent_hash_ring',
+  'token_bucket',
+  'k8s_control_loop',
+  'edge_isolate_sim',
+]);
+
+function productionReality(id: string, title: string): { aws: string; cf: string; k8s: string } {
+  const map: Record<string, { aws: string; cf: string; k8s: string }> = {
+    'consistent-hashing': { aws: 'DynamoDB partition keys + ElastiCache Redis Cluster hash slots', cf: 'Workers KV namespace sharding + Durable Object per shard', k8s: 'Consistent-hash Service via Envoy / Cilium L7 policy' },
+    'cap-theorem': { aws: 'Aurora multi-AZ quorum + DynamoDB strong/conditional writes', cf: 'Durable Objects (strong) vs Workers KV (eventual) choice', k8s: 'etcd Raft quorum + stateful vs stateless workload split' },
+    'raft-consensus': { aws: 'Aurora 6-copy storage quorum + RDS Multi-AZ failover', cf: 'Durable Objects single-threaded actor coordination', k8s: 'etcd Raft quorum backing the API server' },
+    'btree-vs-lsm': { aws: 'Aurora (B-Tree) vs DynamoDB/RocksDB-backed stores (LSM)', cf: 'D1 (SQLite B-Tree) vs Workers KV/R2 (LSM-ish)', k8s: 'Postgres StatefulSet (B-Tree) vs Cassandra/Scylla (LSM)' },
+    'caching-strategies': { aws: 'ElastiCache Redis/Memcached + CloudFront edge cache', cf: 'Tiered Cache + Workers KV + Cache API at the edge', k8s: 'Redis Deployment + nginx sidecar cache + HPA' },
+    'load-balancing': { aws: 'ALB/NLB + Target Groups + Auto Scaling Groups', cf: 'Anycast L4 + Workers load shedding + Argo', k8s: 'Ingress (ALB controller) + Service + HPA on queue age' },
+    'message-queues': { aws: 'SQS (standard/FIFO) + SNS fan-out + EventBridge', cf: 'Queues + Workflows + Durable Object serialisation', k8s: 'Kafka/Strimzi or RabbitMQ + KEDA autoscaling' },
+    'event-streaming': { aws: 'MSK (Kafka) + Kinesis + Flink on EMR', cf: 'Workers + Durable Object streams + R2 retention', k8s: 'Strimzi Kafka + Flink Operator + Schema Registry' },
+    'sharding-partitioning': { aws: 'DynamoDB partition keys + Aurora sharding via Vitess', cf: 'Durable Objects per tenant + Workers KV sharding', k8s: 'Vitess / Citus / custom shard router on K8s' },
+    'replication': { aws: 'Aurora read replicas + RDS Multi-AZ + DMS', cf: 'Durable Object replication + R2 cross-region', k8s: 'Postgres operator (Zalando/Crunchy) + repmgr' },
+    'acid-vs-base': { aws: 'Aurora (ACID) + DynamoDB (BASE) + Step Functions sagas', cf: 'D1 (ACID) + Durable Objects (strong) sagas', k8s: 'Postgres (ACID) + Kafka outbox + saga orchestrator' },
+    'bloom-filters': { aws: 'DynamoDB + DAX + ElastiCache Bloom modules', cf: 'Workers (in-memory Bloom) + KV negative caching', k8s: 'Redis Bloom module + app-level filters' },
+    'merkle-trees': { aws: 'S3 + DynamoDB + Certificate Transparency logs', cf: 'R2 + Merkle logs in Workers', k8s: 'etcd backed Merkle + anti-entropy CronJobs' },
+    'gossip-protocol': { aws: 'EKS node groups + ALB health + Route53', cf: 'Workers + Durable Object membership rings', k8s: 'Cilium + memberlist + cluster-autoscaler' },
+    'rate-limiting': { aws: 'API Gateway throttling + WAF rate rules + ElastiCache', cf: 'Workers rate limit + Durable Object counters + Turnstile', k8s: 'Envoy rate limit service + Istio + K8s HPA' },
+    'vector-search': { aws: 'OpenSearch k-NN + Aurora pgvector + SageMaker', cf: 'Vectorize + Workers AI embeddings', k8s: 'Milvus/Weaviate/Qdrant on K8s + GPU nodes' },
+    'llm-systems': { aws: 'Bedrock + SageMaker + EKS GPU + ElastiCache', cf: 'Workers AI + AI Gateway + R2 model cache', k8s: 'vLLM on K8s + GPU operator + KServe' },
+    'microservices-monolith': { aws: 'ECS/EKS + ALB + API Gateway + RDS', cf: 'Workers + Durable Objects + Service Bindings', k8s: 'Namespaces + Helm + Argo CD + service mesh' },
+    'observability-tracing': { aws: 'CloudWatch + X-Ray + OpenSearch + Managed Grafana', cf: 'Workers Analytics + Logpush + Tail Workers', k8s: 'Prometheus + Grafana + Tempo + OTel collector' },
+    'tokenization-basics': { aws: 'Bedrock tokenizers + SageMaker endpoints', cf: 'Workers AI tokenization + AI Gateway', k8s: 'Triton / vLLM tokenizer on K8s' },
+    'embeddings-vector-db': { aws: 'OpenSearch + Aurora pgvector + Bedrock embeddings', cf: 'Vectorize + Workers AI', k8s: 'Milvus/Weaviate on K8s' },
+    'rag-patterns': { aws: 'Bedrock Knowledge Bases + OpenSearch + Lambda', cf: 'Workers AI + Vectorize + AI Gateway', k8s: 'LangChain on K8s + vector DB' },
+    'kv-cache-design': { aws: 'ElastiCache Redis + DAX + CloudFront', cf: 'Workers KV + Cache API + Tiered Cache', k8s: 'Redis + nginx cache + HPA' },
+    'system-design-primer-curriculum': { aws: 'Reference AWS multi-AZ stack', cf: 'Reference Cloudflare edge stack', k8s: 'Reference K8s platform' },
+    'replication-consistency': { aws: 'Aurora + DMS + Global Tables', cf: 'Durable Objects + R2 replication', k8s: 'Postgres operator + replication slots' },
+    'aws-well-architected': { aws: 'Multi-AZ VPC + ALB + Aurora 6-copy + S3/DynamoDB', cf: 'Anycast + Tunnel + R2 + Workers', k8s: 'EKS + Cilium + etcd + persistent volumes' },
+    'cloudflare-edge-architecture': { aws: 'CloudFront + WAF + ALB origin', cf: 'Anycast + Workers + Durable Objects + R2', k8s: 'Ingress + edge cache + service mesh' },
+    'kubernetes-architecture-deep-dive': { aws: 'EKS control plane + node groups + IRSA', cf: 'Workers + Tunnel + Access', k8s: 'kube-apiserver + etcd + scheduler + kubelet' },
+    'security-zero-trust-architecture': { aws: 'IAM + KMS + VPC endpoints + GuardDuty', cf: 'Access + Gateway + WAF + Tunnel', k8s: 'Cilium + SPIFFE + OPA/Gatekeeper' },
+    'plugin-extensible-architecture': { aws: 'Lambda extensions + EventBridge + API GW', cf: 'Workers + WASM + Service Bindings', k8s: 'Admission webhooks + CRDs + operators' },
+    'enterprise-architecture-governance': { aws: 'Well-Architected + Cost Explorer + ADRs in Git', cf: 'FinOps + Workers analytics + ADRs', k8s: 'OPA + Kyverno + ADRs in Git' },
+  };
+  return map[id] ?? { aws: `${title} on AWS managed services`, cf: `${title} at the Cloudflare edge`, k8s: `${title} as a Kubernetes workload` };
+}
+
+function RookieGuideBanner({ module, flow }: { module: EncyclopediaModule; flow: { plainWords?: string } | undefined }) {
+  const [stage, setStage] = useState<1 | 2 | 3>(1);
+  const [rps, setRps] = useState(1200);
+  const [protection, setProtection] = useState(60);
+  const [simOpen, setSimOpen] = useState(false);
+
+  const originLoad = Math.round(rps * (1 - protection / 100));
+  const latency = Math.max(1, Math.round(8 + originLoad / 250 + (100 - protection) * 0.4));
+  const survival = Math.max(0, Math.min(100, Math.round(100 - originLoad / 60)));
+  const cost = Math.max(10, Math.round(40 + protection * 2.5 + originLoad * 0.004));
+
+  const reality = productionReality(module.id, module.title);
+
+  const simSupported = SIM_SUPPORTED.has(module.interactiveVisual);
+
+  return (
+    <section className="wiki-reveal mt-6 rounded-2xl border border-brass/40 bg-gradient-to-br from-brass/10 via-zinc-900/60 to-zinc-950 p-5" aria-label="Rookie guide">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-brass">Rookie guide</p>
+          <h2 className="mt-1 text-[18px] font-bold text-zinc-50">Rookie Guide: Scratch to Advanced</h2>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {([1, 2, 3] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStage(s)}
+              className={`rounded-full px-3 py-1 text-[11.5px] font-semibold transition-colors ${
+                stage === s ? 'bg-brass text-zinc-950' : 'border border-zinc-700 text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              {s === 1 ? '1 · From scratch' : s === 2 ? '2 · Try it out' : '3 · Production reality'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {stage === 1 && (
+        <div className="mt-4 space-y-3">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-brass">Stage 1 · The 30-second simple idea</p>
+            <p className="mt-2 text-[14.5px] leading-relaxed text-zinc-200">
+              {flow?.plainWords ?? module.summary}
+            </p>
+          </div>
+          <p className="text-[13px] leading-relaxed text-zinc-400">
+            <span className="font-semibold text-zinc-300">Why you need this: </span>
+            {module.summary} Most beginners hit this concept the first time a system stops fitting on one machine — this page is the map for that moment.
+          </p>
+        </div>
+      )}
+
+      {stage === 2 && (
+        <div className="mt-4 space-y-4">
+          <p className="text-[12.5px] text-zinc-400">
+            Drag the sliders and watch the system react. Higher protection (cache / replicas / guards) costs more money but keeps latency low and the origin alive.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+              <label className="mb-1 block text-[12px] font-medium text-zinc-300">Traffic load (RPS): {rps.toLocaleString()}</label>
+              <input
+                type="range"
+                min={100}
+                max={100000}
+                step={100}
+                value={rps}
+                onChange={(e) => setRps(Number(e.target.value))}
+                className="mb-3 w-full"
+                aria-label="Traffic load in requests per second"
+              />
+              <label className="mb-1 block text-[12px] font-medium text-zinc-300">Protection / cache / replica level: {protection}%</label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={protection}
+                onChange={(e) => setProtection(Number(e.target.value))}
+                className="w-full"
+                aria-label="Protection cache replica level percent"
+              />
+            </div>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-3">
+              {[
+                { label: 'Latency (p99)', value: `${latency} ms`, pct: Math.min(100, latency / 5), color: latency > 120 ? '#f87171' : '#fbbf24' },
+                { label: 'Origin / DB survival', value: `${survival}%`, pct: survival, color: survival < 40 ? '#f87171' : '#34d399' },
+                { label: 'Monthly cost', value: `$${cost.toLocaleString()}`, pct: Math.min(100, cost / 8), color: '#a78bfa' },
+              ].map((bar) => (
+                <div key={bar.label}>
+                  <div className="mb-1 flex justify-between text-[11.5px]">
+                    <span className="text-zinc-400">{bar.label}</span>
+                    <span className="tabular-nums font-semibold text-zinc-100">{bar.value}</span>
+                  </div>
+                  <div className="h-3 overflow-hidden rounded bg-zinc-800">
+                    <div
+                      className="h-full rounded transition-all duration-300"
+                      style={{ width: `${bar.pct}%`, backgroundColor: bar.color }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/canvas"
+              className="inline-flex items-center gap-1.5 rounded-md bg-brass px-3 py-1.5 text-[12px] font-semibold text-zinc-950 hover:bg-brass-bright"
+            >
+              Try this concept on the canvas <ArrowRight size={12} />
+            </Link>
+            {simSupported && (
+              <button
+                type="button"
+                onClick={() => setSimOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-sky-500/50 px-3 py-1.5 text-[12px] font-medium text-sky-300 hover:bg-sky-500/10"
+              >
+                Open interactive micro-simulator
+              </button>
+            )}
+            {flow && (
+              <a href="#the-flow" className="inline-flex items-center gap-1.5 text-[12px] text-sky-300 hover:text-sky-200">
+                Jump to the flow diagram <ArrowRight size={12} />
+              </a>
+            )}
+          </div>
+          {simOpen && (
+            <InternalSimModal open={simOpen} initialTab={module.interactiveVisual} onClose={() => setSimOpen(false)} />
+          )}
+        </div>
+      )}
+
+      {stage === 3 && (
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {[
+            { label: 'AWS', value: reality.aws, tone: 'border-amber-500/30 bg-amber-500/5 text-amber-200' },
+            { label: 'Cloudflare Edge', value: reality.cf, tone: 'border-orange-500/30 bg-orange-500/5 text-orange-200' },
+            { label: 'Kubernetes', value: reality.k8s, tone: 'border-sky-500/30 bg-sky-500/5 text-sky-200' },
+          ].map((card) => (
+            <div key={card.label} className={`rounded-xl border p-4 ${card.tone}`}>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em]">{card.label}</p>
+              <p className="mt-2 text-[12.5px] leading-relaxed text-zinc-200">{card.value}</p>
+            </div>
+          ))}
+          <p className="md:col-span-3 text-[11.5px] text-zinc-500">
+            These are the production shapes teams actually ship — the canvas lets you wire them together and stress them.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function ConceptReader({ module }: { module: EncyclopediaModule }) {
   const ensureCard = useLearningStore((s) => s.ensureCard);
 
@@ -264,6 +463,8 @@ export function ConceptReader({ module }: { module: EncyclopediaModule }) {
               </h1>
               <p className="mt-3 text-[15px] leading-relaxed text-zinc-300">{module.summary}</p>
             </header>
+
+            <RookieGuideBanner module={module} flow={flow} />
 
             <section
               className="wiki-reveal mt-8 rounded-xl border border-brass/30 bg-brass/5 p-4"

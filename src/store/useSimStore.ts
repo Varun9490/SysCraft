@@ -190,9 +190,17 @@ export const useSimStore = create<SimState>()((set, get) => {
 
     startSimulation: (getTopology) => {
       topologyProvider = getTopology;
-      engineState = createInitialEngineState();
       lastUiSyncMs = 0;
-      set({ running: true, workerError: null });
+
+      // Pause/Resume: a stopped worker keeps its engine state (queues, cache
+      // warm-up, circuit breakers), so resuming must NOT cold-start a new one.
+      if (worker && get().useWorker) {
+        set({ running: true, workerError: null });
+        postToWorker({ type: "start", topology: currentTopology(), chaos: { ...currentChaos } });
+        return;
+      }
+
+      set({ running: true, workerError: null, workerReady: false });
 
       const candidate = createWorker();
       if (candidate) {
@@ -205,6 +213,9 @@ export const useSimStore = create<SimState>()((set, get) => {
         }
         worker = candidate;
         stopFallbackLoop();
+        // Optimistic: the worker channel is live as soon as it is constructed;
+        // the "ready" handshake only upgrades the perceived capability.
+        set({ useWorker: true });
         worker.onmessage = (event: MessageEvent<SimulationWorkerResponse>) => {
           const message = event.data;
           if (message.type === "ready") {

@@ -209,6 +209,57 @@ interface CanvasState {
 const seedDefaultsById = new Map(SEED_RESOURCES.map((r) => [r.id, r.defaults]));
 const seedNameById = new Map(SEED_RESOURCES.map((r) => [r.id, r.name]));
 
+/**
+ * Undo/redo hygiene.
+ *
+ * zundo records a snapshot on every `set`, which meant React Flow's own
+ * selection + measurement passes ("select" / "dimensions" node changes) and
+ * each intermediate drag frame became undo steps — clicking Undo after adding
+ * a block just reverted a measurement. These helpers pause recording for
+ * cosmetic changes and coalesce a whole drag gesture into one history entry.
+ */
+let historyPauseDepth = 0;
+let dragPauseActive = false;
+
+type TemporalControl = { pause: () => void; resume: () => void };
+
+function temporalControl(): TemporalControl | null {
+  const store = useCanvasStore as unknown as { temporal?: { getState: () => TemporalControl } };
+  return store.temporal?.getState() ?? null;
+}
+
+function pauseHistory(): void {
+  historyPauseDepth += 1;
+  if (historyPauseDepth === 1) temporalControl()?.pause();
+}
+
+function resumeHistory(): void {
+  if (historyPauseDepth === 0) return;
+  historyPauseDepth -= 1;
+  if (historyPauseDepth === 0) temporalControl()?.resume();
+}
+
+function beginDragHistoryPause(): void {
+  if (dragPauseActive) return;
+  dragPauseActive = true;
+  pauseHistory();
+}
+
+function endDragHistoryPause(): void {
+  if (!dragPauseActive) return;
+  dragPauseActive = false;
+  resumeHistory();
+}
+
+function withHistoryPaused(mutate: () => void): void {
+  pauseHistory();
+  try {
+    mutate();
+  } finally {
+    resumeHistory();
+  }
+}
+
 function makeNodeId(): string {
   const rand = Math.floor(Math.random() * 0xffffffff)
     .toString(16)
@@ -329,6 +380,72 @@ function buildFlowNode(resourceId: string, position: { x: number; y: number }, l
   };
 }
 
+export const PLACEMENT_GAP_PX = 28;
+
+function rectsOverlap(
+  ax: number,
+  ay: number,
+  aw: number,
+  ah: number,
+  bx: number,
+  by: number,
+  bw: number,
+  bh: number,
+): boolean {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
+/**
+ * Nearest non-overlapping slot for a newly created block.
+ *
+ * Palette / toolbar / deep-link adds all request similar coordinates, so
+ * without this every new primitive landed on top of the previous one and
+ * swallowed its pointer events. We probe grid rings around the requested spot
+ * (deterministic order) and return the first slot that clears every existing
+ * block plus a small gap.
+ */
+export function resolveFreePosition(
+  nodes: ReadonlyArray<{ position: { x: number; y: number }; data?: { width?: number; height?: number } }>,
+  desired: { x: number; y: number },
+  size: { width?: number; height?: number } = {},
+): { x: number; y: number } {
+  if (nodes.length === 0) return desired;
+  const width = size.width ?? NODE_DEFAULT_WIDTH;
+  const height = size.height ?? NODE_TIER_HEIGHTS[2];
+  const cellW = width + PLACEMENT_GAP_PX;
+  const cellH = height + PLACEMENT_GAP_PX;
+
+  const offsets: Array<{ dx: number; dy: number }> = [{ dx: 0, dy: 0 }];
+  for (let ring = 1; ring <= 6; ring += 1) {
+    for (let dy = -ring; dy <= ring; dy += 1) {
+      for (let dx = -ring; dx <= ring; dx += 1) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+        offsets.push({ dx, dy });
+      }
+    }
+  }
+
+  const blocked = (x: number, y: number): boolean =>
+    nodes.some((node) =>
+      rectsOverlap(
+        x - PLACEMENT_GAP_PX / 2,
+        y - PLACEMENT_GAP_PX / 2,
+        width + PLACEMENT_GAP_PX,
+        height + PLACEMENT_GAP_PX,
+        node.position.x,
+        node.position.y,
+        node.data?.width ?? width,
+        node.data?.height ?? height,
+      ),
+    );
+
+  for (const offset of offsets) {
+    const candidate = { x: desired.x + offset.dx * cellW, y: desired.y + offset.dy * cellH };
+    if (!blocked(candidate.x, candidate.y)) return candidate;
+  }
+  return { x: desired.x + cellW, y: desired.y + cellH };
+}
+
 function payloadFromState(nodes: CanvasFlowNode[], edges: CanvasFlowEdge[]): ScenePayload {
   return {
     version: SCENE_VERSION,
@@ -429,15 +546,35 @@ export const useCanvasStore = create<CanvasState>()(
       setHydrated: (hydrated) => set({ hydrated }),
 
       onNodesChange: (changes) => {
-        set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) }));
+        const applies = () => set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) }));
+        // React Flow emits selection + measurement passes on its own; they are
+        // not user edits and must never consume an undo step.
+        if (changes.every((change) => change.type === "select" || change.type === "dimensions")) {
+          withHistoryPaused(applies);
+          return;
+        }
+        applies();
+        // One history entry per drag gesture: record the pre-drag state on the
+        // first frame, then stop recording until the pointer is released.
+        if (changes.some((change) => change.type === "position" && change.dragging === true)) {
+          beginDragHistoryPause();
+        }
+        if (changes.some((change) => change.type === "position" && change.dragging === false)) {
+          endDragHistoryPause();
+        }
       },
       onEdgesChange: (changes) => {
-        set((state) => ({ edges: applyEdgeChanges(changes, state.edges) }));
+        const applies = () => set((state) => ({ edges: applyEdgeChanges(changes, state.edges) }));
+        if (changes.every((change) => change.type === "select")) {
+          withHistoryPaused(applies);
+          return;
+        }
+        applies();
       },
 
       addNode: (resourceId, position, label) => {
         const fallbackLabel = seedNameById.get(resourceId) ?? resourceId;
-        const node = buildFlowNode(resourceId, position, label ?? fallbackLabel);
+        const node = buildFlowNode(resourceId, resolveFreePosition(get().nodes, position), label ?? fallbackLabel);
         set((state) => ({ nodes: [...state.nodes, node], selectedNodeId: node.id }));
         return node.id;
       },
@@ -530,7 +667,11 @@ export const useCanvasStore = create<CanvasState>()(
         const copy: CanvasFlowNode = {
           ...source,
           id: makeNodeId(),
-          position: { x: source.position.x + 48, y: source.position.y + 48 },
+          position: resolveFreePosition(
+            get().nodes,
+            { x: source.position.x + 48, y: source.position.y + 48 },
+            { width: source.data.width, height: source.data.height },
+          ),
           data: {
             ...source.data,
             overrides: { ...(source.data.overrides ?? {}) },
@@ -899,6 +1040,9 @@ export const useCanvasStore = create<CanvasState>()(
     }),
     {
       partialize: (state) => ({ nodes: state.nodes, edges: state.edges }),
+      // Selection/UI setters leave the topology arrays referentially intact;
+      // never burn an undo step on those.
+      equality: (past, current) => past.nodes === current.nodes && past.edges === current.edges,
       limit: 100,
     },
     ),

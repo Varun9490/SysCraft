@@ -23,6 +23,9 @@ const BUILD_LINKS = [
   { href: "/labs", label: "Guided labs" },
   { href: "/flowchart", label: "Design flowchart" },
   { href: "/room", label: "Live rooms" },
+  { href: "/cloud", label: "AWS, Cloudflare & K8s" },
+  { href: "/plugins", label: "Architecture Plugins" },
+  { href: "/enterprise", label: "Enterprise & Architect Hub" },
 ];
 
 const PRACTICE_LINKS = [
@@ -30,6 +33,7 @@ const PRACTICE_LINKS = [
   { href: "/play", label: "Game modes" },
   { href: "/topics", label: "Interactive topics" },
   { href: "/cloud", label: "Cloud & networking drills" },
+  { href: "/security", label: "Security & Live CVEs" },
 ];
 
 const REFERENCE_LINKS = [

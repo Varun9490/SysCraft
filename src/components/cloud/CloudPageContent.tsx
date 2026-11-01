@@ -6,6 +6,7 @@ import { ArrowRight } from '@/components/ui/icons';
 import { Reveal, StaggerChild, StaggerGroup } from '@/components/ui/motion';
 import { PROVIDERS, SERVICE_MATRIX } from '@/data/cloudPlatforms';
 import { NET_CONCEPTS } from '@/data/cloudNetworking';
+import { InteractiveArchVisualizer } from './InteractiveArchVisualizer';
 import { NetDiagram } from './NetDiagram';
 
 export function CloudPageContent() {
@@ -45,6 +46,9 @@ export function CloudPageContent() {
           </div>
         </Reveal>
       </div>
+
+      {/* Interactive architecture packet & control-loop visualizer */}
+      <InteractiveArchVisualizer />
 
       {/* Providers */}
       <section className="mt-16">

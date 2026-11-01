@@ -63,11 +63,12 @@ export function ConnectionInspector() {
   const data = useMemo<CanvasEdgeData>(() => (selectedEdge?.data ?? {}) as CanvasEdgeData, [selectedEdge]);
   void useCanvasStore((s) => s.nodes.length);
 
-  // Reset the dismissal whenever selection actually clears.
+  // Reset the dismissal whenever the inspected edge changes (a dismissed
+  // panel must come back for the NEXT edge, not stay dead for the session).
   useEffect(() => {
-    if (!selectedEdge) setDismissed(false);
-    if (!selectedEdge) setConfirmDelete(false);
-  }, [selectedEdge]);
+    setDismissed(false);
+    setConfirmDelete(false);
+  }, [selectedEdge?.id]);
 
   // Re-seed the hex draft whenever the inspected edge changes.
   useEffect(() => {
@@ -93,7 +94,7 @@ export function ConnectionInspector() {
       initial={{ opacity: 0, x: 16 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className="pointer-events-auto absolute right-3 top-16 z-30 w-[300px] overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+      className="pointer-events-auto absolute inset-x-2 bottom-2 z-30 max-h-[62dvh] overflow-y-auto overscroll-contain rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl sm:inset-x-3 sm:bottom-3 lg:inset-x-auto lg:bottom-auto lg:right-3 lg:top-16 lg:max-h-none lg:w-[300px] lg:overflow-hidden"
       aria-label="Connection inspector"
     >
       <div className="flex items-center justify-between border-b border-zinc-800 px-3.5 py-2.5">
@@ -105,7 +106,13 @@ export function ConnectionInspector() {
         </div>
         <button
           type="button"
-          onClick={() => setDismissed(true)}
+          onClick={() => {
+            setDismissed(true);
+            // Drop the selection too, so tapping the same link re-opens the panel.
+            useCanvasStore.getState().onEdgesChange([
+              { id: selectedEdge.id, type: "select", selected: false },
+            ]);
+          }}
           title="Close"
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
         >

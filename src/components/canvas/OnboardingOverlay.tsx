@@ -40,7 +40,7 @@ export function OnboardingOverlay() {
         initial={{ opacity: 0, y: 18, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={containerSpring}
-        className="pointer-events-auto w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl"
+        className="pointer-events-auto max-h-[calc(100dvh-16rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl md:max-h-none md:overflow-visible md:p-6"
       >
         <motion.span
           initial={{ opacity: 0, y: -6 }}
@@ -121,8 +121,8 @@ export function OnboardingOverlay() {
         </div>
 
         <div className="mt-5 border-t border-zinc-800 pt-4">
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Pro tips</p>
-          <ul className="mt-2 space-y-1.5">
+          <p className="hidden text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500 md:block">Pro tips</p>
+          <ul className="mt-2 hidden space-y-1.5 md:block">
             {PRO_TIPS.map((tip, i) => (
               <motion.li
                 key={tip.keys}

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useViewport } from "@xyflow/react";
-import { simSnapshotRef } from "@/store/useSimStore";
+import { simSnapshotRef, useSimStore } from "@/store/useSimStore";
 import { useCanvasPrefsStore } from "@/store/useCanvasPrefsStore";
 import { useCanvasStore, type CanvasEdgeData, type EdgeCondition } from "@/store/useCanvasStore";
 
@@ -51,9 +51,11 @@ export function TrafficParticleLayer() {
   // Preferences change only on explicit user action — subscribing is cheap.
   const showParticles = useCanvasPrefsStore((s) => s.showParticles);
   const particleDensity = useCanvasPrefsStore((s) => s.particleDensity);
+  // Pausing the clock should visibly stop the packets too.
+  const running = useSimStore((s) => s.running);
 
   const viewportRef = useRef(viewport);
-  const prefsRef = useRef({ showParticles, particleDensity });
+  const prefsRef = useRef({ showParticles, particleDensity, running });
 
   // Structure changes rarely; mirror edge → condition into a ref for the rAF loop.
   const edges = useCanvasStore((s) => s.edges);
@@ -63,8 +65,8 @@ export function TrafficParticleLayer() {
     viewportRef.current = viewport;
   }, [viewport]);
   useEffect(() => {
-    prefsRef.current = { showParticles, particleDensity };
-  }, [showParticles, particleDensity]);
+    prefsRef.current = { showParticles, particleDensity, running };
+  }, [showParticles, particleDensity, running]);
   useEffect(() => {
     const next = new Map<string, { condition: EdgeCondition; source: string }>();
     for (const edge of edges) {
@@ -136,11 +138,11 @@ export function TrafficParticleLayer() {
       const rect = parent.getBoundingClientRect();
       ctx.clearRect(0, 0, rect.width, rect.height);
 
-      const { showParticles: show, particleDensity: density } = prefsRef.current;
+      const { showParticles: show, particleDensity: density, running: isRunning } = prefsRef.current;
       const snapshot = simSnapshotRef.current;
       const vp = viewportRef.current;
 
-      if (snapshot && show) {
+      if (snapshot && show && isRunning) {
         const edgeWrappers = parent.querySelectorAll<SVGGElement>(".react-flow__edge");
 
         for (const wrapper of edgeWrappers) {

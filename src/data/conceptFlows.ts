@@ -513,6 +513,141 @@ export const CONCEPT_FLOWS: ConceptFlow[] = [
       { title: "Load Balancing", href: "/wiki/load-balancing", why: "LB routing decisions should come from p95 and error rates, not averages." },
     ],
   },
+  {
+    moduleId: "aws-well-architected",
+    plainWords:
+      "Think of a VPC as a three-wing fortress across three separate power grids (AZs): only the lobby (public subnet ALB) touches the street, the offices (private ECS/EKS) sit behind one-way turnstiles, and the vault (Aurora 6-way storage) lives underground with private tunnels to S3.",
+    mermaid: `flowchart LR
+  U["Global Users"] --> R53["Route 53 + CloudFront + WAF"]
+  R53 --> ALB["Public Subnet: Multi-AZ ALB"]
+  ALB --> ECS["Private Subnet: ECS / EKS Tasks"]
+  ECS --> REDIS["Isolated Subnet: ElastiCache Redis"]
+  ECS --> AUR["Isolated Subnet: Aurora 6-Copy Storage (4/6 Write Quorum)"]
+  ECS --> VPCE["Gateway VPC Endpoint (Zero NAT Fee)"]
+  VPCE --> S3["S3 + DynamoDB"]
+  ECS -.->|"80 TB through NAT = $3,600/mo tax"| NAT["NAT Gateway Trap"]`,
+    breakPoints: [
+      "Routing S3 or DynamoDB traffic through a NAT Gateway instead of a free Gateway VPC Endpoint, adding $45 per TB in avoidable charges.",
+      "Single NAT Gateway in AZ-a shared by private subnets in AZ-b and AZ-c: when AZ-a hiccups, all three zones lose outbound internet.",
+      "Hot partition key in DynamoDB exceeding 1,000 WCU or 3,000 RCU on a single physical storage partition without write-sharding or DAX.",
+      "Long-lived static IAM access keys in environment variables instead of short-lived STS tokens via IRSA / ECS Task Roles.",
+    ],
+    readNext: [
+      { title: "Cloudflare Edge Architecture", href: "/wiki/cloudflare-edge-architecture", why: "How an Anycast edge and zero-egress R2 storage complement or offload regional AWS tiers." },
+      { title: "Security & Zero-Trust Architecture", href: "/wiki/security-zero-trust-architecture", why: "Locking down VPC workloads with SPIFFE mTLS, KMS envelope keys, and STRIDE threat models." },
+    ],
+  },
+  {
+    moduleId: "cloudflare-edge-architecture",
+    plainWords:
+      "Instead of making every user fly to Virginia to ask a question, station a lightweight clerk (V8 Isolate Worker) in 330 cities using the same phone number (Anycast IP), and give each shared room one globally designated referee (Durable Object).",
+    mermaid: `flowchart LR
+  CLIENT["User (~15ms RTT)"] --> ANY["Anycast BGP PoP (330+ Cities)"]
+  ANY --> WAF["Edge WAF + DDoS + Turnstile"]
+  WAF --> ISO["Worker V8 Isolate (<5ms cold start)"]
+  ISO -->|"Cache Hit"| KV["Tiered Cache / Workers KV / R2"]
+  ISO -->|"Strong Coordination"| DO["Durable Object (Single-Threaded Actor)"]
+  ISO -->|"Cache Miss via Outbound QUIC"| TUN["Cloudflare Tunnel (cloudflared)"]
+  TUN --> ORIG["Private VPC Origin (Zero Open Inbound Ports)"]`,
+    breakPoints: [
+      "330 edge PoPs missing on a cold asset simultaneously without Tiered Cache / Origin Shield enabled, causing a 330x origin stampede.",
+      "Storing strongly consistent financial counters in eventually consistent Workers KV instead of a single-threaded Durable Object.",
+      "Leaving port 443 open to 0.0.0.0/0 on the origin ALB so attackers bypass the Edge WAF by hitting the origin IP directly.",
+      "Running heavy multi-second CPU loops inside an edge Isolate instead of offloading batch compute to queues and regional workers.",
+    ],
+    readNext: [
+      { title: "Rate Limiting", href: "/wiki/rate-limiting", why: "How edge token buckets and Durable Object counters stop floods before origin." },
+      { title: "AWS Production Architecture", href: "/wiki/aws-well-architected", why: "Connecting Cloudflare edge tunnels into a private multi-AZ AWS origin." },
+    ],
+  },
+  {
+    moduleId: "kubernetes-architecture-deep-dive",
+    plainWords:
+      "Kubernetes is a thermostat, not a script: you post the temperature you want to the front desk (apiserver), the vault (etcd) records it via Raft, and a roomful of tirelessly watching loops (scheduler, controllers, kubelets) nudge reality until it matches.",
+    mermaid: `flowchart TD
+  CLI["kubectl / Argo CD"] -->|"HTTPS 6443"| API["kube-apiserver (Authn -> RBAC -> Admission)"]
+  API <-->|"Raft Quorum (3 or 5)"| ETCD["etcd (NVMe WAL <10ms fsync)"]
+  API -->|"Watch Cache Stream"| SCH["kube-scheduler (Filter + Score)"]
+  API -->|"Watch Cache Stream"| CM["kube-controller-manager (Reconcile Loop)"]
+  API -->|"Watch Pod Spec"| KUB["kubelet + CRI (Node Agent)"]
+  KUB --> EBPF["Cilium eBPF O(1) Socket Map + Envoy Mesh mTLS"]
+  EBPF -.->|"10k Services in iptables = O(N) latency"| IPT["Legacy iptables Trap"]`,
+    breakPoints: [
+      "Slow disk fsync (>25ms p99) on etcd nodes causing Raft leader elections, watch stream resets, and control-plane brownouts.",
+      "Operators issuing unpaginated LIST queries across thousands of large Secrets, exhausting kube-apiserver memory.",
+      "Running kube-proxy in legacy iptables mode above 5,000 Services, turning every packet lookup into an O(N) linear scan.",
+      "Admission webhook with failurePolicy: Fail intercepting its own namespace and deadlocking pod recovery during an outage.",
+    ],
+    readNext: [
+      { title: "Raft Consensus", href: "/wiki/raft-consensus", why: "The exact quorum and leader-election math powering etcd." },
+      { title: "Plugin & Operator Architectures", href: "/wiki/plugin-extensible-architecture", why: "How CRDs, Operators, Admission Webhooks, and Envoy WASM filters extend Kubernetes." },
+    ],
+  },
+  {
+    moduleId: "security-zero-trust-architecture",
+    plainWords:
+      "Zero-Trust treats your own internal network like a coffee shop Wi-Fi: every doorway checks a short-lived badge (OIDC/SPIFFE mTLS), every secret is leased for minutes from a vault, and walls between rooms (NetworkPolicies) stop a break-in from spreading.",
+    mermaid: `flowchart LR
+  REQ["Untrusted Request"] --> WAF["Edge WAF + DDoS Shield"]
+  WAF --> GW["API Gateway (OIDC Short-Lived JWT + Rate Limit)"]
+  GW --> MESH["Envoy Service Mesh (SPIFFE mTLS + L7 Authz)"]
+  MESH --> APP["Hardened Pod (Rootless + CNI NetworkPolicy)"]
+  APP --> KMS["Secrets Manager + KMS Envelope Encryption"]
+  APP --> DB["Isolated DB (Least-Privilege Dynamic Role)"]
+  APP -.->|"Unrestricted Egress = C2 Reverse Shell"| C2["CVE Exploit / Supply Chain Trap"]`,
+    breakPoints: [
+      "Flat VPC/Pod network where any compromised container can reach internal databases or Kubernetes admission webhooks on port 8443.",
+      "30-day non-revocable JWTs stored in localStorage instead of short-lived tokens with rotation and edge revocation lists.",
+      "EC2/Pod instances running with IMDSv1 enabled, allowing SSRF vulnerabilities to steal cloud IAM credentials in one HTTP GET.",
+      "Unrestricted outbound internet egress from compute and database subnets, letting RCE payloads download tooling or exfiltrate data.",
+    ],
+    readNext: [
+      { title: "Kubernetes Control & Data Plane", href: "/wiki/kubernetes-architecture-deep-dive", why: "Using Cilium eBPF NetworkPolicies and Envoy mTLS to enforce East-West Zero Trust." },
+      { title: "Principal Architect Governance", href: "/wiki/enterprise-architecture-governance", why: "Turning security invariants into enforceable ADRs and automated compliance gates." },
+    ],
+  },
+  {
+    moduleId: "plugin-extensible-architecture",
+    plainWords:
+      "A great plugin system is like a modern power strip with individual circuit breakers: anyone can plug in a new appliance (WASM filter, CRD Operator, or lint rule), and if a cheap toaster shorts out, its breaker trips without plunging the house into darkness.",
+    mermaid: `flowchart TD
+  CORE["Core Host Engine (Envoy / K8s / SysCraft)"] --> P1["In-Process Tap Hook (~0.01ms)"]
+  CORE --> P2["Sandboxed WASM / V8 Isolate (~0.1ms)"]
+  CORE --> P3["Out-of-Process RPC Webhook (2-30ms)"]
+  CORE --> P4["Declarative CRD + Async Operator"]
+  P2 --> FUEL["Memory Sandbox + CPU Instruction Fuel Cap"]
+  P3 --> CB["Strict Timeout + Circuit Breaker + Namespace Exemption"]`,
+    breakPoints: [
+      "Running untrusted third-party plugin code in-process without memory isolation or CPU fuel limits, letting one regex DoS freeze the host.",
+      "Synchronous admission or gateway webhooks with 30-second timeouts that exhaust upstream worker thread pools when the plugin slows down.",
+      "Giving plugins ambient access to all environment variables and network sockets instead of explicit capability grants.",
+    ],
+    readNext: [
+      { title: "Kubernetes Architecture Deep Dive", href: "/wiki/kubernetes-architecture-deep-dive", why: "See how Kubernetes Admission Webhooks and CRD Operators work in production." },
+      { title: "Cloudflare Edge Architecture", href: "/wiki/cloudflare-edge-architecture", why: "How V8 Isolates run multi-tenant code safely at the network edge." },
+    ],
+  },
+  {
+    moduleId: "enterprise-architecture-governance",
+    plainWords:
+      "Five 99.9% bridges in a single-lane highway don't give you a 99.9% commute — their failures add up to 99.5%. An architect's job is doing that math before pouring concrete, writing the decision down in a two-page ADR, and making sure the toll fits the budget.",
+    mermaid: `flowchart LR
+  REQ["Business Goal + Traffic Forecast"] --> BOE["BoE Capacity + Composite SLA Math"]
+  BOE --> ADR["Architecture Decision Record (MADR in Git)"]
+  ADR --> SIM["Canvas Topology + Queuing Simulation"]
+  SIM --> SEC["STRIDE + CVE + Plugin Policy Gate"]
+  SEC --> FIN["FinOps Unit Cost ($ / 1M Requests)"]
+  FIN -.->|"Serial 5x 99.9% hops = 99.5% SLA breach"| TRAP["Synchronous Chain Trap"]`,
+    breakPoints: [
+      "Chaining 6 synchronous microservices at 99.9% each and promising customers a 99.95% SLA without async queue decoupling.",
+      "Committing to 3-year cloud Reserved Instances before eliminating NAT Gateway hairpins, oversized replicas, and uncached egress.",
+      "Making high-stakes database or sharding choices in ephemeral chat threads instead of a versioned ADR with explicit trade-off matrices.",
+    ],
+    readNext: [
+      { title: "Observability & SLO Burn Rates", href: "/wiki/observability-tracing", why: "How multi-window error-budget burn alerts enforce the SLOs you design." },
+      { title: "AWS Production Architecture", href: "/wiki/aws-well-architected", why: "Applying multi-AZ quorum math and FinOps rules to concrete cloud services." },
+    ],
+  },
 ];
 
 export const CONCEPT_FLOW_IDS: string[] = CONCEPT_FLOWS.map((f) => f.moduleId);

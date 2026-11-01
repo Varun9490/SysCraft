@@ -12,7 +12,7 @@ const STATS = HERO_STATS;
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="dot-grid absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_78%_68%_at_64%_38%,black,transparent)]" />
         <div className="absolute -top-28 right-[4%] h-[440px] w-[440px] rounded-full bg-brass/[0.08] blur-[150px]" />
       </div>

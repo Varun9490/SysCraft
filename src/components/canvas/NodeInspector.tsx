@@ -99,16 +99,22 @@ function NumberInput({
   step?: number;
   onCommit: (value: number | undefined) => void;
 }) {
+  // Keep the raw text while the field is focused: a controlled number input
+  // would otherwise swallow "0." mid-typing and clamp "05" to 1.
+  const [draft, setDraft] = useState<string | null>(null);
   return (
     <input
       type="number"
-      value={value ?? ""}
+      value={draft ?? (value === undefined ? "" : String(value))}
       placeholder={placeholder}
       min={min}
       max={max}
       step={step}
+      onFocus={() => setDraft(value === undefined ? "" : String(value))}
+      onBlur={() => setDraft(null)}
       onChange={(event) => {
         const raw = event.target.value;
+        setDraft(raw);
         if (raw === "") {
           onCommit(undefined);
           return;

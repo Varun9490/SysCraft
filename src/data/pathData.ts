@@ -489,6 +489,128 @@ export const PATH_PARTS: PathPart[] = [
       },
     ],
   },
+  {
+    id: "cloud-k8s-edge",
+    title: "Cloud, Cloudflare & Kubernetes",
+    subtitle: "From scratch to production across AWS multi-AZ, Cloudflare edge isolates, and Kubernetes internals.",
+    accentClass: "text-sky-300",
+    accentHex: "#38BDF8",
+    modules: [
+      {
+        id: "aws-architecture-scratch-to-prod",
+        number: 24,
+        title: "AWS architecture: scratch to production",
+        description:
+          "VPC subnet design, ALB vs NLB, ECS vs EKS, Aurora 6-way storage quorums, DynamoDB single-table partitions, and KMS envelope security.",
+        lessonTitles: [
+          "VPC fundamentals: public, private, and isolated subnets across AZs",
+          "NAT Gateways vs Gateway VPC Endpoints (S3 & DynamoDB PrivateLink)",
+          "Ingress choices: Route 53, CloudFront OAC, ALB (L7) vs NLB (L4)",
+          "Compute trade-offs: EC2 vs ECS Fargate vs EKS vs Lambda",
+          "Amazon Aurora storage engine: 6-way replication and 4/6 write quorum",
+          "DynamoDB partition physics: 1k WCU, 3k RCU, GSI backpressure, and DAX",
+          "Async decoupling on AWS: SQS FIFO, SNS fan-out, and EventBridge",
+          "IAM STS short-lived roles (IRSA) and KMS envelope encryption",
+        ],
+        encyclopediaId: "aws-well-architected",
+        practiceLabIds: ["dynamodb-from-scratch", "bitly-url-shortener"],
+      },
+      {
+        id: "cloudflare-edge-and-workers",
+        number: 25,
+        title: "Cloudflare edge, Workers & Zero Trust",
+        description:
+          "How Anycast BGP, V8 Isolates, Tiered Cache, Durable Objects, R2, and Cloudflare Tunnels push compute and security to 330+ cities.",
+        lessonTitles: [
+          "Anycast BGP routing: how one IP terminates TLS within 15ms globally",
+          "Tiered Cache, Origin Shield, and single-flight request coalescing",
+          "Cloudflare Workers: V8 Isolates vs containers and microVM cold starts",
+          "Edge state spectrum: Workers KV (eventual) vs D1 vs R2 zero-egress storage",
+          "Durable Objects: single-threaded global actors for strong consistency",
+          "Edge WAF, L7 DDoS mitigation, Bot Management, and Turnstile",
+          "Zero Trust networking: outbound-only cloudflared Tunnels with zero open ports",
+        ],
+        encyclopediaId: "cloudflare-edge-architecture",
+        practiceLabIds: ["distributed-rate-limiter", "netflix-streaming"],
+      },
+      {
+        id: "kubernetes-control-and-data-plane",
+        number: 26,
+        title: "Kubernetes: control plane to service mesh",
+        description:
+          "Inside apiserver watch caches, etcd Raft quorums, scheduler predicates, Cilium eBPF vs iptables, Envoy mTLS meshes, and Argo CD GitOps.",
+        lessonTitles: [
+          "Control plane anatomy: kube-apiserver, admission webhooks, and watch cache",
+          "etcd under the hood: Raft quorum math, WAL fsync latency, and compaction",
+          "kube-scheduler pipeline: filtering predicates, scoring priorities, and preemption",
+          "Level-triggered reconciliation: controllers, Informers, and workqueues",
+          "Data plane networking: Pod-to-Pod CNI, iptables O(N) vs Cilium eBPF O(1)",
+          "North-South vs East-West: Gateway API, Ingress, and Envoy mTLS sidecar/ambient mesh",
+          "Elastic scaling & GitOps: HPA, KEDA event autoscaling, Karpenter, and Argo CD",
+        ],
+        encyclopediaId: "kubernetes-architecture-deep-dive",
+        practiceLabIds: ["uber-matching", "whatsapp-chat"],
+      },
+      {
+        id: "extensible-plugins-and-operators",
+        number: 27,
+        title: "Plugin architectures, WASM filters & K8s operators",
+        description:
+          "How extensible platforms let teams inject custom rules, Envoy Proxy-Wasm filters, admission webhooks, and CRD Operators safely.",
+        lessonTitles: [
+          "Four plugin patterns: in-process hooks, WASM sandboxes, RPC webhooks, and CRDs",
+          "Envoy Proxy-Wasm: running sub-millisecond Rust/Go L7 filters in worker threads",
+          "Kubernetes CustomResourceDefinitions (CRDs) and the Operator pattern",
+          "Admission webhooks: fail-open vs fail-closed and avoiding self-deadlock",
+          "Designing safe tenant plugin SDKs: CPU fuel limits, memory caps, and capabilities",
+        ],
+        encyclopediaId: "plugin-extensible-architecture",
+      },
+    ],
+  },
+  {
+    id: "security-enterprise-architecture",
+    title: "Security & Enterprise Architecture",
+    subtitle: "Zero-Trust threat modeling, live CVE blast-radius containment, ADR governance, and FinOps.",
+    accentClass: "text-emerald-300",
+    accentHex: "#34D399",
+    modules: [
+      {
+        id: "security-zero-trust-and-cve-defense",
+        number: 28,
+        title: "Security architecture, Zero Trust & CVE defense",
+        description:
+          "Align system design with STRIDE threat modeling, SPIFFE mTLS, OAuth2/OIDC, KMS secrets, and containing live CVE blast radius.",
+        lessonTitles: [
+          "Beyond castle-and-moat: Zero-Trust architecture from edge to database",
+          "STRIDE threat modeling mapped directly to system design components",
+          "Identity architecture: OIDC/OAuth2 PKCE, short-lived JWTs, and edge JWKS",
+          "East-West workload identity: SPIFFE/SPIRE X.509 mTLS and L7 authorization",
+          "Secrets management, dynamic DB leases, and KMS envelope encryption",
+          "Containing live CVEs: WAF virtual patching, CNI micro-segmentation, and egress blocks",
+        ],
+        encyclopediaId: "security-zero-trust-architecture",
+        practiceLabIds: ["razorpay-payments", "agentic-rag-support"],
+      },
+      {
+        id: "principal-architect-and-finops",
+        number: 29,
+        title: "Principal architect toolkit: ADRs, SLOs & FinOps",
+        description:
+          "Composite serial vs parallel SLA arithmetic, error-budget burn alerts, writing high-leverage ADRs/RFCs, and cloud FinOps unit economics.",
+        lessonTitles: [
+          "Composite SLA arithmetic: why serial chains multiply failure and parallel paths heal it",
+          "Error budgets, multi-window burn-rate alerts, and freeze policies",
+          "Writing high-leverage Architecture Decision Records (ADRs) and RFCs",
+          "Cloud FinOps hierarchy: architectural elimination, right-sizing, and Spot/Reserved mix",
+          "Multi-cloud & hybrid TCO: comparing AWS, Cloudflare Edge, and Kubernetes",
+          "Leading enterprise architecture reviews and L4–L7 competency rubrics",
+        ],
+        encyclopediaId: "enterprise-architecture-governance",
+        practiceLabIds: ["netflix-streaming", "bookmyshow-ticketing"],
+      },
+    ],
+  },
 ];
 
 export const TOTAL_MODULES = PATH_PARTS.reduce((sum, part) => sum + part.modules.length, 0);

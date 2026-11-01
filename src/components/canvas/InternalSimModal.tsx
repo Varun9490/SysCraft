@@ -12,7 +12,13 @@ import type { VisualKind } from "@/types/encyclopedia";
  * driven by the same clamped math as the 20Hz simulation worker.
  */
 
-export type SimTab = "btree_vs_lsm" | "raft_election" | "consistent_hash_ring" | "token_bucket";
+export type SimTab =
+  | "btree_vs_lsm"
+  | "raft_election"
+  | "consistent_hash_ring"
+  | "token_bucket"
+  | "k8s_control_loop"
+  | "edge_isolate_sim";
 
 interface InternalSimModalProps {
   open: boolean;
@@ -25,6 +31,8 @@ const TABS: Array<{ id: SimTab; label: string }> = [
   { id: "raft_election", label: "Raft Election" },
   { id: "consistent_hash_ring", label: "Hash Ring" },
   { id: "token_bucket", label: "Token Bucket" },
+  { id: "k8s_control_loop", label: "K8s Reconcile" },
+  { id: "edge_isolate_sim", label: "Edge vs Origin" },
 ];
 
 function resolveTab(initialTab?: VisualKind | SimTab): SimTab {
@@ -32,7 +40,9 @@ function resolveTab(initialTab?: VisualKind | SimTab): SimTab {
     initialTab === "btree_vs_lsm" ||
     initialTab === "raft_election" ||
     initialTab === "consistent_hash_ring" ||
-    initialTab === "token_bucket"
+    initialTab === "token_bucket" ||
+    initialTab === "k8s_control_loop" ||
+    initialTab === "edge_isolate_sim"
   ) {
     return initialTab;
   }
@@ -627,6 +637,309 @@ function TokenBucketSim() {
   );
 }
 
+/* ---------------- K8s control loop ---------------- */
+
+type CniMode = "cilium" | "iptables";
+
+function K8sControlLoopSim() {
+  const [desired, setDesired] = useState(4);
+  const [incomingRps, setIncomingRps] = useState(400);
+  const [cniMode, setCniMode] = useState<CniMode>("cilium");
+  const [running, setRunning] = useState(true);
+  const [observed, setObserved] = useState(4);
+  const [drainTick, setDrainTick] = useState(0);
+  const tickRef = useRef(0);
+
+  useEffect(() => {
+    if (!running) return;
+    const timer = setInterval(() => {
+      tickRef.current += 1;
+      setObserved((prev) => {
+        if (prev === desired) return prev;
+        const step = prev < desired ? 1 : -1;
+        // convergence slowed by drain events
+        return prev + step;
+      });
+    }, 350);
+    return () => clearInterval(timer);
+  }, [running, desired]);
+
+  const drainNode = () => {
+    setObserved((o) => Math.max(0, o - (1 + Math.floor(Math.random() * 2))));
+    setDrainTick((t) => t + 1);
+  };
+
+  const crashPod = () => {
+    setObserved((o) => Math.max(0, o - 1));
+  };
+
+  const reset = () => {
+    setObserved(desired);
+    setDrainTick(0);
+    tickRef.current = 0;
+  };
+
+  const latencyMs = cniMode === "cilium" ? 0.4 + observed * 0.05 : 2.5 + observed * 1.4;
+  const quorum = Math.floor(3 / 2) + 1;
+  const converged = observed === desired;
+  const loadPerPod = observed > 0 ? incomingRps / observed : 0;
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-zinc-100">
+            Desired {desired} · Observed {observed} · {converged ? "converged" : "reconciling…"}
+          </h4>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setRunning((r) => !r)}
+              className="flex items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+            >
+              {running ? <Pause size={12} /> : <Play size={12} />} {running ? "Pause" : "Run"}
+            </button>
+            <button
+              onClick={reset}
+              className="flex items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+            >
+              <RotateCcw size={12} /> Reset
+            </button>
+          </div>
+        </div>
+        <label className="mb-1 block text-xs text-zinc-400">Desired replicas: {desired}</label>
+        <input
+          type="range"
+          min={1}
+          max={12}
+          value={desired}
+          onChange={(e) => setDesired(Number(e.target.value))}
+          className="mb-3 w-full"
+        />
+        <label className="mb-1 block text-xs text-zinc-400">Incoming pod RPS: {incomingRps}</label>
+        <input
+          type="range"
+          min={50}
+          max={4000}
+          step={50}
+          value={incomingRps}
+          onChange={(e) => setIncomingRps(Number(e.target.value))}
+          className="mb-3 w-full"
+        />
+        <label className="mb-1 block text-xs text-zinc-400">CNI mode</label>
+        <div className="mb-3 flex gap-2">
+          <button
+            onClick={() => setCniMode("cilium")}
+            className={`flex-1 rounded-md border py-1.5 text-xs font-semibold ${
+              cniMode === "cilium" ? "border-emerald-400/60 text-emerald-300" : "border-zinc-700 text-zinc-400"
+            }`}
+          >
+            Cilium eBPF O(1)
+          </button>
+          <button
+            onClick={() => setCniMode("iptables")}
+            className={`flex-1 rounded-md border py-1.5 text-xs font-semibold ${
+              cniMode === "iptables" ? "border-amber-400/60 text-amber-300" : "border-zinc-700 text-zinc-400"
+            }`}
+          >
+            iptables O(N)
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={drainNode}
+            className="flex-1 rounded-md bg-amber-500 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-amber-400"
+          >
+            Node drain
+          </button>
+          <button
+            onClick={crashPod}
+            className="flex-1 rounded-md bg-red-500 py-1.5 text-xs font-semibold text-white hover:bg-red-400"
+          >
+            Pod crash
+          </button>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+          apiserver → etcd (Raft quorum {quorum}) → controller-manager → scheduler → kubelet drives
+          observed pods toward desired. Drain events ({drainTick}) force re-reconciliation.
+        </p>
+      </div>
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+        <h4 className="mb-2 text-sm font-semibold text-zinc-100">Live readout</h4>
+        <div className="grid grid-cols-2 gap-2 text-center">
+          <div className="rounded bg-zinc-950 p-2">
+            <p className="text-[11px] text-zinc-500">CNI latency</p>
+            <p className="text-lg font-bold tabular-nums text-amber-300">{latencyMs.toFixed(2)} ms</p>
+          </div>
+          <div className="rounded bg-zinc-950 p-2">
+            <p className="text-[11px] text-zinc-500">Load / pod</p>
+            <p className="text-lg font-bold tabular-nums text-sky-300">{loadPerPod.toFixed(0)} rps</p>
+          </div>
+          <div className="rounded bg-zinc-950 p-2">
+            <p className="text-[11px] text-zinc-500">Observed</p>
+            <p className="text-lg font-bold tabular-nums text-emerald-300">{observed}</p>
+          </div>
+          <div className="rounded bg-zinc-950 p-2">
+            <p className="text-[11px] text-zinc-500">Desired</p>
+            <p className="text-lg font-bold tabular-nums text-zinc-100">{desired}</p>
+          </div>
+        </div>
+        <div className="mt-3">
+          <div className="mb-1 flex justify-between text-xs text-zinc-400">
+            <span>Convergence</span>
+            <span>{converged ? "100%" : `${Math.round((observed / Math.max(1, desired)) * 100)}%`}</span>
+          </div>
+          <div className="h-3 overflow-hidden rounded bg-zinc-800">
+            <div
+              className={`h-full rounded transition-all ${converged ? "bg-emerald-400" : "bg-amber-400"}`}
+              style={{ width: `${Math.min(100, (observed / Math.max(1, desired)) * 100)}%` }}
+            />
+          </div>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+          HPA scales on CPU/memory or custom metrics; Cilium eBPF keeps service routing O(1) regardless of
+          pod count, whereas iptables rules grow linearly with endpoints.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Edge vs origin ---------------- */
+
+type CoordMode = "kv" | "durable" | "regional";
+
+function EdgeIsolateSim() {
+  const [globalRps, setGlobalRps] = useState(5000);
+  const [hitRatio, setHitRatio] = useState(0.85);
+  const [coordMode, setCoordMode] = useState<CoordMode>("kv");
+  const [running, setRunning] = useState(true);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!running) return;
+    const timer = setInterval(() => setTick((t) => t + 1), 400);
+    return () => clearInterval(timer);
+  }, [running]);
+
+  const originOffload = hitRatio * 100;
+  const originRps = globalRps * (1 - hitRatio);
+  const coldStartMs = 2; // V8 isolate
+  const containerColdStartMs = 450;
+
+  const coordLatency =
+    coordMode === "kv" ? 15 : coordMode === "durable" ? 35 : 120;
+  const edgeRtt = 8 + coordLatency * (1 - hitRatio * 0.6);
+  const p95Rtt = edgeRtt + (coordMode === "regional" ? 40 : 6);
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-zinc-100">
+            Global {globalRps.toLocaleString()} rps · hit {(hitRatio * 100).toFixed(0)}%
+          </h4>
+          <button
+            onClick={() => setRunning((r) => !r)}
+            className="flex items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+          >
+            {running ? <Pause size={12} /> : <Play size={12} />} {running ? "Pause" : "Run"}
+          </button>
+        </div>
+        <label className="mb-1 block text-xs text-zinc-400">Global traffic RPS: {globalRps.toLocaleString()}</label>
+        <input
+          type="range"
+          min={500}
+          max={50000}
+          step={500}
+          value={globalRps}
+          onChange={(e) => setGlobalRps(Number(e.target.value))}
+          className="mb-3 w-full"
+        />
+        <label className="mb-1 block text-xs text-zinc-400">Edge cache hit ratio: {(hitRatio * 100).toFixed(0)}%</label>
+        <input
+          type="range"
+          min={0}
+          max={99}
+          value={Math.round(hitRatio * 100)}
+          onChange={(e) => setHitRatio(Number(e.target.value) / 100)}
+          className="mb-3 w-full"
+        />
+        <label className="mb-1 block text-xs text-zinc-400">State coordination mode</label>
+        <div className="mb-3 flex gap-2">
+          {(
+            [
+              { id: "kv" as CoordMode, label: "Workers KV" },
+              { id: "durable" as CoordMode, label: "Durable Object" },
+              { id: "regional" as CoordMode, label: "Regional DB" },
+            ]
+          ).map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setCoordMode(m.id)}
+              className={`flex-1 rounded-md border py-1.5 text-xs font-semibold ${
+                coordMode === m.id ? "border-sky-400/60 text-sky-300" : "border-zinc-700 text-zinc-400"
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-center">
+          <div className="rounded bg-zinc-950 p-2">
+            <p className="text-[11px] text-zinc-500">Cold start (V8 isolate)</p>
+            <p className="text-lg font-bold tabular-nums text-emerald-300">{coldStartMs} ms</p>
+          </div>
+          <div className="rounded bg-zinc-950 p-2">
+            <p className="text-[11px] text-zinc-500">Cold start (container)</p>
+            <p className="text-lg font-bold tabular-nums text-red-300">{containerColdStartMs} ms</p>
+          </div>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+          Tick {tick}: edge serves from anycast PoPs; V8 isolates cold-start in milliseconds vs hundreds of
+          milliseconds for containers.
+        </p>
+      </div>
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+        <h4 className="mb-2 text-sm font-semibold text-zinc-100">Global readout</h4>
+        <div className="grid grid-cols-2 gap-2 text-center">
+          <div className="rounded bg-zinc-950 p-2">
+            <p className="text-[11px] text-zinc-500">Origin offload</p>
+            <p className="text-lg font-bold tabular-nums text-emerald-300">{originOffload.toFixed(0)}%</p>
+          </div>
+          <div className="rounded bg-zinc-950 p-2">
+            <p className="text-[11px] text-zinc-500">Origin RPS</p>
+            <p className="text-lg font-bold tabular-nums text-amber-300">{originRps.toFixed(0)}</p>
+          </div>
+          <div className="rounded bg-zinc-950 p-2">
+            <p className="text-[11px] text-zinc-500">Global P95 RTT</p>
+            <p className="text-lg font-bold tabular-nums text-sky-300">{p95Rtt.toFixed(1)} ms</p>
+          </div>
+          <div className="rounded bg-zinc-950 p-2">
+            <p className="text-[11px] text-zinc-500">Coord latency</p>
+            <p className="text-lg font-bold tabular-nums text-zinc-100">{coordLatency} ms</p>
+          </div>
+        </div>
+        <div className="mt-3">
+          <div className="mb-1 flex justify-between text-xs text-zinc-400">
+            <span>Cache hit</span>
+            <span>{(hitRatio * 100).toFixed(0)}%</span>
+          </div>
+          <div className="h-3 overflow-hidden rounded bg-zinc-800">
+            <div
+              className="h-full rounded bg-sky-400 transition-all"
+              style={{ width: `${hitRatio * 100}%` }}
+            />
+          </div>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+          Tiered cache + R2 storage absorb repeated reads; state coordination via KV (eventual), Durable
+          Object (strong, single-writer), or Regional DB (cross-region strong) trades latency for consistency.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Modal shell ---------------- */
 
 export function InternalSimModal({ open, initialTab, onClose }: InternalSimModalProps) {
@@ -683,6 +996,8 @@ export function InternalSimModal({ open, initialTab, onClose }: InternalSimModal
         {tab === "raft_election" && <RaftSim />}
         {tab === "consistent_hash_ring" && <HashRingSim />}
         {tab === "token_bucket" && <TokenBucketSim />}
+        {tab === "k8s_control_loop" && <K8sControlLoopSim />}
+        {tab === "edge_isolate_sim" && <EdgeIsolateSim />}
       </div>
     </div>
   );

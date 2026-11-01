@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -18,6 +18,8 @@ import { ENCYCLOPEDIA_MAP } from "@/data/encyclopediaData";
 import { GUIDED_LABS } from "@/data/guidedLabs";
 import { labCleanTitle } from "@/data/labMeta";
 import { PATH_PARTS, TOTAL_LESSONS, TOTAL_MODULES } from "@/data/pathData";
+import { getLessonBlog } from "@/data/lessonBlogs";
+import { LessonBlogViewer } from "@/components/path/LessonBlogViewer";
 import { useLearningStore } from "@/store/useLearningStore";
 
 function useLabIndex() {
@@ -27,8 +29,56 @@ function useLabIndex() {
 
 export function PathPageContent() {
   const [openModule, setOpenModule] = useState<string | null>("what-is-system-design");
+  const [selectedLessonByModule, setSelectedLessonByModule] = useState<Record<string, number>>({});
+  const [viewModeByModule, setViewModeByModule] = useState<Record<string, "blog" | "summary">>({});
+  const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const labProgress = useLearningStore((s) => s.labProgress);
   const labsById = useLabIndex();
+
+  // Hydrate completed lessons from localStorage on mount.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("syscraft.completedLessons.v1");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setCompletedLessons(new Set(parsed.filter((x): x is string => typeof x === "string")));
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const persistCompleted = (next: Set<string>) => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem("syscraft.completedLessons.v1", JSON.stringify([...next]));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const toggleComplete = (id: string) => {
+    setCompletedLessons((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      persistCompleted(next);
+      return next;
+    });
+  };
+
+  const markComplete = (id: string) => {
+    setCompletedLessons((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      persistCompleted(next);
+      return next;
+    });
+  };
 
   return (
     <div className="relative">
@@ -44,8 +94,8 @@ export function PathPageContent() {
               The learning path
             </h1>
             <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-content-secondary">
-              {TOTAL_MODULES} modules and {TOTAL_LESSONS} lessons, from a single server to distributed systems — in the
-              order a growing application actually needs them. Read an idea, then build it on the canvas.
+              A beginner-friendly curriculum: open any module below, click any lesson, and read its Scratch-to-Advanced
+              blog, watch the animated request flow, and try the live sandbox. Then build it on the canvas.
             </p>
           </AnimatedSection>
 
@@ -141,103 +191,155 @@ export function PathPageContent() {
                           className="overflow-hidden"
                         >
                           <div className="border-t border-zinc-800/70 px-5 py-5">
-                            <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                                    {article ? `Deep dive · ${article.estimatedMinutes} min read` : "Lessons"}
-                                  </p>
-                                  {article && (
-                                    <Link
-                                      href={`/wiki/${article.id}`}
-                                      className="inline-flex items-center gap-1.5 text-[12px] font-medium text-brass transition-colors hover:text-brass-bright"
+                            <div className="mb-4 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setViewModeByModule((prev) => ({ ...prev, [module.id]: "blog" }))}
+                                className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                                  (viewModeByModule[module.id] ?? "blog") === "blog"
+                                    ? "border-brass/50 bg-brass/15 text-brass"
+                                    : "border-line bg-app/60 text-content-secondary hover:border-line-strong hover:text-content"
+                                }`}
+                              >
+                                Read lesson blog
+                              </button>
+                              {article && (
+                                <button
+                                  type="button"
+                                  onClick={() => setViewModeByModule((prev) => ({ ...prev, [module.id]: "summary" }))}
+                                  className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                                    viewModeByModule[module.id] === "summary"
+                                      ? "border-brass/50 bg-brass/15 text-brass"
+                                      : "border-line bg-app/60 text-content-secondary hover:border-line-strong hover:text-content"
+                                  }`}
+                                >
+                                  Module summary wiki
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="mb-5 flex flex-col gap-2">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                                Lessons - click any to read its blog
+                              </p>
+                              <div className="grid gap-2 sm:grid-cols-2">
+                                {module.lessonTitles.map((lesson, lessonIndex) => {
+                                  const blog = getLessonBlog(module.id, lessonIndex);
+                                  const selected = (selectedLessonByModule[module.id] ?? 0) === lessonIndex;
+                                  const done = completedLessons.has(blog.id);
+                                  return (
+                                    <button
+                                      key={lesson}
+                                      type="button"
+                                      onClick={() => setSelectedLessonByModule((prev) => ({ ...prev, [module.id]: lessonIndex }))}
+                                      className={`flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left text-[12.5px] transition-colors ${
+                                        selected
+                                          ? "border-brass/50 bg-brass/10 text-content"
+                                          : "border-line bg-app/60 text-content-secondary hover:border-line-strong hover:text-content"
+                                      }`}
                                     >
-                                      <BookOpen size={13} />
-                                      Full module &amp; visualizer
-                                      <ArrowRight size={12} />
-                                    </Link>
-                                  )}
-                                </div>
-
-                                {article ? (
-                                  <div className="mt-3 rounded-xl border border-zinc-800/70 bg-zinc-950/60 px-4 py-3">
-                                    <Markdown source={article.bodyMarkdown} />
-                                  </div>
-                                ) : (
-                                  <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-                                    {module.lessonTitles.map((lesson, lessonIndex) => (
-                                      <li key={lesson} className="flex items-start gap-2.5 text-[13px] text-zinc-300">
-                                        <span
-                                          className="mt-[3px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] tabular-nums"
-                                          style={{ borderColor: `${part.accentHex}55`, color: part.accentHex }}
-                                        >
-                                          {lessonIndex + 1}
+                                      <span
+                                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[9px] tabular-nums ${
+                                          done ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300" : ""
+                                        }`}
+                                        style={done ? undefined : { borderColor: `${part.accentHex}55`, color: part.accentHex }}
+                                      >
+                                        {done ? "\u2713" : lessonIndex + 1}
+                                      </span>
+                                      <span className="min-w-0 flex-1">
+                                        <span className="block leading-snug">{lesson}</span>
+                                        <span className="mt-0.5 block text-[10.5px] text-content-tertiary">
+                                          {blog.readMinutes} min read - read blog and try sandbox
                                         </span>
-                                        {lesson}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-
-                              <div className="flex flex-col gap-4">
-                                <div>
-                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                                    Lesson plan
-                                  </p>
-                                  <ul className="mt-3 flex flex-col gap-1.5">
-                                    {module.lessonTitles.map((lesson, lessonIndex) => (
-                                      <li key={lesson} className="flex items-start gap-2.5 text-[12.5px] text-zinc-400">
-                                        <span
-                                          className="mt-[3px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] tabular-nums"
-                                          style={{ borderColor: `${part.accentHex}55`, color: part.accentHex }}
-                                        >
-                                          {lessonIndex + 1}
-                                        </span>
-                                        {lesson}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-
-                                {practiceLabs.length > 0 && (
-                                  <div>
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                                      Practice on canvas
-                                    </p>
-                                    <div className="mt-3 flex flex-col gap-2">
-                                      {practiceLabs.map((lab) => {
-                                        const progress = labProgress[lab.id];
-                                        const completed = Boolean(progress && progress.bestScore > 0);
-                                        return (
-                                          <Link
-                                            key={lab.id}
-                                            href={`/labs/${lab.id}`}
-                                            className="group inline-flex items-center gap-2.5 rounded-xl border border-zinc-700/80 bg-zinc-900/70 px-4 py-2.5 text-[13px] text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-800/70"
-                                          >
-                                            {completed ? (
-                                              <CheckCircle2 size={14} className="shrink-0 text-emerald-400" />
-                                            ) : (
-                                              <FlaskConical size={14} className="shrink-0 text-amber-300" />
-                                            )}
-                                            <span className="min-w-0 flex-1 truncate">{labCleanTitle(lab)}</span>
-                                            {completed && (
-                                              <span className="text-[11px] tabular-nums text-emerald-400">
-                                                {progress.bestScore}/100
-                                              </span>
-                                            )}
-                                            <ArrowRight
-                                              size={13}
-                                              className="shrink-0 text-zinc-500 transition-transform group-hover:translate-x-0.5"
-                                            />
-                                          </Link>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
                               </div>
                             </div>
+
+                            {(viewModeByModule[module.id] ?? "blog") === "blog" ? (
+                              <LessonBlogViewer
+                                blog={getLessonBlog(module.id, selectedLessonByModule[module.id] ?? 0)}
+                                onPrev={() =>
+                                  setSelectedLessonByModule((prev) => ({
+                                    ...prev,
+                                    [module.id]: Math.max(0, (prev[module.id] ?? 0) - 1),
+                                  }))
+                                }
+                                onNext={() =>
+                                  setSelectedLessonByModule((prev) => ({
+                                    ...prev,
+                                    [module.id]: Math.min(
+                                      module.lessonTitles.length - 1,
+                                      (prev[module.id] ?? 0) + 1,
+                                    ),
+                                  }))
+                                }
+                                hasPrev={(selectedLessonByModule[module.id] ?? 0) > 0}
+                                hasNext={(selectedLessonByModule[module.id] ?? 0) < module.lessonTitles.length - 1}
+                                completed={completedLessons.has(
+                                  getLessonBlog(module.id, selectedLessonByModule[module.id] ?? 0).id,
+                                )}
+                                onToggleComplete={() =>
+                                  toggleComplete(getLessonBlog(module.id, selectedLessonByModule[module.id] ?? 0).id)
+                                }
+                                onMarkComplete={() =>
+                                  markComplete(getLessonBlog(module.id, selectedLessonByModule[module.id] ?? 0).id)
+                                }
+                              />
+                            ) : (
+                              <div className="rounded-xl border border-zinc-800/70 bg-zinc-950/60 px-4 py-3">
+                                {article && <Markdown source={article.bodyMarkdown} />}
+                                <div className="mt-4">
+                                  <Link
+                                    href={`/wiki/${article?.id}`}
+                                    className="inline-flex items-center gap-1.5 text-[12px] font-medium text-brass transition-colors hover:text-brass-bright"
+                                  >
+                                    <BookOpen size={13} />
+                                    Full module and visualizer
+                                    <ArrowRight size={12} />
+                                  </Link>
+                                </div>
+                              </div>
+                            )}
+
+                            {practiceLabs.length > 0 && (
+                              <div className="mt-6">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                                  Practice on canvas
+                                </p>
+                                <div className="mt-3 flex flex-col gap-2">
+                                  {practiceLabs.map((lab) => {
+                                    const progress = labProgress[lab.id];
+                                    const done = Boolean(progress && progress.bestScore > 0);
+                                    return (
+                                      <Link
+                                        key={lab.id}
+                                        href={`/labs/${lab.id}`}
+                                        className="group inline-flex items-center gap-2.5 rounded-xl border border-zinc-700/80 bg-zinc-900/70 px-4 py-2.5 text-[13px] text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-800/70"
+                                      >
+                                        {done ? (
+                                          <CheckCircle2 size={14} className="shrink-0 text-emerald-400" />
+                                        ) : (
+                                          <FlaskConical size={14} className="shrink-0 text-amber-300" />
+                                        )}
+                                        <span className="min-w-0 flex-1 truncate">{labCleanTitle(lab)}</span>
+                                        {done && (
+                                          <span className="text-[11px] tabular-nums text-emerald-400">
+                                            {progress.bestScore}/100
+                                          </span>
+                                        )}
+                                        <ArrowRight
+                                          size={13}
+                                          className="shrink-0 text-zinc-500 transition-transform group-hover:translate-x-0.5"
+                                        />
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </motion.div>
                       )}

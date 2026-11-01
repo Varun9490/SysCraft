@@ -34,7 +34,7 @@ import { NODE_DEFAULT_WIDTH, NODE_TIER_HEIGHTS } from "@/types/resource";
 
 const nodeTypes = { resource: ResourceNode, region: RegionGroupNode };
 
-const SYNC_DEBOUNCE_MS = 250;
+const SYNC_DEBOUNCE_MS = 120;
 
 function CanvasInner({ className }: { className: string }) {
   const nodes = useCanvasStore((s) => s.nodes);
@@ -45,6 +45,7 @@ function CanvasInner({ className }: { className: string }) {
   const focusRequest = useCanvasStore((s) => s.focusRequest);
   const outlineMode = useCanvasStore((s) => s.outlineMode);
   const doctorOpen = useCanvasStore((s) => s.doctorOpen);
+  const hydrated = useCanvasStore((s) => s.hydrated);
   const running = useSimStore((s) => s.running);
   // Whole-store subscription is fine: prefs change on explicit user action only.
   const prefs = useCanvasPrefsStore();
@@ -65,10 +66,31 @@ function CanvasInner({ className }: { className: string }) {
   useEffect(() => {
     useCanvasPrefsStore.getState().hydratePrefs();
     void hydrateCustomResourcesFromDb();
-    useSimStore.getState().startSimulation(() => useCanvasStore.getState().toGraphTopology());
     return () => {
       useSimStore.getState().stopSimulation();
     };
+  }, []);
+
+  // A restored design boots the clock live; a first-run empty canvas must not
+  // show "Pause" for a simulation with nothing in it. Waiting for `hydrated`
+  // avoids racing the persisted-topology restore.
+  useEffect(() => {
+    if (!hydrated) return;
+    if (useCanvasStore.getState().nodes.length === 0) return;
+    if (useSimStore.getState().running) return;
+    useSimStore.getState().startSimulation(() => useCanvasStore.getState().toGraphTopology());
+  }, [hydrated]);
+
+  // Hosts that don't run the workspace rehydrate (e.g. LabWorkspace) never flip
+  // `hydrated`; still boot the clock when they mount with a populated canvas.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (useCanvasStore.getState().hydrated) return;
+      if (useCanvasStore.getState().nodes.length === 0) return;
+      if (useSimStore.getState().running) return;
+      useSimStore.getState().startSimulation(() => useCanvasStore.getState().toGraphTopology());
+    }, 600);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -99,7 +121,6 @@ function CanvasInner({ className }: { className: string }) {
   // Wiki → canvas handoff: /canvas?add=postgres_db,redis_cache drops the
   // requested primitives on arrival. The drop waits for the persisted
   // topology to be restored first, otherwise the restore would overwrite it.
-  const hydrated = useCanvasStore((s) => s.hydrated);
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;
     const requested = parseCanvasAddParam(window.location.search);
@@ -125,6 +146,12 @@ function CanvasInner({ className }: { className: string }) {
       });
     });
     useCanvasStore.setState((state) => ({ fitViewNonce: state.fitViewNonce + 1 }));
+    // A wiki handoff should land on a live canvas: start the clock so the
+    // dropped primitives immediately show telemetry (an untouched empty
+    // first-run canvas still stays paused).
+    if (!useSimStore.getState().running) {
+      useSimStore.getState().startSimulation(() => useCanvasStore.getState().toGraphTopology());
+    }
   }, [hydrated, screenToFlowPosition]);
 
   useEffect(() => {

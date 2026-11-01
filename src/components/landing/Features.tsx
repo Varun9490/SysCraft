@@ -5,10 +5,15 @@ import {
   BrainCircuit,
   FileCode2,
   FlaskConical,
+  Globe,
+  Layers,
   LayoutGrid,
+  Shield,
+  SlidersHorizontal,
   Zap,
 } from "@/components/ui/icons";
 import { StaggerChild, StaggerGroup, TiltCard } from "@/components/ui/motion";
+import Link from "next/link";
 
 interface Feature {
   Icon: typeof Zap;
@@ -122,6 +127,33 @@ function SignalVisual() {
   );
 }
 
+const DEEP_DIVES = [
+  {
+    href: "/cloud",
+    title: "AWS, Cloudflare & Kubernetes Visualizers",
+    description: "Cloud primitives, anycast edge, and cluster control planes — interactive, not slides.",
+    Icon: Globe,
+  },
+  {
+    href: "/security",
+    title: "Live CVE Threat Feed & Zero-Trust Security",
+    description: "Threat intel, zero-trust posture, and live CVE triage baked into the workbench.",
+    Icon: Shield,
+  },
+  {
+    href: "/plugins",
+    title: "Architecture Plugin & Rule Studio",
+    description: "Extend the engine with custom primitives, rules, and graders.",
+    Icon: SlidersHorizontal,
+  },
+  {
+    href: "/enterprise",
+    title: "Enterprise L&D, ADR Studio & SLA Calculator",
+    description: "Team learning paths, architecture decision records, and SLO math.",
+    Icon: Layers,
+  },
+];
+
 export function Features() {
   return (
     <section className="section-container py-20 md:py-24">
@@ -153,6 +185,26 @@ export function Features() {
           );
         })}
       </StaggerGroup>
+
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {DEEP_DIVES.map((dive) => {
+          const { Icon } = dive;
+          return (
+            <Link
+              key={dive.href}
+              href={dive.href}
+              className="group flex h-full flex-col rounded-2xl border border-line bg-app/60 p-5 shadow-card transition hover:border-line-strong"
+            >
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-line-strong bg-app-raised text-brass">
+                <Icon size={16} weight="bold" />
+              </span>
+              <h3 className="mt-4 text-[14px] font-semibold text-content">{dive.title}</h3>
+              <p className="mt-1.5 text-[12px] leading-relaxed text-content-secondary">{dive.description}</p>
+              <span className="mt-3 text-[12px] font-semibold text-brass group-hover:underline">Open →</span>
+            </Link>
+          );
+        })}
+      </div>
     </section>
   );
 }

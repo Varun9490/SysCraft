@@ -106,9 +106,13 @@ export function ResourcesPanel() {
 
   const addNode = (resourceId: string, name: string) => {
     const count = useCanvasStore.getState().nodes.length;
-    useCanvasStore
+    const id = useCanvasStore
       .getState()
       .addNode(resourceId, { x: 120 + (count % 8) * 48, y: 120 + (count % 8) * 36 }, name);
+    // Centre the fresh block so it can't land off-screen, then let the shell
+    // close the compact palette drawer.
+    useCanvasStore.getState().focusNode(id);
+    window.dispatchEvent(new CustomEvent("syscraft:node-added", { detail: { nodeId: id } }));
   };
 
   const toggle = (category: string) => {

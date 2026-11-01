@@ -1,7 +1,9 @@
 'use client';
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
+import rough from "roughjs";
+import type { PathInfo } from "roughjs/bin/core";
 import {
   Activity,
   Bot,
@@ -49,6 +51,7 @@ import {
 import { resolveInstanceSizing } from "@/engine/instanceSizing";
 import { getCustomResource } from "@/store/customResourceRegistry";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useCanvasPrefsStore } from "@/store/useCanvasPrefsStore";
 import { useSimStore } from "@/store/useSimStore";
 
 /**
@@ -150,9 +153,29 @@ function cpuTone(cpuPct: number): string {
   return "text-sky-300";
 }
 
+/** Rounded-rect outline handed to Rough.js for the hand-drawn frame. */
+function roundedRectPath(width: number, height: number, radius = 12): string {
+  const w = Math.max(2, width - 2);
+  const h = Math.max(2, height - 2);
+  const r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
+  return [
+    `M ${1 + r} 1`,
+    `L ${w - r} 1`,
+    `Q ${w} 1 ${w} ${1 + r}`,
+    `L ${w} ${h - r}`,
+    `Q ${w} ${h} ${w - r} ${h}`,
+    `L ${1 + r} ${h}`,
+    `Q 1 ${h} 1 ${h - r}`,
+    `L 1 ${1 + r}`,
+    `Q 1 1 ${1 + r} 1`,
+    "Z",
+  ].join(" ");
+}
+
 function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeData>>) {
   const telemetry = useSimStore((s) => s.nodeTelemetry[id]);
   const updateNodeSize = useCanvasStore((s) => s.updateNodeSize);
+  const sketchy = useCanvasPrefsStore((s) => s.sketchy);
 
   const resourceId = String(data.resourceId);
   const seed = seedById.get(resourceId);
@@ -165,6 +188,28 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
 
   const width = data.width ?? NODE_DEFAULT_WIDTH;
   const height = data.height ?? NODE_TIER_HEIGHTS[zoom];
+
+  // Rough.js frame paths. Memoised ONLY on geometry + stroke/fill inputs so
+  // live telemetry (RPS/CPU/P99) never regenerates the sketch geometry.
+  const fillStyle = "hachure";
+  const sketchPaths = useMemo<PathInfo[]>(() => {
+    if (!sketchy) return [];
+    const generator = rough.generator();
+    const drawable = generator.path(roundedRectPath(width, height), {
+      stroke: accent,
+      strokeWidth: 1.6,
+      roughness: 1.05,
+      bowing: 1.2,
+      fill: `${accent}18`,
+      fillStyle,
+      fillWeight: 0.6,
+      hachureGap: 8,
+      hachureAngle: -41,
+      seed: 11,
+    });
+    return generator.toPaths(drawable);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on render inputs only
+  }, [width, height, accent, fillStyle, sketchy]);
 
   const arrivalRps = telemetry?.arrivalRps ?? 0;
   const cpuPct = telemetry?.cpuPct ?? 0;
@@ -221,7 +266,7 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
           className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl border bg-zinc-950 transition-[border-color,box-shadow,transform] duration-200 ${
             selected ? "shadow-[0_0_0_3px_rgba(125,211,252,0.18),0_16px_40px_-16px_rgba(0,0,0,0.9)]" : "group-hover:shadow-[0_14px_36px_-18px_rgba(0,0,0,0.85)]"
           }`}
-          style={{ borderColor: selected ? "#7dd3fc" : `${accent}55` }}
+          style={{ borderColor: sketchy ? "transparent" : selected ? "#7dd3fc" : `${accent}55` }}
         >
           <span aria-hidden="true" className="h-[3px] w-full shrink-0" style={{ backgroundColor: accent }} />
           <div
@@ -283,6 +328,28 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
             )}
           </div>
         </div>
+
+        {sketchy && sketchPaths.length > 0 && (
+          <svg
+            className="pointer-events-none absolute inset-0 z-10 h-full w-full"
+            viewBox={`0 0 ${width} ${height}`}
+            width={width}
+            height={height}
+            aria-hidden="true"
+            data-testid="sketch-frame"
+          >
+            {sketchPaths.map((path, index) => (
+              <path
+                key={index}
+                d={path.d}
+                fill={path.fill ?? "none"}
+                stroke={path.stroke}
+                strokeWidth={path.strokeWidth}
+                strokeLinecap="round"
+              />
+            ))}
+          </svg>
+        )}
 
         {/* Region / multi-AZ + creator comment chips sit OUTSIDE the overflow-hidden
             border box, so the top/bottom half of the pill is never clipped away. */}

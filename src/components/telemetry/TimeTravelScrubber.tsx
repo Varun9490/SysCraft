@@ -39,7 +39,7 @@ export function TimeTravelScrubber() {
   if (history.length < 2) return null;
 
   return (
-    <div className="pointer-events-auto absolute bottom-3 left-1/2 z-30 w-full max-w-xl -translate-x-1/2 rounded-xl border border-zinc-800 bg-zinc-950/90 px-3 py-2 shadow-2xl backdrop-blur">
+    <div className="pointer-events-auto absolute bottom-[178px] left-3 right-3 z-30 w-auto -translate-x-0 rounded-xl border border-zinc-800 bg-zinc-950/90 px-3 py-2 shadow-2xl backdrop-blur sm:bottom-[184px] lg:bottom-3 lg:left-1/2 lg:right-auto lg:w-full lg:max-w-xl lg:-translate-x-1/2">
       <div className="flex items-center gap-2">
         <History size={14} className="shrink-0 text-zinc-400" />
         <input

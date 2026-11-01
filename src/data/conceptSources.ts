@@ -393,6 +393,108 @@ export const CONCEPT_DEFINITIONS: ConceptDefinition[] = [
       },
     ],
   },
+  {
+    moduleId: "aws-well-architected",
+    definition:
+      "Production AWS architecture isolates failure domains across multi-AZ VPC subnets, pairs L4/L7 load balancers with private endpoints, and backs compute with 6-way quorum Aurora or Paxos-partitioned DynamoDB.",
+    sources: [
+      {
+        label: "AWS Well-Architected Framework — Reliability & Performance Pillars",
+        url: "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html",
+        note: "Canonical AWS architectural best practices across reliability, security, performance, and cost.",
+      },
+      {
+        label: "Amazon Aurora: Design Considerations for High Throughput Cloud-Native Relational Databases (SIGMOD 2017)",
+        url: "https://dl.acm.org/doi/10.1145/3035918.3056101",
+        note: "Verbitski et al. explaining Aurora's 6-way storage quorum and redo-log network offload.",
+      },
+    ],
+  },
+  {
+    moduleId: "cloudflare-edge-architecture",
+    definition:
+      "Edge-native architecture uses Anycast BGP to terminate TLS in 330+ cities, executes stateless logic in sub-5ms V8 Isolates, and coordinates strongly consistent global state through single-threaded Durable Objects.",
+    sources: [
+      {
+        label: "Cloudflare Reference Architecture — Edge, Workers & Zero Trust",
+        url: "https://developers.cloudflare.com/reference-architecture/",
+        note: "Official architecture diagrams and packet-flow documentation for Anycast, WAF, Tunnels, and Workers.",
+      },
+      {
+        label: "Cloudflare Durable Objects — Strongly Consistent Coordination at the Edge",
+        url: "https://developers.cloudflare.com/durable-objects/",
+        note: "How single-threaded global actors provide linearizable state and WebSocket hibernation.",
+      },
+    ],
+  },
+  {
+    moduleId: "kubernetes-architecture-deep-dive",
+    definition:
+      "Kubernetes reconciles desired cluster state stored in a Raft-backed etcd quorum through apiserver watch streams, filter/score scheduling, level-triggered controllers, and eBPF/Envoy data planes.",
+    sources: [
+      {
+        label: "Kubernetes Official Documentation — Cluster Architecture & Control Plane",
+        url: "https://kubernetes.io/docs/concepts/architecture/",
+        note: "Canonical specification of kube-apiserver, etcd, scheduler, controllers, and kubelet.",
+      },
+      {
+        label: "Cilium eBPF & XDP Cloud-Native Networking Guide",
+        url: "https://docs.cilium.io/en/stable/network/ebpf/",
+        note: "How eBPF hash maps and socket-layer bypass replace O(N) iptables chains in Kubernetes.",
+      },
+    ],
+  },
+  {
+    moduleId: "security-zero-trust-architecture",
+    definition:
+      "Zero-Trust security architecture assumes hostile networks, enforcing per-request cryptographic identity (OIDC + SPIFFE mTLS), least-privilege segmentation, KMS envelope encryption, and STRIDE blast-radius containment.",
+    sources: [
+      {
+        label: "NIST SP 800-207 — Zero Trust Architecture",
+        url: "https://csrc.nist.gov/pubs/sp/800/207/final",
+        note: "The foundational NIST specification for Zero-Trust policy engines, control planes, and micro-perimeters.",
+      },
+      {
+        label: "OWASP Threat Modeling & CISA Known Exploited Vulnerabilities (KEV)",
+        url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+        note: "Live catalog of actively exploited CVEs and architectural mitigation priorities.",
+      },
+    ],
+  },
+  {
+    moduleId: "plugin-extensible-architecture",
+    definition:
+      "Extensible system architectures allow third-party or team-authored logic to hook into core data and control planes via in-process taps, sandboxed WebAssembly/V8 isolates, RPC webhooks, or declarative CRD operators.",
+    sources: [
+      {
+        label: "Proxy-Wasm Specification (Envoy / Istio WebAssembly Filters)",
+        url: "https://github.com/proxy-wasm/spec",
+        note: "ABI specification for running sandboxed WebAssembly L4/L7 filters inside network proxies.",
+      },
+      {
+        label: "Kubernetes Operator Pattern & Custom Resources",
+        url: "https://kubernetes.io/docs/concepts/extend-kubernetes/operator/",
+        note: "Extending declarative control planes with CRDs and level-triggered reconciliation loops.",
+      },
+    ],
+  },
+  {
+    moduleId: "enterprise-architecture-governance",
+    definition:
+      "Enterprise architecture governance aligns technical topologies with business durability and margin through MADR decision records, composite serial/parallel SLA math, error budgets, and FinOps unit economics.",
+    sources: [
+      {
+        label: "Markdown Architectural Decision Records (MADR)",
+        url: "https://adr.github.io/madr/",
+        note: "Lightweight, Git-native specification for recording architectural decisions and trade-offs.",
+      },
+      {
+        label: "FinOps Foundation — Cloud Financial Management Framework",
+        url: "https://www.finops.org/framework/",
+        note: "Industry standard for cloud unit economics, right-sizing, and rate optimization.",
+      },
+    ],
+  },
 ];
 
 export const CONCEPT_DEFINITION_MAP: Record<string, ConceptDefinition> = Object.fromEntries(

@@ -46,6 +46,7 @@ export function BlueprintsPanel() {
 
   const handleLoadSaved = async (id: string, name: string) => {
     const ok = await useCanvasStore.getState().loadBlueprintById(id);
+    if (ok) window.dispatchEvent(new CustomEvent("syscraft:node-added"));
     flash(ok ? `Loaded “${name}”.` : "That blueprint could not be loaded.");
   };
 
@@ -132,7 +133,10 @@ export function BlueprintsPanel() {
               <p className="mt-2 text-[11.5px] leading-relaxed text-zinc-500">{blueprint.summary}</p>
               <button
                 type="button"
-                onClick={() => useCanvasStore.getState().loadBlueprintTemplate(blueprint)}
+                onClick={() => {
+                  useCanvasStore.getState().loadBlueprintTemplate(blueprint);
+                  window.dispatchEvent(new CustomEvent("syscraft:node-added"));
+                }}
                 className="mt-2.5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/60 px-3 py-1.5 text-[12px] font-medium text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-800"
               >
                 <Download size={12} />

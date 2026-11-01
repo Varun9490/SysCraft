@@ -83,8 +83,8 @@ export function LabsPreview() {
         </Link>
       </div>
 
-      <div className="relative mt-14 [mask-image:linear-gradient(to_right,transparent,black_7%,black_93%,transparent)]">
-        <div className="group flex overflow-hidden">
+      <div className="relative mt-14 w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_7%,black_93%,transparent)]">
+        <div className="group flex w-full overflow-hidden">
           <div className="flex shrink-0 animate-marquee items-stretch group-hover:[animation-play-state:paused]">
             {featured.map((id) => (
               <LabCard key={`a-${id}`} labId={id} />

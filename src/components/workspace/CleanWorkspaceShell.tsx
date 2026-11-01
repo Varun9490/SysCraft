@@ -23,6 +23,7 @@ import {
   PenSquare,
   Play,
   Search,
+  Shield,
   SlidersHorizontal,
   Sparkles,
   Swords,
@@ -290,6 +291,37 @@ function ToolsPanel({ onOpenPanel }: { onOpenPanel: (id: PanelId) => void }) {
           <span className="text-[12.5px] font-medium text-zinc-200">Play Modes</span>
         </Link>
       </div>
+      <p className="mt-4 px-1 text-[10.5px] uppercase tracking-[0.14em] text-zinc-600">Architect & Enterprise</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Link
+          href="/cloud"
+          className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60"
+        >
+          <Layers size={16} className="text-sky-300" />
+          <span className="text-[12.5px] font-medium text-zinc-200">AWS, Cloudflare & K8s Visualizers</span>
+        </Link>
+        <Link
+          href="/security"
+          className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60"
+        >
+          <Shield size={16} className="text-red-300" />
+          <span className="text-[12.5px] font-medium text-zinc-200">Security & Live CVE Scanner</span>
+        </Link>
+        <Link
+          href="/plugins"
+          className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60"
+        >
+          <Sparkles size={16} className="text-violet-300" />
+          <span className="text-[12.5px] font-medium text-zinc-200">Architecture Plugins & Rule Studio</span>
+        </Link>
+        <Link
+          href="/enterprise"
+          className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60"
+        >
+          <GraduationCap size={16} className="text-emerald-300" />
+          <span className="text-[12.5px] font-medium text-zinc-200">Enterprise L&D, ADRs & SLA Calculator</span>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -300,9 +332,38 @@ export default function CleanWorkspaceShell() {
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
-  const [railOpen, setRailOpen] = useState(true);
+  // Client-only component (dynamic ssr:false): reading matchMedia in the lazy
+  // initializer avoids a one-frame flash of the 300px rail on phones.
+  const [railOpen, setRailOpen] = useState(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return true;
+    return !window.matchMedia("(max-width: 1023px)").matches;
+  });
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [isCompact, setIsCompact] = useState(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+    return window.matchMedia("(max-width: 1023px)").matches;
+  });
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia("(max-width: 1023px)");
+    const apply = () => setIsCompact(query.matches);
+    apply();
+    if (query.matches) setRailOpen(false);
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, []);
+
+  // A compact palette is a temporary drawer: close it once the learner has
+  // actually put something on the canvas (or loaded a whole blueprint).
+  useEffect(() => {
+    const onAdded = () => {
+      if (window.matchMedia("(max-width: 1023px)").matches) setRailOpen(false);
+    };
+    window.addEventListener("syscraft:node-added", onAdded);
+    return () => window.removeEventListener("syscraft:node-added", onAdded);
+  }, []);
 
   useEffect(() => {
     setSoundOn(isSoundEnabled());
@@ -342,8 +403,10 @@ export default function CleanWorkspaceShell() {
   }, []);
 
   useEffect(() => {
-    if (selectedNodeId) setInspectorOpen(true);
-  }, [selectedNodeId]);
+    // On compact viewports the inspector is an on-demand drawer; auto-opening
+    // it over the canvas after every tap would hide the thing just edited.
+    if (selectedNodeId && !isCompact) setInspectorOpen(true);
+  }, [selectedNodeId, isCompact]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -439,7 +502,7 @@ export default function CleanWorkspaceShell() {
             <button
               type="button"
               onClick={() => setInspectorOpen((o) => !o)}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors ${
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[12px] transition-colors sm:px-2.5 ${
                 inspectorOpen
                   ? "border-brass/40 bg-brass/10 text-content"
                   : "border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-zinc-200"
@@ -447,7 +510,7 @@ export default function CleanWorkspaceShell() {
               title="Toggle node inspector"
             >
               <SlidersHorizontal size={13} />
-              Inspector
+              <span className="hidden sm:inline">Inspector</span>
             </button>
           )}
 
@@ -495,24 +558,35 @@ export default function CleanWorkspaceShell() {
           <button
             type="button"
             onClick={() => setPanel("iac")}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-1.5 text-[12.5px] font-medium text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-800"
+            title="Export Terraform / Docker / K8s"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900/70 px-2 py-1.5 text-[12.5px] font-medium text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-800 sm:px-3"
           >
             <FileCode2 size={13} />
-            Export
+            <span className="hidden sm:inline">Export</span>
           </button>
         </div>
       </header>
 
       <div className="relative flex min-h-0 flex-1">
+        {isCompact && railOpen && (
+          <button
+            type="button"
+            aria-label="Close workspace palette"
+            onClick={() => setRailOpen(false)}
+            className="absolute inset-0 z-[55] cursor-default bg-black/55 backdrop-blur-[1px] lg:hidden"
+          />
+        )}
         <motion.aside
           initial={false}
           animate={{ width: railOpen ? 300 : 0, opacity: railOpen ? 1 : 0 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="relative flex shrink-0 flex-col overflow-hidden border-r border-zinc-800/80 bg-zinc-950"
+          className={`${
+            isCompact ? "absolute inset-y-0 left-0 z-[60] shadow-2xl" : "relative"
+          } flex shrink-0 flex-col overflow-hidden border-r border-zinc-800/80 bg-zinc-950`}
           aria-hidden={!railOpen}
           aria-label="Workspace palette"
         >
-          <div className="flex h-full w-[300px] min-h-0 flex-col">
+          <div className="flex h-full w-[300px] min-h-0 flex-col" inert={!railOpen}>
             <div className="flex gap-1 overflow-x-auto border-b border-zinc-800/80 p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:h-0">
               {tabs.map(({ id, label, Icon }) => {
                 const active = tab === id;
@@ -571,7 +645,7 @@ export default function CleanWorkspaceShell() {
               onClick={() => setRailOpen(true)}
               title="Show palette [Ctrl+B]"
               aria-label="Show workspace palette"
-              className="absolute left-1.5 top-3 z-40 flex h-9 items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-950/90 px-2.5 text-[12px] font-medium text-zinc-300 shadow-xl backdrop-blur transition-colors hover:border-zinc-600 hover:text-zinc-100"
+              className="absolute left-1.5 top-3 z-40 hidden h-9 items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-950/90 px-2.5 text-[12px] font-medium text-zinc-300 shadow-xl backdrop-blur transition-colors hover:border-zinc-600 hover:text-zinc-100 lg:flex"
             >
               <Menu size={14} /> Palette
             </motion.button>
@@ -588,9 +662,24 @@ export default function CleanWorkspaceShell() {
         </div>
 
         {selectedNodeId && inspectorOpen && (
-          <aside className="hidden w-[300px] min-h-0 shrink-0 overflow-hidden border-l border-zinc-800/80 bg-zinc-950 lg:block">
-            <NodeInspector onClose={() => setInspectorOpen(false)} />
-          </aside>
+          <>
+            {isCompact && (
+              <button
+                type="button"
+                aria-label="Close node inspector"
+                onClick={() => setInspectorOpen(false)}
+                className="absolute inset-0 z-[55] cursor-default bg-black/55 backdrop-blur-[1px] lg:hidden"
+              />
+            )}
+            <aside
+              className={`${
+                isCompact ? "absolute inset-y-0 right-0 z-[60] w-[min(320px,92vw)] shadow-2xl" : "relative w-[300px]"
+              } min-h-0 shrink-0 overflow-hidden border-l border-zinc-800/80 bg-zinc-950`}
+              aria-label="Node inspector"
+            >
+              <NodeInspector onClose={() => setInspectorOpen(false)} />
+            </aside>
+          </>
         )}
       </div>
 
@@ -676,6 +765,10 @@ export default function CleanWorkspaceShell() {
               ["Live collaboration room", "/room"],
               ["Progress & mastery", "/progress"],
               ["Settings & data control", "/settings"],
+              ["AWS, Cloudflare & K8s Visualizers", "/cloud"],
+              ["Security & Live CVE Scanner", "/security"],
+              ["Architecture Plugins & Rule Studio", "/plugins"],
+              ["Enterprise L&D, ADRs & SLA Calculator", "/enterprise"],
             ].map(([label, href]) => (
               <PaletteItem
                 key={href}

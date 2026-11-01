@@ -232,6 +232,12 @@ export function CanvasPreferences() {
                 </Pill>
               </Row>
 
+              <Row label="Sketchy blocks" hint="Rough.js hand-drawn block frames (≡ toolbar pen)">
+                <Pill active={prefs.sketchy} onClick={() => toggle("sketchy")}>
+                  {prefs.sketchy ? "On" : "Off"}
+                </Pill>
+              </Row>
+
               <div>
                 <Row label="Accent theme" hint="recolours brass across the whole app">
                   <div className="flex items-center gap-1.5">
