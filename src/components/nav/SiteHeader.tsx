@@ -13,7 +13,6 @@ import { ArrowRight, Menu, X } from "@/components/ui/icons";
  */
 const NAV_LINKS = [
   { href: "/learn", label: "Learn" },
-  { href: "/canvas", label: "Design" },
   { href: "/labs", label: "Labs" },
   { href: "/cloud", label: "Cloud & K8s" },
   { href: "/security", label: "Security & CVEs" },
@@ -78,7 +77,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden min-w-0 items-center gap-0.5 lg:flex" aria-label="Primary">
+        <nav className="hidden min-w-0 items-center gap-0.5 lg:flex overflow-x-hidden" aria-label="Primary">
           {NAV_LINKS.map((link) => {
             const active = isActive(pathname, link.href);
             return (

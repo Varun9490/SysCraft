@@ -5,8 +5,9 @@ import { getTopic } from "@/data/topics";
 /** First body line of a lab brief, used in cards and previews. */
 export function labExcerpt(lab: GuidedLab): string {
   const lines = lab.briefMarkdown.split("\n").filter((line) => line.trim().length > 0);
-  const body = lines.find((line) => !line.startsWith("#"));
-  return body ?? lab.briefMarkdown.slice(0, 160);
+  const body = lines.find((line) => !line.trim().startsWith("#"));
+  const raw = body ?? lines[0] ?? lab.briefMarkdown;
+  return raw.replace(/^#+\s*/, "").slice(0, 160);
 }
 
 /** Lab title without the trailing "(Company)" suffix, e.g. "URL Shortener". */
