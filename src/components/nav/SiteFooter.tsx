@@ -33,7 +33,6 @@ const PRACTICE_LINKS = [
   { href: "/practice", label: "Spaced review" },
   { href: "/play", label: "Game modes" },
   { href: "/topics", label: "Interactive topics" },
-  { href: "/cloud", label: "Cloud & networking drills" },
   { href: "/security", label: "Security & Live CVEs" },
 ];
 
@@ -120,6 +119,14 @@ export function SiteFooter() {
           <p className="text-xs text-content-tertiary">© 2026 SysCraft. Built for engineers who learn by building.</p>
           <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-content-tertiary sm:justify-end">
             <span>Your design data stays in this browser</span>
+            <a
+              href="https://github.com/Varun9490/SysCraft"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-line-strong underline-offset-4 transition-colors hover:text-content"
+            >
+              Source on GitHub
+            </a>
             <Link href="/privacy" className="underline decoration-line-strong underline-offset-4 transition-colors hover:text-content">
               Privacy &amp; what leaves the browser
             </Link>

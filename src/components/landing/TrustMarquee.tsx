@@ -26,6 +26,9 @@ export function TrustMarquee() {
           ))}
         </div>
       </Marquee>
+      <p className="mt-4 text-center text-[11px] text-content-tertiary">
+        Not affiliated with these companies — these are the systems you will re-create and stress-test yourself.
+      </p>
     </section>
   );
 }

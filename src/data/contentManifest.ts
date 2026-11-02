@@ -41,7 +41,7 @@ export const HERO_STATS: Array<{ label: string; value: number }> = [
 ];
 
 export const SITE_NAME = "SysCraft";
-export const SITE_URL = "https://sys-craft-3vzz.vercel.app";
+export const SITE_URL = "https://sys-craft.vercel.app";
 export const SITE_TAGLINE = "Learn system design by running it";
 export const SITE_DESCRIPTION =
   "Design real architectures on an infinite canvas, run them under load, and watch what breaks — from a single server to globally distributed systems. Free, local-first, no account.";
