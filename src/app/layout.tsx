@@ -19,6 +19,7 @@ const outfit = Outfit({
  */
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  alternates: { canonical: SITE_URL },
   title: {
     default: `${SITE_NAME} — Learn system design by running it`,
     template: `%s — ${SITE_NAME}`,

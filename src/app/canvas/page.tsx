@@ -4,6 +4,15 @@ export const metadata = {
   title: "Architecture sandbox — infinite canvas",
   description:
     "An infinite architecture canvas with production-grade infrastructure primitives, a live load simulator, chaos injection, Design Doctor linting, and IaC export.",
+  openGraph: {
+    title: "Architecture sandbox — infinite canvas",
+    description:
+      "An infinite architecture canvas with production-grade infrastructure primitives, a live load simulator, chaos injection, Design Doctor linting, and IaC export.",
+    type: "website",
+    url: "/canvas",
+  },
+  twitter: { card: "summary_large_image" },
+  alternates: { canonical: "/canvas" },
 };
 
 export default function CanvasPage() {
