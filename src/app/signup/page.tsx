@@ -4,21 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { SiteChrome } from "@/components/nav/SiteChrome";
 import { SpotlightCard } from "@/components/ui/reactbits/SpotlightCard";
-
-const USERS_KEY = "syscraft.users";
-const SESSION_KEY = "syscraft.session";
-
-interface User { email: string; name: string; createdAt: string; plan: "free" | "pro" | "team"; }
-
-function loadUsers(): User[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); } catch { return []; }
-}
-
-function saveUsers(u: User[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(USERS_KEY, JSON.stringify(u));
-}
+import { supabase } from "@/lib/supabaseClient";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -26,17 +12,17 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!email || !password || !name) { setError("All fields are required."); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
-    const users = loadUsers();
-    if (users.some((u) => u.email === email)) { setError("An account with that email already exists."); return; }
-    const user: User = { email, name, createdAt: new Date().toISOString(), plan: "free" };
-    saveUsers([...users, user]);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+    setLoading(true);
+    const { error: err } = await supabase.auth.signUp({ email, password, options: { data: { display_name: name } } });
+    setLoading(false);
+    if (err) { setError(err.message); return; }
     setDone(true);
   };
 
@@ -48,7 +34,7 @@ export default function SignUpPage() {
           <p className="mt-2 text-sm text-zinc-400">Free forever for 3 canvases. Upgrade anytime.</p>
           {done ? (
             <div className="mt-6 rounded-lg border border-emerald-700/40 bg-emerald-950/30 p-4 text-sm text-emerald-200">
-              Account created. <Link href="/canvas" className="underline">Open the canvas →</Link>
+              Check your email to confirm your account. <Link href="/signin" className="underline">Sign in →</Link>
             </div>
           ) : (
             <form onSubmit={submit} className="mt-6 space-y-4">
@@ -65,7 +51,7 @@ export default function SignUpPage() {
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100" />
               </label>
               {error && <p className="text-sm text-red-400">{error}</p>}
-              <button type="submit" className="w-full rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500">Create account</button>
+              <button type="submit" disabled={loading} className="w-full rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500 disabled:opacity-50">{loading ? "Creating..." : "Create account"}</button>
               <p className="text-center text-xs text-zinc-500">
                 Already have an account? <Link href="/signin" className="text-sky-400 hover:underline">Sign in</Link>
               </p>
