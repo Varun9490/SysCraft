@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, PlayCircle } from "@/components/ui/icons";
 import { Counter, Magnetic, StaggerChild, StaggerGroup } from "@/components/ui/motion";
 import { IsometricArchitecture } from "@/components/diagrams/IsometricArchitecture";
+import { ShinyText } from "@/components/ui/reactbits/ShinyText";
 import { CONTENT_COUNTS, HERO_STATS } from "@/data/contentManifest";
 
 const STATS = HERO_STATS;
@@ -29,7 +30,9 @@ export function Hero() {
           <StaggerChild>
             <h1 className="mt-6 text-balance text-4xl font-semibold leading-[1.04] tracking-tighter text-content sm:text-5xl lg:text-[3.5rem]">
               Learn system design
-              <span className="block text-brass">by running it.</span>
+              <span className="block text-brass">
+                <ShinyText text="by running it." />
+              </span>
             </h1>
           </StaggerChild>
 
@@ -91,7 +94,7 @@ export function Hero() {
             className="absolute left-0 top-8 hidden md:block"
           >
             <div className="animate-float-slow rounded-xl border border-line bg-app-raised/85 px-3.5 py-2 shadow-card backdrop-blur">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-content-tertiary">p99 latency</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-content-tertiary">p99 latency (illustrative)</p>
               <p className="mt-0.5 text-sm font-semibold tabular-nums text-brass">84 ms</p>
             </div>
           </motion.div>
@@ -103,7 +106,7 @@ export function Hero() {
             className="absolute bottom-10 right-0 hidden md:block"
           >
             <div className="animate-float-slow rounded-xl border border-line bg-app-raised/85 px-3.5 py-2 shadow-card backdrop-blur" style={{ animationDelay: "1.4s" }}>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-content-tertiary">throughput</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-content-tertiary">throughput (illustrative)</p>
               <p className="mt-0.5 text-sm font-semibold tabular-nums text-content">12.4k rps</p>
             </div>
           </motion.div>
