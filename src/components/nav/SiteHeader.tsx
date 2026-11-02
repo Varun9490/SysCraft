@@ -77,7 +77,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex overflow-x-auto max-w-full" aria-label="Primary">
+        <nav className="hidden items-center gap-1 lg:flex overflow-x-hidden max-w-full" aria-label="Primary">
           {NAV_LINKS.map((link) => {
             const active = isActive(pathname, link.href);
             return (
