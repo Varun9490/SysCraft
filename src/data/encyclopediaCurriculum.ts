@@ -1212,4 +1212,738 @@ Scale guardrails as separate services (input/output classifiers); cache results;
       { value: "5 layers", label: "Guardrail stack", note: "Input, model, output, policy, sandbox." },
     ],
   },
+  {
+    id: "prompt-engineering-context-management",
+    title: "Prompt Engineering & Context Management",
+    difficulty: "intermediate",
+    estimatedMinutes: 20,
+    summary: "How to craft effective prompts: system vs user messages, few-shot examples, chain-of-thought, structured output (JSON schema), context window management, and prompt versioning.",
+    bodyMarkdown: `# Prompt Engineering & Context Management
+
+The prompt is the program. In 2026, prompt engineering is less about clever wording and more about structured context assembly: system instructions, few-shot examples, retrieved context, conversation history, and the user query — all packed into a finite token budget.
+
+## Prompt structure
+
+- **System message:** role, constraints, output format, safety rules. Keep it stable and versioned.
+- **Few-shot examples:** 2-5 input/output pairs that demonstrate the desired behaviour. More examples = better adherence but more tokens.
+- **Retrieved context (RAG):** document chunks with source citations. Place near the query.
+- **Conversation history:** recent turns; summarise older turns to save tokens.
+- **User query:** the actual question.
+
+## Techniques
+
+- **Chain-of-thought (CoT):** "Think step by step" — improves reasoning on math/logic tasks. Costs more tokens.
+- **Structured output:** JSON schema / function calling — forces parseable responses. Essential for pipelines.
+- **Role prompting:** "You are an expert X" — sets tone and expertise level.
+- **Decomposition:** break complex tasks into sub-tasks; each gets its own prompt.
+- **Self-consistency:** sample multiple outputs, take majority vote — improves accuracy on reasoning.
+
+## Context window management
+
+- **Token budgeting:** system (500) + examples (1000) + RAG (4000) + history (2000) + query (200) = ~7700 of 8192.
+- **Sliding window:** keep last N turns; summarise older turns into a "memory" block.
+- **Priority ordering:** most important context closest to the query (recency bias in attention).
+- **Truncation strategy:** truncate retrieved docs first, then history, never the system message.
+
+## Prompt versioning & testing
+
+- Store prompts in version control (Git) with semantic versions.
+- A/B test prompt variants; track quality metrics (accuracy, latency, cost).
+- Use prompt templates with variables; never string-concatenate user input.
+- Guard against prompt injection: delimit untrusted content (XML tags, triple backticks).
+
+## Trade-offs
+
+| Dimension | Long prompt (more context) | Short prompt (less context) | Recommendation |
+| --- | --- | --- | --- |
+| Accuracy | Higher (more info) | Lower | Long for complex tasks; short for simple |
+| Cost | Higher (more input tokens) | Lower | Cache stable prefixes; truncate retrieval |
+| Latency | Higher (prefill) | Lower | Disaggregate prefill for long prompts |
+
+## When to use
+
+- Any LLM-backed feature
+- Agentic systems with tool calls
+- Multi-turn conversations
+
+## When not to use
+
+- Simple classification (use a small model with minimal prompt)
+- Latency-critical paths (minimise tokens)
+
+## Scaling notes
+
+Cache stable prompt prefixes (system + examples) across requests; version prompts in Git; A/B test; monitor token usage and cost per query.
+`,
+    tradeOffs: [
+      { dimension: "Long vs short prompt", optionA: "More context, higher accuracy", optionB: "Fewer tokens, lower cost/latency", recommendation: "Long for complex; short for simple. Cache stable prefixes." },
+      { dimension: "Few-shot count", optionA: "More examples (better adherence)", optionB: "Fewer (lower token cost)", recommendation: "2-5 examples; more rarely helps beyond 5." },
+    ],
+    whenToUse: ["Any LLM feature", "Agentic tool loops", "Multi-turn chat"],
+    whenNotToUse: ["Simple classification (small model)", "Ultra-low-latency paths"],
+    scalingNotes: "Cache stable prefixes; version in Git; A/B test; monitor tokens/cost.",
+    relatedModuleIds: ["llm-architecture-transformers", "ai-agents-rag-architecture"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "prompt-1", front: "Where should the most important context go in a prompt?", back: "Closest to the query — attention has recency bias.", conceptTag: "prompt-engineering-context-management", moduleId: "prompt-engineering-context-management" },
+      { cardId: "prompt-2", front: "What is chain-of-thought prompting?", back: "Instructing the model to 'think step by step' — improves reasoning on math/logic at the cost of more tokens.", conceptTag: "prompt-engineering-context-management", moduleId: "prompt-engineering-context-management" },
+    ],
+    quiz: [
+      {
+        id: "prompt-q1",
+        prompt: "Which prompt component should NEVER be truncated when the context window is full?",
+        options: [
+          { id: "a", text: "The system message (role, constraints, output format)", correct: true },
+          { id: "b", text: "Retrieved document chunks", correct: false },
+          { id: "c", text: "Old conversation history", correct: false },
+        ],
+        explanation: "Truncate retrieved docs and old history first; never the system message.",
+        conceptTag: "prompt-engineering-context-management",
+      },
+      {
+        id: "prompt-q2",
+        prompt: "What is the main benefit of structured output (JSON schema) in LLM pipelines?",
+        options: [
+          { id: "a", text: "Guarantees parseable, machine-readable responses for downstream code", correct: true },
+          { id: "b", text: "Reduces model latency", correct: false },
+          { id: "c", text: "Eliminates hallucinations", correct: false },
+        ],
+        explanation: "JSON schema forces parseable output; it does not reduce latency or eliminate hallucinations.",
+        conceptTag: "prompt-engineering-context-management",
+      },
+    ],
+    keyNumbers: [
+      { value: "2-5", label: "Few-shot examples (sweet spot)", note: "More rarely helps beyond 5." },
+      { value: "8k-128k", label: "Typical context windows (2026)", note: "Larger != better; attention degrades at extremes." },
+      { value: "500 tokens", label: "Typical system message size", note: "Keep stable and versioned." },
+    ],
+  },
+  {
+    id: "fine-tuning-training-alignment",
+    title: "Fine-Tuning, Training & Alignment",
+    difficulty: "advanced",
+    estimatedMinutes: 26,
+    summary: "When and how to fine-tune: SFT, RLHF, DPO, LoRA/QLoRA, data preparation, evaluation, and the decision framework for fine-tuning vs RAG vs prompt engineering.",
+    bodyMarkdown: `# Fine-Tuning, Training & Alignment
+
+Fine-tuning adapts a pre-trained model to a specific task, domain, or style. In 2026, the default is to NOT fine-tune — RAG and prompt engineering solve most problems cheaper and faster. Fine-tune only when you need consistent style, domain vocabulary, or latency/cost wins at scale.
+
+## Training stages
+
+1. **Pre-training:** next-token prediction on trillions of tokens (web, code, books). Produces a base model with general knowledge. Cost: millions of GPU-hours.
+2. **Supervised fine-tuning (SFT):** train on high-quality (prompt, response) pairs. Teaches instruction-following and task format.
+3. **Alignment (RLHF/DPO):** optimize for human preferences (helpful, harmless, honest). RLHF uses a reward model + PPO; DPO skips the reward model and trains directly on preference pairs.
+4. **Domain adaptation:** continue pre-training on domain data (medical, legal, code) before SFT.
+
+## Parameter-efficient fine-tuning (PEFT)
+
+- **LoRA:** train low-rank adapter matrices (A, B) instead of full weights. 0.1-1% of params; merges at inference with zero overhead.
+- **QLoRA:** LoRA on a 4-bit quantized base model — fine-tune a 70B model on a single 48GB GPU.
+- **Prefix tuning / adapters:** prepend learnable tokens or small MLP layers; less common in 2026.
+
+## Decision framework: prompt vs RAG vs fine-tune
+
+| Need | Prompt engineering | RAG | Fine-tuning |
+| --- | --- | --- | --- |
+| New knowledge (facts) | No | Yes | No (stale after training) |
+| Consistent style/format | Partial | No | Yes |
+| Domain vocabulary | Partial | Partial | Yes |
+| Latency/cost at scale | No | Adds retrieval latency | Yes (smaller model) |
+| Rapid iteration | Yes | Yes | No (retrain needed) |
+
+**Rule of thumb:** Try prompt engineering first (hours), then RAG (days), then fine-tuning (weeks) only if the above fail.
+
+## Data preparation
+
+- **Quality > quantity.** 1,000 high-quality examples beat 100,000 noisy ones.
+- **Deduplication:** remove near-duplicates (MinHash, SimHash).
+- **Diversity:** cover edge cases, not just happy paths.
+- **Format consistency:** same template for all examples.
+- **Evaluation split:** hold out 10-20% for eval; never train on eval data.
+
+## Evaluation
+
+- **Offline:** task-specific metrics (accuracy, F1, BLEU), LLM-as-judge, human eval.
+- **Online:** A/B test vs baseline; track user satisfaction, task completion, escalation rate.
+- **Regression:** re-run full eval suite on every model/prompt change.
+
+## Trade-offs
+
+| Dimension | Full fine-tune | LoRA/QLoRA | Prompt + RAG | Recommendation |
+| --- | --- | --- | --- | --- |
+| Cost | Very high | Low | Lowest | LoRA for domain; prompt+RAG for knowledge |
+| Iteration speed | Slow (retrain) | Medium | Fast | Prompt+RAG for rapid iteration |
+| Quality ceiling | Highest | Near-full | Limited by base model | Full fine-tune only for frontier needs |
+
+## When to use
+
+- Consistent style/brand voice at scale
+- Domain-specific vocabulary (medical, legal, code)
+- Latency/cost reduction (distill to smaller model)
+- Safety alignment (reduce harmful outputs)
+
+## When not to use
+
+- Factual knowledge (use RAG — facts change)
+- Rapid iteration (use prompt engineering)
+- Small datasets (<500 examples)
+- When RAG + good prompting already works
+
+## Scaling notes
+
+Use LoRA/QLoRA for most cases; full fine-tune only for frontier quality. Automate data pipelines (labeling, dedup, versioning). Run evals in CI. Monitor for regression after deployment.
+`,
+    tradeOffs: [
+      { dimension: "Fine-tune vs RAG", optionA: "Fine-tune (style/latency)", optionB: "RAG (facts/freshness)", recommendation: "RAG for facts; fine-tune for style/latency. Combine both for best results." },
+      { dimension: "Full vs LoRA", optionA: "Full fine-tune (max quality)", optionB: "LoRA (1% params, same quality)", recommendation: "LoRA default; full only for frontier needs." },
+    ],
+    whenToUse: ["Consistent style at scale", "Domain vocabulary", "Latency/cost reduction", "Safety alignment"],
+    whenNotToUse: ["Factual knowledge (use RAG)", "Rapid iteration (use prompts)", "Small datasets (<500)"],
+    scalingNotes: "LoRA default; automate data pipelines; evals in CI; monitor regression.",
+    relatedModuleIds: ["llm-architecture-transformers", "ai-agents-rag-architecture"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "ft-1", front: "What does LoRA train instead of full weights?", back: "Low-rank adapter matrices (A, B) — 0.1-1% of params, merges at inference with zero overhead.", conceptTag: "fine-tuning-training-alignment", moduleId: "fine-tuning-training-alignment" },
+      { cardId: "ft-2", front: "When should you NOT fine-tune?", back: "When RAG + prompt engineering already works; fine-tuning is for style/latency, not facts (facts change).", conceptTag: "fine-tuning-training-alignment", moduleId: "fine-tuning-training-alignment" },
+    ],
+    quiz: [
+      {
+        id: "ft-q1",
+        prompt: "You need your LLM to answer questions about a 10,000-page product manual that updates weekly. Best approach?",
+        options: [
+          { id: "a", text: "RAG with incremental index updates", correct: true },
+          { id: "b", text: "Fine-tune on the entire manual", correct: false },
+          { id: "c", text: "Stuff the manual into the system prompt", correct: false },
+        ],
+        explanation: "Weekly-updating facts need RAG; fine-tuning would be stale immediately.",
+        conceptTag: "fine-tuning-training-alignment",
+      },
+      {
+        id: "ft-q2",
+        prompt: "What is QLoRA?",
+        options: [
+          { id: "a", text: "LoRA on a 4-bit quantized base model — fine-tune 70B on a single 48GB GPU", correct: true },
+          { id: "b", text: "A quantization-aware training method for all params", correct: false },
+          { id: "c", text: "A prompt compression technique", correct: false },
+        ],
+        explanation: "QLoRA = LoRA on 4-bit quantized base; enables fine-tuning large models on consumer GPUs.",
+        conceptTag: "fine-tuning-training-alignment",
+      },
+    ],
+    keyNumbers: [
+      { value: "0.1-1%", label: "LoRA params vs full model", note: "Same quality, fraction of compute." },
+      { value: "4-bit", label: "QLoRA base quantization", note: "Fine-tune 70B on 48GB GPU." },
+      { value: "500+", label: "Minimum examples for fine-tuning", note: "Below this, prompt engineering is better." },
+    ],
+  },
+  {
+    id: "ai-observability-monitoring",
+    title: "AI Observability & Monitoring",
+    difficulty: "advanced",
+    estimatedMinutes: 22,
+    summary: "How to observe AI systems: LLM tracing (OpenTelemetry GenAI), quality metrics (faithfulness, relevance), cost tracking, latency (TTFT/ITL), drift detection, and alerting.",
+    bodyMarkdown: `# AI Observability & Monitoring
+
+Traditional observability (up, fast, error-free) is necessary but not sufficient for AI systems. AI observability must additionally measure whether outputs are semantically correct, factually grounded, and policy-compliant — because infrastructure can be healthy while outputs are degraded.
+
+## Three layers of AI observability
+
+1. **Infrastructure:** GPU utilisation, memory, request queue depth, error rates, latency (TTFT, ITL, p99).
+2. **Behavioural:** output quality (faithfulness, relevance, toxicity), hallucination rate, refusal rate, user satisfaction.
+3. **Cost:** tokens per request, cost per query, cost per user, model routing efficiency.
+
+## Key metrics
+
+- **TTFT (time to first token):** prefill latency; dominates user-perceived responsiveness.
+- **ITL (inter-token latency):** decode speed; affects streaming UX.
+- **Goodput:** requests meeting SLO (latency + quality) / total requests.
+- **Faithfulness:** is the answer grounded in retrieved sources? (RAGAS)
+- **Answer relevance:** does the answer address the query?
+- **Context precision/recall:** are the retrieved chunks relevant and complete?
+- **Cost per query:** input + output tokens * price per token.
+- **Drift:** distribution shift in inputs/outputs over time (new topics, new failure modes).
+
+## Tracing
+
+- **OpenTelemetry GenAI conventions:** standard spans for LLM calls (model, tokens, latency, cost). Still "Development" status but widely emitted.
+- **Trace structure:** request → retrieval → prompt assembly → LLM call → guardrails → response. Each step is a span with attributes.
+- **Sampling:** tail-based sampling for errors and slow traces; probabilistic for the rest.
+
+## Alerting
+
+- Alert on: p99 TTFT > SLO, error rate > 1%, faithfulness < threshold, cost per query > budget, drift detected.
+- Dashboards: per-model, per-route, per-tenant cost and quality.
+
+## Tools (2026)
+
+- **Langfuse, Helicone, LangSmith:** LLM-specific observability (traces, evals, cost).
+- **OpenTelemetry + Grafana/Jaeger:** infra-level tracing.
+- **RAGAS, DeepEval:** automated quality evaluation.
+
+## Trade-offs
+
+| Dimension | Full tracing (100%) | Sampled tracing | Recommendation |
+| --- | --- | --- | --- |
+| Visibility | Complete | Gaps in rare failures | Tail-based: 100% errors/slow, sample rest |
+| Cost | High (storage) | Low | Sample at 1-10% for healthy traffic |
+| Latency overhead | +5-10ms | +1-2ms | Async export to avoid blocking |
+
+## When to use
+
+- Any production LLM feature
+- Multi-model routing (need per-model metrics)
+- Regulated domains (audit trail)
+
+## When not to use
+
+- Prototypes (add before production)
+- Offline batch jobs (log summaries only)
+
+## Scaling notes
+
+Export traces async (OTLP); use tail-based sampling; store evals in a separate pipeline; alert on SLO breaches; track cost per tenant for FinOps.
+`,
+    tradeOffs: [
+      { dimension: "Full vs sampled tracing", optionA: "100% visibility, high cost", optionB: "Sampled, lower cost, gaps", recommendation: "Tail-based: 100% errors/slow, sample healthy traffic." },
+      { dimension: "Infra vs behavioural metrics", optionA: "CPU/GPU/latency only", optionB: "Quality/faithfulness/cost", recommendation: "Both: infra healthy != outputs good." },
+    ],
+    whenToUse: ["Production LLM features", "Multi-model routing", "Regulated domains"],
+    whenNotToUse: ["Prototypes", "Offline batch jobs"],
+    scalingNotes: "Async export; tail-based sampling; separate eval pipeline; SLO alerts.",
+    relatedModuleIds: ["ai-inference-serving-2026", "ai-safety-guardrails-evals"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "ai-obs-1", front: "What is TTFT?", back: "Time to first token — prefill latency, dominates user-perceived responsiveness.", conceptTag: "ai-observability-monitoring", moduleId: "ai-observability-monitoring" },
+      { cardId: "ai-obs-2", front: "Why is infrastructure health not enough for AI?", back: "Infra can be healthy while outputs are degraded (hallucinations, drift). Need behavioural observability.", conceptTag: "ai-observability-monitoring", moduleId: "ai-observability-monitoring" },
+    ],
+    quiz: [
+      {
+        id: "ai-obs-q1",
+        prompt: "Which sampling strategy captures all errors while keeping cost low?",
+        options: [
+          { id: "a", text: "Tail-based: 100% of errors and slow traces, probabilistic for healthy traffic", correct: true },
+          { id: "b", text: "100% of all traces", correct: false },
+          { id: "c", text: "Random 1% of everything", correct: false },
+        ],
+        explanation: "Tail-based captures all failures; random sampling misses rare but critical errors.",
+        conceptTag: "ai-observability-monitoring",
+      },
+      {
+        id: "ai-obs-q2",
+        prompt: "Which metric best indicates whether RAG answers are factually grounded?",
+        options: [
+          { id: "a", text: "Faithfulness (RAGAS) — is the answer supported by retrieved sources?", correct: true },
+          { id: "b", text: "TTFT (time to first token)", correct: false },
+          { id: "c", text: "GPU utilisation", correct: false },
+        ],
+        explanation: "Faithfulness measures grounding; TTFT and GPU util are infra metrics.",
+        conceptTag: "ai-observability-monitoring",
+      },
+    ],
+    keyNumbers: [
+      { value: "TTFT", label: "Time to first token", note: "Prefill latency; dominates perceived speed." },
+      { value: "ITL", label: "Inter-token latency", note: "Decode speed; affects streaming UX." },
+      { value: "1-10%", label: "Healthy-traffic sample rate", note: "Tail-based keeps all errors." },
+    ],
+  },
+  {
+    id: "multimodal-ai-systems",
+    title: "Multimodal AI Systems",
+    difficulty: "advanced",
+    estimatedMinutes: 22,
+    summary: "Systems that process text, images, audio, and video: vision-language models (VLMs), multimodal RAG, encoder caches, and serving multimodal at scale.",
+    bodyMarkdown: `# Multimodal AI Systems
+
+Multimodal AI processes and generates across modalities — text, images, audio, video. In 2026, multimodal is the default for new AI products: document understanding (tables, charts, images), visual Q&A, audio transcription + reasoning, and video analysis.
+
+## Architecture
+
+A multimodal request has three stages (vs two for text):
+1. **Encode:** vision/audio encoder (ViT, Whisper) processes raw media into embeddings.
+2. **Prefill:** language model processes text + media embeddings.
+3. **Decode:** generate response.
+
+## Key components
+
+- **Vision-language models (VLMs):** LLaVA, GPT-4V, Gemini — fuse vision encoder + LLM. Image understanding, captioning, OCR, chart/table extraction.
+- **Audio models:** Whisper (transcription), audio-language models (reasoning over audio).
+- **Video models:** frame sampling + temporal reasoning; expensive (many frames).
+- **Multimodal RAG:** retrieve across text + images + tables; embed images with CLIP-style encoders.
+- **Encoder cache:** cache encoder output keyed by media hash — skips the ViT pass on repeat media (huge win for shared images).
+
+## Serving multimodal at scale
+
+- **Encoder disaggregation:** run encoders on separate workers; pass embeddings to prefill. Avoids tying expensive LLM capacity to image preprocessing.
+- **Two caches:** KV cache (text) + encoder cache (media embeddings). A request can miss KV but hit encoder cache and skip the ViT pass.
+- **Cache-aware routing:** route by media hash affinity, not just text prefix.
+- **Batching:** encode stage is compute-bound and parallelisable across items; prefill/decode as usual.
+
+## Trade-offs
+
+| Dimension | Text-only | Multimodal | Recommendation |
+| --- | --- | --- | --- |
+| Complexity | Low | High (encoders, caches, routing) | Multimodal only when media is core to the task |
+| Cost | Baseline | 2-5x (encoder compute) | Cache encoder output aggressively |
+| Latency | Low | Higher (encode stage) | Disaggregate encoders; stream response |
+
+## When to use
+
+- Document understanding (PDFs with tables/charts/images)
+- Visual Q&A, image search
+- Audio transcription + reasoning
+- Video analysis/summarisation
+
+## When not to use
+
+- Pure text tasks (unnecessary cost)
+- Ultra-low-latency (encode adds latency)
+
+## Scaling notes
+
+Disaggregate encoders; cache by media hash; monitor encode/prefill/decode separately; use smaller vision encoders for edge.
+`,
+    tradeOffs: [
+      { dimension: "Text-only vs multimodal", optionA: "Lower cost/latency", optionB: "Richer understanding of media", recommendation: "Multimodal when media is core to the task; text-only otherwise." },
+      { dimension: "Encoder placement", optionA: "Co-located with LLM", optionB: "Disaggregated encoder workers", recommendation: "Disaggregate at scale to avoid tying LLM capacity to preprocessing." },
+    ],
+    whenToUse: ["Document understanding", "Visual Q&A", "Audio/video analysis"],
+    whenNotToUse: ["Pure text tasks", "Ultra-low-latency paths"],
+    scalingNotes: "Disaggregate encoders; cache by media hash; monitor stages separately.",
+    relatedModuleIds: ["ai-inference-serving-2026", "ai-agents-rag-architecture"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "mm-1", front: "What are the 3 stages of a multimodal request?", back: "Encode (ViT/Whisper) → Prefill (LLM with media embeddings) → Decode (generate response).", conceptTag: "multimodal-ai-systems", moduleId: "multimodal-ai-systems" },
+      { cardId: "mm-2", front: "What does the encoder cache skip?", back: "The entire ViT encode pass, when the media hash is already cached.", conceptTag: "multimodal-ai-systems", moduleId: "multimodal-ai-systems" },
+    ],
+    quiz: [
+      {
+        id: "mm-q1",
+        prompt: "Which cache hit skips the ViT encode pass regardless of the surrounding text?",
+        options: [
+          { id: "a", text: "The encoder cache, keyed by media hash", correct: true },
+          { id: "b", text: "The KV cache", correct: false },
+          { id: "c", text: "The prompt cache", correct: false },
+        ],
+        explanation: "Encoder cache is keyed by media hash alone; a hit skips ViT regardless of text.",
+        conceptTag: "multimodal-ai-systems",
+      },
+      {
+        id: "mm-q2",
+        prompt: "Why disaggregate encoders from the LLM?",
+        options: [
+          { id: "a", text: "To avoid tying expensive LLM capacity to image/audio preprocessing", correct: true },
+          { id: "b", text: "To reduce model accuracy", correct: false },
+          { id: "c", text: "To increase latency", correct: false },
+        ],
+        explanation: "Encoders are compute-bound preprocessing; disaggregation frees LLM GPUs for generation.",
+        conceptTag: "multimodal-ai-systems",
+      },
+    ],
+    keyNumbers: [
+      { value: "2-5x", label: "Multimodal cost vs text-only", note: "Encoder compute; cache to reduce." },
+      { value: "2 caches", label: "KV + encoder cache", note: "Encoder cache can skip ViT even on KV miss." },
+      { value: "ViT", label: "Standard vision encoder", note: "Vision Transformer; runs per image." },
+    ],
+  },
+  {
+    id: "ai-gateway-model-routing",
+    title: "AI Gateway & Model Routing",
+    difficulty: "intermediate",
+    estimatedMinutes: 18,
+    summary: "The AI gateway: unified entry point for auth, rate limiting, model routing, fallback, cost tracking, and guardrails across multiple LLM providers.",
+    bodyMarkdown: `# AI Gateway & Model Routing
+
+The AI gateway is the control plane for all LLM traffic. It sits between applications and model providers (OpenAI, Anthropic, self-hosted vLLM), providing a single OpenAI-compatible API with auth, rate limiting, routing, fallback, cost tracking, and guardrails.
+
+## Core functions
+
+- **Auth & rate limiting:** API keys, per-user/per-tenant token budgets, RPM/TPM limits.
+- **Model routing:** route by task type, cost, latency, or capability. Cheap model for simple tasks; expensive model for complex.
+- **Fallback & retries:** if primary provider fails, route to backup (e.g., OpenAI → Anthropic → self-hosted).
+- **Cost tracking:** per-request token counts and cost; per-tenant budgets and alerts.
+- **Guardrails:** input/output filtering, PII redaction, toxicity checks.
+- **Caching:** semantic cache (similar queries → cached response) and prompt cache (shared prefixes).
+- **Observability:** traces, logs, metrics (TTFT, ITL, tokens, cost).
+
+## Routing strategies
+
+- **Capability-based:** route complex reasoning to large models; simple classification to small models.
+- **Cost-based:** try cheapest model first; escalate if quality is low (cascade).
+- **Latency-based:** route to the fastest available provider.
+- **A/B testing:** split traffic between model versions; compare quality/cost.
+- **Canary/shadow:** deploy new model to 5% traffic; monitor before full rollout.
+
+## Tools (2026)
+
+- **LiteLLM:** open-source proxy, 100+ providers, OpenAI-compatible.
+- **Envoy AI Gateway:** Kubernetes-native, Gateway API Inference Extension.
+- **Kong AI Gateway:** enterprise, plugin ecosystem.
+- **Cloud gateways:** AWS Bedrock, Azure OpenAI, GCP Vertex AI.
+
+## Trade-offs
+
+| Dimension | Single provider | Multi-provider gateway | Recommendation |
+| --- | --- | --- | --- |
+| Complexity | Low | Higher (routing, fallback, cost tracking) | Gateway once you have >1 provider or >$1k/mo spend |
+| Cost | Baseline | -20-40% (smart routing) | Worth it at scale |
+| Reliability | Single point of failure | Fallback across providers | Gateway for production |
+
+## When to use
+
+- Multi-provider or multi-model setups
+- Cost optimisation at scale
+- Compliance (data residency, PII)
+- Production AI features
+
+## When not to use
+
+- Single-model prototypes
+- Very low traffic (<100 RPS)
+
+## Scaling notes
+
+Scale gateway horizontally; cache auth decisions; use connection pooling; monitor per-provider latency/cost; set per-tenant budgets.
+`,
+    tradeOffs: [
+      { dimension: "Single vs multi-provider", optionA: "Simpler, single vendor", optionB: "Resilient, cost-optimised", recommendation: "Gateway once >1 provider or >$1k/mo spend." },
+      { dimension: "Smart routing vs fixed", optionA: "Fixed model per task", optionB: "Dynamic routing by cost/quality/latency", recommendation: "Dynamic routing at scale; fixed for simplicity." },
+    ],
+    whenToUse: ["Multi-provider", "Cost optimisation", "Compliance", "Production AI"],
+    whenNotToUse: ["Single-model prototypes", "Very low traffic"],
+    scalingNotes: "Scale horizontally; cache auth; connection pooling; per-tenant budgets.",
+    relatedModuleIds: ["ai-inference-serving-2026", "ai-observability-monitoring"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "ai-gw-1", front: "What is an AI gateway?", back: "A unified entry point for auth, rate limiting, model routing, fallback, cost tracking, and guardrails across LLM providers.", conceptTag: "ai-gateway-model-routing", moduleId: "ai-gateway-model-routing" },
+      { cardId: "ai-gw-2", front: "What is semantic caching?", back: "Caching responses for semantically similar queries (not just exact matches) to reduce cost and latency.", conceptTag: "ai-gateway-model-routing", moduleId: "ai-gateway-model-routing" },
+    ],
+    quiz: [
+      {
+        id: "ai-gw-q1",
+        prompt: "Which routing strategy tries the cheapest model first and escalates if quality is low?",
+        options: [
+          { id: "a", text: "Cascade routing", correct: true },
+          { id: "b", text: "Fixed routing", correct: false },
+          { id: "c", text: "Random routing", correct: false },
+        ],
+        explanation: "Cascade tries cheapest first, escalates on low quality — balances cost and accuracy.",
+        conceptTag: "ai-gateway-model-routing",
+      },
+      {
+        id: "ai-gw-q2",
+        prompt: "When should you add an AI gateway?",
+        options: [
+          { id: "a", text: "When you have >1 provider or >$1k/mo LLM spend", correct: true },
+          { id: "b", text: "For every single-model prototype", correct: false },
+          { id: "c", text: "Only for on-premise models", correct: false },
+        ],
+        explanation: "Gateway overhead isn't worth it for single-model prototypes; adds value at scale.",
+        conceptTag: "ai-gateway-model-routing",
+      },
+    ],
+    keyNumbers: [
+      { value: "20-40%", label: "Cost reduction from smart routing", note: "Cascade + capability-based routing." },
+      { value: "100+", label: "Providers supported by LiteLLM", note: "Open-source OpenAI-compatible proxy." },
+      { value: "$1k/mo", label: "Gateway ROI threshold", note: "Above this, routing savings exceed gateway cost." },
+    ],
+  },
+  {
+    id: "mlops-llmops-lifecycle",
+    title: "MLOps & LLMOps Lifecycle",
+    difficulty: "intermediate",
+    estimatedMinutes: 20,
+    summary: "The end-to-end AI lifecycle: data collection, training, evaluation, deployment, monitoring, and continuous improvement — adapted for LLMs.",
+    bodyMarkdown: `# MLOps & LLMOps Lifecycle
+
+LLMOps is MLOps adapted for large language models. The core difference: LLMs are pre-trained (you don't train from scratch), so the lifecycle focuses on adaptation (prompting, RAG, fine-tuning), evaluation, and continuous improvement rather than training infrastructure.
+
+## Lifecycle stages
+
+1. **Data collection & preparation:** gather domain data, clean, deduplicate, version (DVC, LakeFS).
+2. **Adaptation:** prompt engineering → RAG → fine-tuning (in that order of effort).
+3. **Evaluation:** offline evals (golden datasets, RAGAS, LLM-as-judge), human eval, red-teaming.
+4. **Deployment:** canary/shadow/A-B; gradual rollout; rollback plan.
+5. **Monitoring:** infra (latency, errors, cost) + behavioural (quality, drift, safety).
+6. **Feedback loop:** collect user feedback; update prompts/RAG/fine-tuning data; re-evaluate.
+
+## Key differences from traditional MLOps
+
+- **No training infra needed** (for API models) — but fine-tuning needs GPUs.
+- **Prompt versioning** replaces model versioning as the primary artifact.
+- **Evaluation is harder** — no single ground truth; use LLM-as-judge + human eval.
+- **Data drift is semantic** — new topics, not just distribution shift.
+- **Cost is per-token** — FinOps is a first-class concern.
+
+## Tools (2026)
+
+- **Experiment tracking:** MLflow, Weights & Biases, Comet.
+- **Data versioning:** DVC, LakeFS, Delta Lake.
+- **Pipeline orchestration:** Airflow, Dagster, Prefect, Temporal.
+- **Model registry:** MLflow, Hugging Face Hub, W&B Artifacts.
+- **LLM observability:** Langfuse, Helicone, LangSmith.
+- **Eval frameworks:** RAGAS, DeepEval, Promptfoo.
+
+## Trade-offs
+
+| Dimension | Heavy MLOps (full platform) | Lightweight (scripts + Git) | Recommendation |
+| --- | --- | --- | --- |
+| Complexity | High | Low | Lightweight for <5 use cases; platform for >10 |
+| Iteration speed | Slower (pipelines) | Faster | Start lightweight; add platform when pain hits |
+| Governance | Strong (audit, lineage) | Weak | Platform for regulated domains |
+
+## When to use
+
+- Production AI features with >1 model
+- Regulated domains (audit trail, lineage)
+- Teams with >3 AI engineers
+
+## When not to use
+
+- Single prototype or hackathon
+- Single-model, single-prompt features
+
+## Scaling notes
+
+Start with Git + scripts; add experiment tracking when iterating on prompts; add data versioning when RAG corpus grows; add full platform only when pain demands it.
+`,
+    tradeOffs: [
+      { dimension: "Heavy vs lightweight MLOps", optionA: "Full platform (governance, lineage)", optionB: "Git + scripts (fast, simple)", recommendation: "Start lightweight; add platform when pain demands." },
+      { dimension: "Prompt vs model versioning", optionA: "Version the model", optionB: "Version the prompt (primary artifact)", recommendation: "Version both; prompt is the primary artifact for LLMs." },
+    ],
+    whenToUse: ["Production AI >1 model", "Regulated domains", "Teams >3 AI engineers"],
+    whenNotToUse: ["Single prototype", "Single model/prompt features"],
+    scalingNotes: "Start lightweight; add tracking/versioning/platform as pain demands.",
+    relatedModuleIds: ["ai-observability-monitoring", "fine-tuning-training-alignment"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "mlops-1", front: "What is the primary artifact in LLMOps (vs traditional MLOps)?", back: "The prompt (and RAG corpus), not the model — models are pre-trained, prompts are what you version and iterate.", conceptTag: "mlops-llmops-lifecycle", moduleId: "mlops-llmops-lifecycle" },
+      { cardId: "mlops-2", front: "What order of adaptation effort?", back: "Prompt engineering → RAG → fine-tuning (increasing effort and cost).", conceptTag: "mlops-llmops-lifecycle", moduleId: "mlops-llmops-lifecycle" },
+    ],
+    quiz: [
+      {
+        id: "mlops-q1",
+        prompt: "Which adaptation approach should you try first for a new AI feature?",
+        options: [
+          { id: "a", text: "Prompt engineering (hours, cheapest, fastest iteration)", correct: true },
+          { id: "b", text: "Fine-tuning (weeks, most expensive)", correct: false },
+          { id: "c", text: "Training from scratch", correct: false },
+        ],
+        explanation: "Start with prompt engineering; escalate to RAG then fine-tuning only if needed.",
+        conceptTag: "mlops-llmops-lifecycle",
+      },
+      {
+        id: "mlops-q2",
+        prompt: "What makes LLM data drift different from traditional ML drift?",
+        options: [
+          { id: "a", text: "It's semantic — new topics and failure modes, not just distribution shift", correct: true },
+          { id: "b", text: "It doesn't exist for LLMs", correct: false },
+          { id: "c", text: "It's identical to traditional ML drift", correct: false },
+        ],
+        explanation: "LLM drift is semantic (new topics/failures); traditional ML drift is distributional.",
+        conceptTag: "mlops-llmops-lifecycle",
+      },
+    ],
+    keyNumbers: [
+      { value: "3 stages", label: "Adaptation ladder", note: "Prompt → RAG → fine-tune." },
+      { value: "Prompt", label: "Primary LLMOps artifact", note: "Version in Git; iterate fast." },
+      { value: "10%", label: "Eval holdout split", note: "Never train on eval data." },
+    ],
+  },
+  {
+    id: "agent-memory-systems",
+    title: "Agent Memory Systems",
+    difficulty: "advanced",
+    estimatedMinutes: 20,
+    summary: "How AI agents remember: short-term (context window), long-term (vector DB), episodic (past interactions), and semantic (knowledge base) memory — and how to manage context across sessions.",
+    bodyMarkdown: `# Agent Memory Systems
+
+An agent without memory is stateless — each request starts fresh. Production agents need memory to maintain context across turns, sessions, and tasks. Memory is the hardest part of agent design.
+
+## Memory types
+
+1. **Short-term (working memory):** the context window. Current conversation, tool results, intermediate reasoning. Limited by token budget (8k-128k).
+2. **Long-term (semantic memory):** vector database of facts, preferences, past decisions. Retrieved via similarity search.
+3. **Episodic memory:** past interactions/conversations summarised and stored. "Last time we discussed X, you preferred Y."
+4. **Procedural memory:** skills/tools the agent can use (function definitions, workflows).
+
+## Memory management patterns
+
+- **Sliding window + summarisation:** keep last N turns verbatim; summarise older turns into a "memory" block.
+- **Retrieval-augmented memory:** store all past turns as embeddings; retrieve relevant ones per query.
+- **Structured memory:** extract entities/facts/preferences into a structured store (JSON/KG) rather than raw text.
+- **Memory consolidation:** periodically merge episodic memories into semantic facts ("user prefers concise answers").
+
+## Challenges
+
+- **Context limits:** even 128k tokens isn't enough for long-running agents. Need summarisation + retrieval.
+- **Staleness:** old memories may be wrong. Add timestamps and confidence scores; expire stale entries.
+- **Privacy:** memory contains PII. Encrypt at rest; allow deletion (GDPR right to be forgotten).
+- **Consistency:** multiple agents sharing memory need conflict resolution.
+
+## Trade-offs
+
+| Dimension | Full context (all history) | Summarised + retrieved | Recommendation |
+| --- | --- | --- | --- |
+| Accuracy | High (nothing lost) | Lower (summarisation loss) | Full for short sessions; summarised for long |
+| Cost | High (many tokens) | Low | Summarise + retrieve for >20 turns |
+| Latency | Higher (prefill) | Lower | Summarise to reduce prefill |
+
+## When to use
+
+- Multi-turn chat agents
+- Personal assistants (remember preferences)
+- Long-running task agents (research, coding)
+
+## When not to use
+
+- Stateless Q&A (no memory needed)
+- Single-turn classification
+
+## Scaling notes
+
+Use vector DB for long-term memory; summarise episodic memory periodically; encrypt PII; implement deletion APIs; monitor memory size and retrieval quality.
+`,
+    tradeOffs: [
+      { dimension: "Full context vs summarised", optionA: "Nothing lost, high cost", optionB: "Lower cost, summarisation loss", recommendation: "Full for short sessions; summarised+retrieved for long." },
+      { dimension: "Raw text vs structured memory", optionA: "Simple, lossless", optionB: "Queryable, compact", recommendation: "Structured for preferences/facts; raw for conversation history." },
+    ],
+    whenToUse: ["Multi-turn agents", "Personal assistants", "Long-running tasks"],
+    whenNotToUse: ["Stateless Q&A", "Single-turn classification"],
+    scalingNotes: "Vector DB for long-term; summarise episodic; encrypt PII; deletion APIs.",
+    relatedModuleIds: ["ai-agents-rag-architecture", "ai-safety-guardrails-evals"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "mem-1", front: "What are the 4 types of agent memory?", back: "Short-term (context window), long-term (vector DB), episodic (past interactions), procedural (skills/tools).", conceptTag: "agent-memory-systems", moduleId: "agent-memory-systems" },
+      { cardId: "mem-2", front: "When should you summarise instead of keeping full context?", back: "When conversation exceeds ~20 turns or token budget is tight; summarise older turns, keep recent ones verbatim.", conceptTag: "agent-memory-systems", moduleId: "agent-memory-systems" },
+    ],
+    quiz: [
+      {
+        id: "mem-q1",
+        prompt: "Which memory type stores facts and preferences for retrieval across sessions?",
+        options: [
+          { id: "a", text: "Long-term (semantic) memory in a vector database", correct: true },
+          { id: "b", text: "Short-term (context window)", correct: false },
+          { id: "c", text: "Procedural memory", correct: false },
+        ],
+        explanation: "Long-term semantic memory persists facts/preferences in a vector DB for cross-session retrieval.",
+        conceptTag: "agent-memory-systems",
+      },
+      {
+        id: "mem-q2",
+        prompt: "What is a key privacy requirement for agent memory?",
+        options: [
+          { id: "a", text: "Encrypt at rest and support deletion (GDPR right to be forgotten)", correct: true },
+          { id: "b", text: "Store everything in plaintext for speed", correct: false },
+          { id: "c", text: "Never delete any memory", correct: false },
+        ],
+        explanation: "Memory contains PII; encrypt at rest and support deletion for compliance.",
+        conceptTag: "agent-memory-systems",
+      },
+    ],
+    keyNumbers: [
+      { value: "8k-128k", label: "Context window (tokens)", note: "Short-term memory limit." },
+      { value: "20 turns", label: "Summarisation threshold", note: "Beyond this, summarise older turns." },
+      { value: "4 types", label: "Memory categories", note: "Short-term, long-term, episodic, procedural." },
+    ],
+  },
 ];
