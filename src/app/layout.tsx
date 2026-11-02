@@ -26,15 +26,6 @@ export const metadata: Metadata = {
   description:
     "Design real architectures on an infinite canvas, run them under load, and watch what breaks — from a single server to globally distributed systems. Free, local-first, no account.",
   applicationName: SITE_NAME,
-  keywords: [
-    "system design",
-    "distributed systems",
-    "architecture simulator",
-    "interview preparation",
-    "latency numbers",
-    "caching",
-    "consistency",
-  ],
   openGraph: {
     title: `${SITE_NAME} — Learn system design by running it`,
     description:
@@ -56,9 +47,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={outfit.variable}>
       <body className="bg-ink font-sans text-content antialiased">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brass focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-zinc-950"
+        >
+          Skip to main content
+        </a>
         <BootRunner />
         <ThemeBridge />
-        {children}
+        <div id="main-content">{children}</div>
       </body>
     </html>
   );

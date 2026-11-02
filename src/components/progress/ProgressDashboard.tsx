@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/icons';
 import { ENCYCLOPEDIA_MAP } from '@/data/encyclopediaData';
 import { GUIDED_LAB_MAP } from '@/data/guidedLabs';
-import { PATH_PARTS } from '@/data/pathData';
+import { PATH_PARTS, TOTAL_MODULES } from '@/data/pathData';
 import { PLAY_MODES } from '@/data/playContent';
 import { retrievability } from '@/engine/fsrsScheduler';
 import {
@@ -235,7 +235,7 @@ export function ProgressDashboard() {
       <section aria-label="Mastery map" className="mt-8">
         <div className="flex items-center gap-2">
           <MapIcon className="h-4 w-4 text-sky-400" aria-hidden />
-          <h2 className="text-[11px] font-semibold tracking-[0.18em] text-zinc-500">MASTERY MAP — 19 MODULES</h2>
+          <h2 className="text-[11px] font-semibold tracking-[0.18em] text-zinc-500">MASTERY MAP — {TOTAL_MODULES} MODULES</h2>
         </div>
         {!hydrated ? (
           <p className="mt-4 text-sm text-zinc-500">Loading your local progress…</p>

@@ -49,6 +49,12 @@ const LEAVES_ONLY_WHEN_YOU_CHOOSE: Array<{ title: string; detail: string; when: 
     detail:
       "Sessions ride on y-webrtc. A public signaling server (signaling.yjs.dev and y-webrtc-eu.fly.dev, the library defaults) relays connection offers only — it brokers the handshake, it does not store your canvas or messages. Canvas data then flows peer-to-peer over DTLS-encrypted WebRTC data channels.",
   },
+  {
+    title: "Live CVE threat feed (optional)",
+    when: "Only when you open the Security hub and request a live refresh",
+    detail:
+      "The Security hub can fetch live CVE records from the NVD REST API (services.nvd.nist.gov) with a hard timeout. If the fetch fails or is blocked, it falls back to the bundled curated cache. No canvas data is sent — only a keyword search query.",
+  },
 ];
 
 const CONTROLS: Array<{ title: string; detail: string; href?: string; linkLabel?: string }> = [

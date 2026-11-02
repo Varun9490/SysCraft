@@ -13,6 +13,7 @@ import {
   Zap,
 } from "@/components/ui/icons";
 import { StaggerChild, StaggerGroup, TiltCard } from "@/components/ui/motion";
+import { CONTENT_COUNTS } from "@/data/contentManifest";
 import Link from "next/link";
 
 interface Feature {
@@ -28,7 +29,7 @@ const FEATURES: Feature[] = [
     Icon: LayoutGrid,
     title: "Infinite design canvas",
     description:
-      "Drag, connect, and compose 32 infrastructure primitives — gateways, caches, Kafka, Cassandra, vector DBs, LLM inference — on a zoomable canvas that never runs out of room.",
+      `Drag, connect, and compose ${CONTENT_COUNTS.primitives} infrastructure primitives — gateways, caches, Kafka, Cassandra, vector DBs, LLM inference — on a zoomable canvas that never runs out of room.`,
     span: "lg:col-span-3",
     visual: "canvas",
   },
@@ -55,7 +56,7 @@ const FEATURES: Feature[] = [
   {
     Icon: BrainCircuit,
     title: "Socratic AI interviewer",
-    description: "Practice against an adversarial interviewer that probes your assumptions and grades you on a real rubric.",
+    description: "Practice against an adversarial interviewer that probes your assumptions and grades you on a real rubric. Bring your own API key, or run a local WebGPU model — no account required.",
     span: "lg:col-span-2",
   },
   {

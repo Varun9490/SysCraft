@@ -365,7 +365,7 @@ export function PluginsPageContent() {
                   Open the canvas <ArrowRight size={13} />
                 </Link>
                 <Link
-                  href="/workspace"
+                  href="/canvas"
                   className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-transparent px-4 py-2 text-[12.5px] text-content-tertiary transition-colors hover:text-content"
                 >
                   Open the workspace <ArrowRight size={12} />
