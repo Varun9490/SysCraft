@@ -27,13 +27,23 @@ interface PeerInfo {
   isSelf: boolean;
 }
 
+interface RemoteCursor {
+  clientId: number;
+  name: string;
+  color: string;
+  x: number;
+  y: number;
+}
+
 type RoomStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
 export function RoomSession() {
   const [config, setConfig] = useState<RoomConfig | null>(null);
   const [status, setStatus] = useState<RoomStatus>('idle');
   const [peers, setPeers] = useState<PeerInfo[]>([]);
+  const [cursors, setCursors] = useState<RemoteCursor[]>([]);
   const destroyedRef = useRef(false);
+  const awarenessRef = useRef<any>(null);
 
   useEffect(() => {
     setConfig(loadRoomConfig());
@@ -117,26 +127,56 @@ export function RoomSession() {
 
         // 4. Presence via the awareness protocol.
         const awareness = provider.awareness;
+        awarenessRef.current = awareness;
         awareness.setLocalStateField('user', { name: config.name, color: colorForName(config.name) });
         const refreshPeers = () => {
           if (cancelled) return;
           const selfId = doc.clientID;
           const next: PeerInfo[] = [];
+          const nextCursors: RemoteCursor[] = [];
           awareness.getStates().forEach((state, clientId) => {
             const user = (state as { user?: { name?: string; color?: string } }).user;
             if (!user || typeof user.name !== 'string') return;
+            const color = typeof user.color === 'string' ? user.color : `hsl(${(clientId * 47) % 360} 70% 62%)`;
             next.push({
               clientId,
               name: user.name,
-              color: typeof user.color === 'string' ? user.color : `hsl(${(clientId * 47) % 360} 70% 62%)`,
+              color,
               isSelf: clientId === selfId,
             });
+            if (clientId !== selfId) {
+              const cursor = (state as { cursor?: { x?: number; y?: number } }).cursor;
+              if (cursor && typeof cursor.x === 'number' && typeof cursor.y === 'number') {
+                nextCursors.push({ clientId, name: user.name, color, x: cursor.x, y: cursor.y });
+              }
+            }
           });
           next.sort((a, b) => Number(b.isSelf) - Number(a.isSelf) || a.name.localeCompare(b.name));
           setPeers(next);
+          setCursors(nextCursors);
         };
         awareness.on('change', refreshPeers);
         refreshPeers();
+
+        // 5. Broadcast local cursor position (throttled).
+        let cursorTimer: number | null = null;
+        const onPointerMove = (ev: PointerEvent) => {
+          if (cancelled) return;
+          const container = (ev.currentTarget as HTMLElement) ?? null;
+          if (!container) return;
+          const rect = container.getBoundingClientRect();
+          const x = ev.clientX - rect.left;
+          const y = ev.clientY - rect.top;
+          if (cursorTimer !== null) window.clearTimeout(cursorTimer);
+          cursorTimer = window.setTimeout(() => {
+            if (cancelled) return;
+            awareness.setLocalStateField('cursor', { x, y });
+          }, 50);
+        };
+        const canvasEl = document.querySelector('.react-flow') as HTMLElement | null;
+        if (canvasEl) {
+          canvasEl.addEventListener('pointermove', onPointerMove);
+        }
 
         provider.on('status', (event: { connected: boolean }) => {
           if (cancelled) return;
@@ -149,6 +189,8 @@ export function RoomSession() {
         cleanup = () => {
           if (seedTimer !== null) window.clearTimeout(seedTimer);
           if (writeTimer !== null) window.clearTimeout(writeTimer);
+          if (cursorTimer !== null) window.clearTimeout(cursorTimer);
+          if (canvasEl) canvasEl.removeEventListener('pointermove', onPointerMove);
           unsub();
           sceneMap.unobserve(observer);
           awareness.off('change', refreshPeers);
@@ -186,7 +228,29 @@ export function RoomSession() {
   if (!config) return null;
 
   return (
-    <div className="pointer-events-none absolute right-3 top-3 z-30">
+    <>
+      {cursors.length > 0 && (
+        <div className="pointer-events-none absolute inset-0 z-40">
+          {cursors.map((c) => (
+            <div
+              key={c.clientId}
+              className="absolute transition-transform duration-75"
+              style={{ transform: `translate(${c.x}px, ${c.y}px)` }}
+            >
+              <svg width="16" height="20" viewBox="0 0 16 20" fill="none" aria-hidden="true">
+                <path d="M0 0 L0 16 L4.5 12 L7 18 L9 17 L6.5 11 L12 11 Z" fill={c.color} stroke="#0a0a0a" strokeWidth="1" />
+              </svg>
+              <span
+                className="ml-3 mt-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-zinc-950"
+                style={{ backgroundColor: c.color }}
+              >
+                {c.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="pointer-events-none absolute right-3 top-3 z-30">
       <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950/95 px-2.5 py-1.5 shadow-2xl backdrop-blur">
         <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-zinc-200">
           <Users size={13} className="text-sky-400" />
@@ -240,5 +304,6 @@ export function RoomSession() {
         </button>
       </div>
     </div>
+    </>
   );
 }

@@ -18,6 +18,7 @@ const FORMATS: Array<{ id: IacFormat | "dsl"; label: string }> = [
   { id: "docker", label: "Docker Compose" },
   { id: "kubernetes", label: "Kubernetes" },
   { id: "mermaid", label: "Mermaid" },
+  { id: "excalidraw", label: "Excalidraw" },
   { id: "rfc", label: "RFC Markdown" },
   { id: "dsl", label: "Text DSL" },
 ];
@@ -79,7 +80,7 @@ export function IaCExportModal({ open, onClose }: IaCExportModalProps) {
 
   const download = () => {
     try {
-      const ext = format === "terraform" ? "tf" : format === "docker" ? "yml" : format === "kubernetes" ? "yaml" : format === "mermaid" ? "mmd" : "md";
+      const ext = format === "terraform" ? "tf" : format === "docker" ? "yml" : format === "kubernetes" ? "yaml" : format === "mermaid" ? "mmd" : format === "excalidraw" ? "excalidraw" : "md";
       const blob = new Blob([currentText], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");

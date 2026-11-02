@@ -13,7 +13,7 @@ const topo: GraphTopology = {
 describe("iacCompiler", () => {
   it("compiles all formats without throwing", () => {
     const out = compileAll(topo);
-    expect(Object.keys(out)).toEqual(["terraform", "docker", "kubernetes", "mermaid", "rfc"]);
+    expect(Object.keys(out)).toEqual(["terraform", "docker", "kubernetes", "mermaid", "rfc", "excalidraw"]);
     for (const k of Object.keys(out)) expect(out[k as keyof typeof out].length).toBeGreaterThan(0);
   });
   it("estimateMonthlyCost is positive", () => {

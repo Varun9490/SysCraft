@@ -11,7 +11,7 @@ import type { GraphTopology } from "@/types/simulation";
 
 const seedById = new Map(SEED_RESOURCES.map((r) => [r.id, r]));
 
-export type IacFormat = "terraform" | "docker" | "kubernetes" | "mermaid" | "rfc";
+export type IacFormat = "terraform" | "docker" | "kubernetes" | "mermaid" | "rfc" | "excalidraw";
 
 function slug(input: string): string {
   return (
@@ -329,6 +329,94 @@ export function compileRfc(topology: GraphTopology, options: RfcOptions = {}): s
   return lines.join("\n");
 }
 
+export function compileExcalidraw(topology: GraphTopology): string {
+  const nodes = sortedNodes(topology);
+  const elements: Array<Record<string, unknown>> = [];
+  const seedById2 = seedById;
+  nodes.forEach((n, i) => {
+    const seed = seedById2.get(n.resourceId);
+    const x = n.position.x;
+    const y = n.position.y;
+    const w = 200;
+    const h = 80;
+    elements.push({
+      id: n.id,
+      type: "rectangle",
+      x,
+      y,
+      width: w,
+      height: h,
+      angle: 0,
+      strokeColor: seed?.strokeColor ?? "#CDA86A",
+      backgroundColor: "transparent",
+      fillStyle: seed?.fillStyle ?? "hachure",
+      strokeWidth: 1.5,
+      strokeStyle: "solid",
+      roughness: 1,
+      opacity: 100,
+      groupIds: [],
+      frameId: null,
+      roundness: { type: 3 },
+      seed: i + 1,
+      version: 1,
+      versionNonce: i + 100,
+      isDeleted: false,
+      boundElements: null,
+      updated: Date.now(),
+      link: null,
+      locked: false,
+      text: n.resourceId,
+    });
+  });
+  for (const e of topology.edges) {
+    const src = nodes.find((n) => n.id === e.source);
+    const tgt = nodes.find((n) => n.id === e.target);
+    if (!src || !tgt) continue;
+    elements.push({
+      id: `arrow_${e.id}`,
+      type: "arrow",
+      x: src.position.x + 200,
+      y: src.position.y + 40,
+      width: tgt.position.x - src.position.x - 200,
+      height: tgt.position.y - src.position.y,
+      angle: 0,
+      strokeColor: "#94a3b8",
+      backgroundColor: "transparent",
+      fillStyle: "solid",
+      strokeWidth: 1.5,
+      strokeStyle: "solid",
+      roughness: 1,
+      opacity: 100,
+      groupIds: [],
+      frameId: null,
+      roundness: null,
+      seed: elements.length + 1,
+      version: 1,
+      versionNonce: elements.length + 100,
+      isDeleted: false,
+      boundElements: null,
+      updated: Date.now(),
+      link: null,
+      locked: false,
+      points: [[0, 0], [tgt.position.x - src.position.x - 200, tgt.position.y - src.position.y]],
+      lastCommittedPoint: null,
+      startBinding: null,
+      endBinding: null,
+      startArrowhead: null,
+      endArrowhead: "arrow",
+    });
+  }
+  const doc = {
+    type: "excalidraw",
+    version: 2,
+    source: "https://sys-craft-3vzz.vercel.app",
+    elements,
+    appState: { gridSize: null, viewBackgroundColor: "#0a0a0a" },
+    files: {},
+  };
+  return JSON.stringify(doc, null, 2);
+}
+
 export function compileAll(topology: GraphTopology, rfcOptions: RfcOptions = {}): Record<IacFormat, string> {
   return {
     terraform: compileTerraform(topology),
@@ -336,5 +424,6 @@ export function compileAll(topology: GraphTopology, rfcOptions: RfcOptions = {})
     kubernetes: compileKubernetes(topology),
     mermaid: compileMermaid(topology),
     rfc: compileRfc(topology, rfcOptions),
+    excalidraw: compileExcalidraw(topology),
   };
 }
