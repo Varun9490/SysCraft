@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -19,6 +19,7 @@ import { GUIDED_LABS } from "@/data/guidedLabs";
 import { labCleanTitle } from "@/data/labMeta";
 import { PATH_PARTS, TOTAL_LESSONS, TOTAL_MODULES } from "@/data/pathData";
 import { getLessonBlog } from "@/data/lessonBlogs";
+import { getLessonRoute, LESSON_ROUTES } from "@/lib/lessonRoutes";
 import { LessonBlogViewer } from "@/components/path/LessonBlogViewer";
 import { useLearningStore } from "@/store/useLearningStore";
 
@@ -32,8 +33,20 @@ export function PathPageContent() {
   const [selectedLessonByModule, setSelectedLessonByModule] = useState<Record<string, number>>({});
   const [viewModeByModule, setViewModeByModule] = useState<Record<string, "blog" | "summary">>({});
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
   const labProgress = useLearningStore((s) => s.labProgress);
   const labsById = useLabIndex();
+
+  const searchResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return LESSON_ROUTES.filter(
+      (r) =>
+        r.title.toLowerCase().includes(q) ||
+        r.moduleTitle.toLowerCase().includes(q) ||
+        r.partTitle.toLowerCase().includes(q),
+    ).slice(0, 40);
+  }, [query]);
 
   // Hydrate completed lessons from localStorage on mount.
   useEffect(() => {
@@ -115,7 +128,47 @@ export function PathPageContent() {
         </div>
       </section>
 
-      {PATH_PARTS.map((part, partIndex) => (
+      <section className="section-container pb-6">
+        <label className="block">
+          <span className="sr-only">Search lessons</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Search ${TOTAL_LESSONS} lessons — try “consistent hashing”, “rate limiter”, “Kafka”…`}
+            className="w-full rounded-xl border border-line bg-app/70 px-4 py-3 text-[14px] text-content placeholder:text-content-tertiary focus:border-brass/50 focus:outline-none"
+          />
+        </label>
+        {query.trim().length >= 2 && (
+          <div className="mt-4">
+            <p className="text-[12px] text-content-tertiary">
+              {searchResults.length} result{searchResults.length === 1 ? "" : "s"}
+            </p>
+            <ul className="mt-3 divide-y divide-line/60 overflow-hidden rounded-xl border border-line bg-app/50">
+              {searchResults.map((r) => (
+                <li key={r.href}>
+                  <Link href={r.href} className="flex items-start justify-between gap-3 px-4 py-3 transition-colors hover:bg-app">
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13.5px] text-content">{r.title}</span>
+                      <span className="mt-0.5 block text-[11px] text-content-tertiary">
+                        {r.partTitle} · {r.moduleTitle} · Lesson {r.lessonNumber}
+                      </span>
+                    </span>
+                    <ArrowRight size={14} className="mt-1 shrink-0 text-content-tertiary" />
+                  </Link>
+                </li>
+              ))}
+              {searchResults.length === 0 && (
+                <li className="px-4 py-6 text-center text-[13px] text-content-tertiary">
+                  No lessons match “{query.trim()}”. Try a broader term.
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+      </section>
+
+      {query.trim().length < 2 && PATH_PARTS.map((part, partIndex) => (
         <section key={part.id} id={part.id} className="section-container scroll-mt-24 pb-16 pt-10">
           <AnimatedSection className="flex flex-col gap-4 border-b border-zinc-800/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -227,32 +280,46 @@ export function PathPageContent() {
                                   const blog = getLessonBlog(module.id, lessonIndex);
                                   const selected = (selectedLessonByModule[module.id] ?? 0) === lessonIndex;
                                   const done = completedLessons.has(blog.id);
+                                  const lessonRoute = getLessonRoute(module.id, lessonIndex);
                                   return (
-                                    <button
+                                    <div
                                       key={lesson}
-                                      type="button"
-                                      onClick={() => setSelectedLessonByModule((prev) => ({ ...prev, [module.id]: lessonIndex }))}
-                                      className={`flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left text-[12.5px] transition-colors ${
+                                      className={`flex items-start gap-1 rounded-xl border text-left text-[12.5px] transition-colors ${
                                         selected
                                           ? "border-brass/50 bg-brass/10 text-content"
                                           : "border-line bg-app/60 text-content-secondary hover:border-line-strong hover:text-content"
                                       }`}
                                     >
-                                      <span
-                                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[9px] tabular-nums ${
-                                          done ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300" : ""
-                                        }`}
-                                        style={done ? undefined : { borderColor: `${part.accentHex}55`, color: part.accentHex }}
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedLessonByModule((prev) => ({ ...prev, [module.id]: lessonIndex }))}
+                                        className="flex min-w-0 flex-1 items-start gap-2.5 px-3 py-2.5 text-left"
                                       >
-                                        {done ? "\u2713" : lessonIndex + 1}
-                                      </span>
-                                      <span className="min-w-0 flex-1">
-                                        <span className="block leading-snug">{lesson}</span>
-                                        <span className="mt-0.5 block text-[10.5px] text-content-tertiary">
-                                          {blog.readMinutes} min read - read blog and try sandbox
+                                        <span
+                                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[9px] tabular-nums ${
+                                            done ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300" : ""
+                                          }`}
+                                          style={done ? undefined : { borderColor: `${part.accentHex}55`, color: part.accentHex }}
+                                        >
+                                          {done ? "\u2713" : lessonIndex + 1}
                                         </span>
-                                      </span>
-                                    </button>
+                                        <span className="min-w-0 flex-1">
+                                          <span className="block leading-snug">{lesson}</span>
+                                          <span className="mt-0.5 block text-[10.5px] text-content-tertiary">
+                                            {blog.readMinutes} min read - read blog and try sandbox
+                                          </span>
+                                        </span>
+                                      </button>
+                                      {lessonRoute && (
+                                        <Link
+                                          href={lessonRoute.href}
+                                          aria-label={`Open ${lesson} as a full page`}
+                                          className="mt-2 mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-content-tertiary transition-colors hover:bg-app hover:text-content"
+                                        >
+                                          <ArrowRight size={13} />
+                                        </Link>
+                                      )}
+                                    </div>
                                   );
                                 })}
                               </div>

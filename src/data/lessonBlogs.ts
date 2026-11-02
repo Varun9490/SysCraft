@@ -6914,6 +6914,398 @@ export function getAllLessonBlogsForModule(moduleId: string): LessonBlog[] {
   return result;
 }
 
+/* ------------------------------------------------------------------ */
+/* Module 30 — Search at scale                                         */
+/* ------------------------------------------------------------------ */
+
+addLesson("search-at-scale", 30, "Search at scale", "Inverted indexes: why search is not a WHERE clause", {
+  a: "A library catalogue sorted by title helps only if you already know the title. A search box is the librarian who has read every book and can answer 'which books mention dragons and castles' in a second. The inverted index is that librarian's notebook: every word points to the documents that contain it.",
+  learn: [
+    "Why scanning a table with LIKE '%term%' cannot use a normal index.",
+    "How an inverted index stores term → posting list and why that flips the cost model.",
+    "When a search engine is the right tool and when Postgres full-text is enough.",
+  ],
+  s: [
+    "One table, one LIKE query",
+    "At 10,000 rows, SELECT * FROM docs WHERE body LIKE '%dragon%' is fine. The database reads every row, but 10,000 rows is a few milliseconds. Nobody notices.",
+    "A sequential scan is honest work. It becomes a problem only when the table grows faster than your patience.",
+    "The scan becomes the outage",
+    "At 50 million documents the same query reads 50 million rows per keystroke. Adding a B-tree index does not help: the leading wildcard means the database cannot seek. CPU pins, p99 climbs, and every user pays for every other user's search.",
+    "Normal indexes answer 'equals' and 'starts with'. Search asks 'contains' and 'means'. Different question, different data structure.",
+    "The inverted index takes over",
+    "Elasticsearch or OpenSearch tokenizes each document, builds a term dictionary, and stores posting lists (term → document ids). A query looks up the term once, intersects posting lists, and ranks the matches. Sharding spreads the dictionary across nodes; replicas absorb read traffic.",
+    "Search is a read-optimized side system. Keep the source of truth in your database and treat the index as a derived, rebuildable view.",
+  ],
+  d: [
+    ["Documents", "Write once", "Each document is stored with an id and its searchable fields.", "emerald"],
+    ["Analyzer", "Break into terms", "Lowercase, split, stem, and drop stop words so 'Running' and 'run' match.", "sky"],
+    ["Posting lists", "Term → ids", "Every unique term points to the documents that contain it, with positions for phrase queries.", "violet"],
+    ["Query", "Intersect and rank", "Look up terms, intersect lists, score matches, return the top page.", "amber"],
+  ],
+  c: ["GitHub", "GitHub code search moved from a relational scan to a dedicated index because developers expect substring and symbol search across billions of files. The index is derived from the repository contents and can be rebuilt; the repository remains the source of truth.", "Search latency moved from seconds to sub-second for common queries at repository scale."],
+  q: ["Why does a B-tree index on a text column fail to speed up WHERE body LIKE '%dragon%'?", ["The B-tree stores hashes, not text", "The leading wildcard prevents a range seek", "B-trees only work on numbers"], 1, "A B-tree can seek to a prefix, but a leading % means there is no prefix to seek. The engine must scan every row, so the index is unused."],
+  sb: {
+    t: "Scan vs index", p: "Drag the document count to see how a full scan and an inverted-index lookup diverge as the corpus grows.", slider: "Documents in the corpus", unit: "docs", min: 10000, max: 50000000, step: 10000, def: 1000000,
+    prims: ["search_cluster", "postgres_db", "redis_cache"], kind: "plot",
+  },
+});
+
+addLesson("search-at-scale", 30, "Search at scale", "Analyzers, tokenization, and the query you actually meant", {
+  a: "Two people search for 'running shoes'. One types 'run shoe', another 'RUNNING Shoes!'. A good shop assistant hears the same intent. The analyzer is that assistant: it lowercases, splits, stems, and normalizes before anything is indexed.",
+  learn: [
+    "What an analyzer does at index time and at query time — and why they must match.",
+    "Stemming, stop words, synonyms, and the recall/precision trade-off each one buys.",
+    "How to debug a search that returns nothing when the document clearly exists.",
+  ],
+  s: [
+    "Split on spaces",
+    "The simplest analyzer lowercases and splits on whitespace. 'Running Shoes' becomes [running, shoes]. A query for 'run' finds nothing because the strings differ.",
+    "Exact matching is predictable but brittle. Users rarely type the exact form you indexed.",
+    "Stem and expand",
+    "A real analyzer applies a stemmer (running → run), removes stop words (the, a, of), and optionally adds synonyms (sneaker → shoe). Now 'run shoe' matches. The cost is precision: 'university' and 'universe' may collapse to the same stem.",
+    "Every normalization is a trade: more recall, less precision. Choose per field, not per index.",
+    "Language-aware analysis at scale",
+    "Production clusters run language-specific analyzers, protect exact-match fields with keyword sub-fields, and keep a separate analyzer for autocomplete. Elasticsearch exposes _analyze so you can see the exact token stream before blaming the query.",
+    "When search returns nothing, inspect the tokens first. The bug is usually an analyzer mismatch, not a missing document.",
+  ],
+  d: [
+    ["Raw text", "What the user typed", "Unicode, punctuation, mixed case, emoji.", "emerald"],
+    ["Character filters", "Clean the stream", "Strip HTML, map accents, normalize quotes.", "sky"],
+    ["Tokenizer", "Split into terms", "Whitespace, standard, or language-specific rules.", "violet"],
+    ["Token filters", "Normalize terms", "Lowercase, stem, synonyms, stop words — the same chain at index and query time.", "amber"],
+  ],
+  c: ["Airbnb", "Airbnb's search team documented analyzer work for multilingual listings: the same property must match 'apartment', 'flat', and local-language variants. They maintain per-language analyzers and synonym sets rather than one global chain.", "Cross-language recall improved without a proportional drop in ranking precision."],
+  q: ["A document contains 'Running'. A query for 'run' returns nothing. What is the most likely cause?", ["The document was not committed", "Index and query analyzers do not both stem", "The cluster is red"], 1, "If the index stored 'running' and the query looked for 'run' without stemming either side, the terms never meet. Analyzers must agree."],
+  sb: {
+    t: "Analyzer recall trade-off", p: "Increase normalization strength and watch recall rise while precision falls.", slider: "Normalization strength", unit: "%", min: 0, max: 100, step: 5, def: 50,
+    prims: ["search_cluster", "rest_service"], kind: "plot",
+  },
+});
+
+addLesson("search-at-scale", 30, "Search at scale", "Ranking: TF-IDF, BM25, and learning to rank", {
+  a: "A bookshop has 400 books mentioning 'dragon'. Which goes on the front table? The one where dragons are the subject, not a footnote, and the one readers actually finish. Ranking is that judgement, expressed as a number.",
+  learn: [
+    "Why matching is not ranking: the posting list gives candidates, not an order.",
+    "TF-IDF and BM25 in plain language, including the saturation and length-normalization knobs.",
+    "Where learning-to-rank fits and why it needs labelled clicks, not just documents.",
+  ],
+  s: [
+    "Sort by match count",
+    "The first ranker counts how many query terms appear in each document. A document with 'dragon' five times beats one with it once. It is better than nothing and wrong in obvious ways: a long document wins by length alone.",
+    "Term frequency is a signal, but raw counts reward verbosity. You need a dampener.",
+    "BM25 balances frequency and rarity",
+    "BM25 saturates term frequency (the tenth mention matters less than the second), penalizes long documents, and weights rare terms higher through inverse document frequency. Two knobs, k1 and b, control saturation and length normalization. It is still the default in Elasticsearch and Lucene for good reason.",
+    "BM25 is a strong, cheap baseline. Tune it before reaching for a model.",
+    "Learning to rank from behaviour",
+    "At scale, teams log impressions and clicks, train a pairwise or listwise model, and blend it with BM25 as a feature. The model sees signals text cannot: freshness, author authority, CTR, and personalization. The risk is feedback loops — popular results get more clicks and stay popular.",
+    "Ranking models need guardrails: exploration traffic, bias correction, and a holdout you never train on.",
+  ],
+  d: [
+    ["Candidates", "Posting-list intersection", "Cheap recall: every document that matches at least one term.", "emerald"],
+    ["Text score", "BM25", "Frequency, rarity, and length in one interpretable number.", "sky"],
+    ["Features", "Behaviour and context", "Clicks, freshness, author, locale, device.", "violet"],
+    ["Ranker", "Blend and rerank", "Linear blend or learned model, then diversity and business rules.", "amber"],
+  ],
+  c: ["Elasticsearch", "Lucene's BM25Similarity has been the default since Elasticsearch 5.0, replacing TF-IDF. The change improved relevance on long documents because BM25's length normalization prevents a verbose page from outranking a precise one.", "BM25 remains the default text scorer in Lucene-based engines."],
+  q: ["What does the b parameter in BM25 control?", ["The number of shards", "How strongly document length is penalized", "The size of the posting list"], 1, "b scales length normalization. b = 0 ignores length; b = 1 fully normalizes by length relative to the average document."],
+  sb: {
+    t: "Length normalization", p: "Slide the length penalty and watch a short precise document compete with a long verbose one.", slider: "Length penalty (b)", unit: "", min: 0, max: 1, step: 0.05, def: 0.75,
+    prims: ["search_cluster", "rest_service"], kind: "tail",
+  },
+});
+
+addLesson("search-at-scale", 30, "Search at scale", "Sharding and replicating a search cluster", {
+  a: "One librarian cannot index a city. Split the shelves by subject across ten librarians, then hire a second shift on each desk so someone is always awake. Sharding is the split; replication is the second shift.",
+  learn: [
+    "How a search index shards by document, not by term, and why that matters for scoring.",
+    "Why every shard must be queried and how scatter-gather latency adds up.",
+    "How replicas buy read throughput and availability without buying write speed.",
+  ],
+  s: [
+    "One index, one node",
+    "A single node holds the whole dictionary. Queries are fast until the index outgrows RAM and disk. Then you add a second node and discover the hard part: a term's posting list lives on exactly one shard.",
+    "Sharding a search index is easy to start and hard to rebalance. Choose the shard count for the next two years, not this week.",
+    "Scatter, gather, merge",
+    "A query fans out to every shard, each returns its top K, and the coordinating node merges and re-ranks. Ten shards means ten network hops and ten local top-K computations. Tail latency is the slowest shard, not the average.",
+    "Every extra shard adds a tail-latency tax. Fewer, larger shards often beat many tiny ones.",
+    "Replicas and index lifecycle",
+    "Each shard has replicas for read throughput and failover. Writes go to the primary and replicate; reads can go to any copy. Hot/warm/cold tiers move old indices to cheaper storage, and index templates keep mappings consistent.",
+    "Replicas do not make writes faster. If write throughput is the problem, you need more primaries, not more copies.",
+  ],
+  d: [
+    ["Documents", "Routed by id", "A hash of the document id chooses the shard.", "emerald"],
+    ["Primary shards", "Own the terms", "Each shard has its own dictionary and posting lists.", "sky"],
+    ["Replicas", "Serve reads", "Copies absorb query traffic and survive node loss.", "violet"],
+    ["Coordinator", "Scatter-gather", "Fan out, collect top K, merge, and return one ranked page.", "amber"],
+  ],
+  c: ["Elastic", "Elastic's own guidance recommends sizing shards to roughly 10–50 GB and avoiding thousands of tiny shards per node, because each shard carries fixed heap and file-handle overhead. Cluster health turns yellow when replicas cannot be allocated.", "Shard sizing guidance is a direct response to the tail-latency cost of over-sharding."],
+  q: ["Why does adding more shards eventually increase query latency?", ["Each shard must be queried and the coordinator waits for the slowest", "Shards compete for the same posting list", "BM25 only works on one shard"], 0, "Search is scatter-gather: the coordinator waits for every shard. More shards means more chances for one to be slow, so p99 rises even if average work per shard falls."],
+  sb: {
+    t: "Scatter-gather tail", p: "Add shards and watch p99 climb as the coordinator waits for the slowest copy.", slider: "Number of shards", unit: "shards", min: 1, max: 32, step: 1, def: 8,
+    prims: ["search_cluster", "dns_load_balancer", "observability_stack"], kind: "latency",
+  },
+});
+
+addLesson("search-at-scale", 30, "Search at scale", "Keeping the index fresh: CDC and reindexing", {
+  a: "A newspaper archive is only useful if today's paper is in it. You can re-bind every volume each night (slow, expensive) or slot today's pages into the right place as they print (fast, but you must handle mistakes).",
+  learn: [
+    "Why the database is the source of truth and the index is a derived view.",
+    "Change data capture (CDC) vs dual writes vs periodic reindex — and the failure mode of each.",
+    "How to run a zero-downtime reindex with aliases.",
+  ],
+  s: [
+    "Nightly rebuild",
+    "The simplest pipeline drops the index and rebuilds from the database at 2 a.m. Search is stale for up to a day, and the rebuild competes with production traffic.",
+    "A nightly rebuild is acceptable for a catalogue that changes weekly. It is unacceptable for chat or inventory.",
+    "Dual writes and their lies",
+    "The application writes to the database and the search index in the same request. It feels real-time until one write succeeds and the other fails: the index now disagrees with the truth, and nobody knows which record is wrong.",
+    "Two writes are not a transaction. Without an outbox or CDC, drift is inevitable.",
+    "CDC and alias swaps",
+    "A log-based connector tails the database replication stream and publishes changes to the index. For a mapping change, build a new index, backfill, then atomically point an alias at it and delete the old one. Consumers can replay from a checkpoint after an outage.",
+    "Treat the index as a cache with a schema. It must be rebuildable from the source of truth at any time.",
+  ],
+  d: [
+    ["Database", "Source of truth", "The row is committed before anything else happens.", "emerald"],
+    ["Change log", "CDC stream", "Insert, update, and delete events in commit order.", "sky"],
+    ["Indexer", "Apply and retry", "Idempotent writes keyed by document id, with a dead-letter queue.", "violet"],
+    ["Alias", "Atomic switch", "Point reads at the new index only when the backfill is complete.", "amber"],
+  ],
+  c: ["Shopify", "Shopify's search infrastructure uses change streams and bulk reindexing to keep product search close to the catalog without making the checkout path depend on the search cluster. The search index can be rebuilt without taking the storefront down.", "Search freshness is decoupled from checkout availability."],
+  q: ["What is the main failure mode of dual-writing to the database and the search index in one request?", ["The index becomes too large", "One write can succeed while the other fails, leaving drift", "BM25 stops working"], 1, "Without a shared transaction or an outbox, a partial failure leaves the two stores inconsistent. CDC or an outbox makes the index eventually correct."],
+  sb: {
+    t: "Index lag budget", p: "Increase event rate and watch the indexing backlog grow when consumers fall behind.", slider: "Change events per second", unit: "events/s", min: 100, max: 100000, step: 100, def: 5000,
+    prims: ["postgres_db", "kafka_stream", "search_cluster", "background_worker"], kind: "outbox",
+  },
+});
+
+addLesson("search-at-scale", 30, "Search at scale", "Autocomplete, typo tolerance, and query suggestions", {
+  a: "A good waiter finishes your sentence before you regret ordering. Autocomplete is that: it predicts the query from a few characters, forgives a typo, and never makes you wait for the prediction.",
+  learn: [
+    "Why prefix search needs a different index structure from full-text search.",
+    "How edit distance and n-gram indexes buy typo tolerance at a cost.",
+    "The latency budget for a suggestion dropdown and how to protect it.",
+  ],
+  s: [
+    "Prefix scan on a sorted list",
+    "Keep the top queries in a sorted array and binary-search the prefix. At 10,000 queries this is instant. It handles exact prefixes only: 'syscrfat' returns nothing.",
+    "A sorted list is a fine v1. It fails on typos and on prefixes that span words.",
+    "Tries, n-grams, and edit distance",
+    "A trie walks character by character and returns completions below a node. An n-gram index (character shingles) tolerates typos by matching overlapping fragments. Edit distance reranks candidates within one or two edits. Each option trades memory for recall.",
+    "Typo tolerance is a ranking feature, not a filter. Generate candidates cheaply, then score them.",
+    "Sub-100 ms at the edge",
+    "Suggestions are cached at the edge, precomputed for popular prefixes, and served from a small in-memory structure. The full search cluster is the fallback, never the first hop. Debounce keystrokes and cancel stale requests.",
+    "The dropdown has a tighter budget than the results page. If it is not under 100 ms, users type through it.",
+  ],
+  d: [
+    ["Keystroke", "Debounce", "Wait 100–150 ms so every character is not a query.", "emerald"],
+    ["Prefix index", "Trie or n-grams", "Cheap candidate generation, including near-matches.", "sky"],
+    ["Ranker", "Popularity and context", "Blend frequency, recency, and personal history.", "violet"],
+    ["Edge cache", "Serve fast", "Precomputed suggestions for hot prefixes; fall back to the cluster.", "amber"],
+  ],
+  c: ["Google", "Google's autocomplete returns suggestions in well under the time it takes a user to type the next character, using distributed prefix indexes and aggressive caching. The system is designed so the dropdown never blocks typing.", "Suggestion latency is treated as a hard interaction budget, not a best effort."],
+  q: ["Why is a trie a better fit than a B-tree for prefix autocomplete?", ["A trie stores terms by shared prefix, so walking the prefix is direct", "A trie uses less disk than a B-tree", "A trie supports transactions"], 0, "A trie's edges are characters, so a prefix walk lands on the subtree of all completions. A B-tree can range-scan a prefix too, but the trie makes the prefix path explicit and supports per-node ranking."],
+  sb: {
+    t: "Suggestion latency budget", p: "Increase keystroke rate and watch the dropdown budget disappear without debounce and caching.", slider: "Keystrokes per second", unit: "keys/s", min: 1, max: 20, step: 1, def: 6,
+    prims: ["cdn_edge", "search_cluster", "redis_cache"], kind: "latency",
+  },
+});
+
+/* ------------------------------------------------------------------ */
+/* Module 31 — Analytics and recommendations                           */
+/* ------------------------------------------------------------------ */
+
+addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Columnar analytics: why OLAP is a different database", {
+  a: "A row-store is a filing cabinet organized by person: everything about one person is in one folder. A column-store is organized by attribute: every birthday together, every city together. If you only need birthdays, the second cabinet is dramatically faster.",
+  learn: [
+    "Why row-oriented storage is right for transactions and wrong for scans.",
+    "How columnar layout, compression, and vectorized execution change the cost model.",
+    "When to reach for a warehouse instead of adding another index to Postgres.",
+  ],
+  s: [
+    "COUNT(*) on the production database",
+    "The analytics dashboard runs GROUP BY country over 200 million orders. On the OLTP database it reads every row, blows the buffer cache, and slows checkout. The query is correct and operationally unacceptable.",
+    "Analytics on the transaction database is a availability risk, not just a performance problem.",
+    "Columnar storage and compression",
+    "A column store keeps each column contiguous, so a scan of one column reads only that column. Similar values compress well (dictionary, run-length, delta), and vectorized execution processes batches instead of rows. The same query reads a fraction of the bytes.",
+    "Columnar is fast because it reads less, not because it has a better CPU. Compression is the feature.",
+    "Separate the warehouse",
+    "ETL or ELT copies data into a warehouse (BigQuery, Snowflake, ClickHouse, Redshift). Dashboards hit the warehouse; checkout hits the OLTP database. Materialized views and pre-aggregation keep the common queries cheap.",
+    "Do not run analytics and transactions on the same engine unless the scale genuinely allows it. The failure modes are different.",
+  ],
+  d: [
+    ["OLTP rows", "Serve one user", "Point reads and writes, row by row.", "emerald"],
+    ["CDC / ETL", "Copy changes", "Move data without touching the checkout path.", "sky"],
+    ["Column store", "Scan few columns", "Compression plus vectorized execution over batches.", "violet"],
+    ["Dashboard", "Pre-aggregate", "Materialized views keep repeated queries cheap.", "amber"],
+  ],
+  c: ["Uber", "Uber's analytics stack separates transactional systems from a columnar warehouse and stream-processing layer, so driver and rider apps are not competing with analytical scans for the same resources.", "Analytical workloads are isolated from the latency-critical dispatch path."],
+  q: ["Why is a column store faster for SELECT country, COUNT(*) FROM orders GROUP BY country?", ["It stores rows in alphabetical order", "It reads only the country column instead of every row's full payload", "It has more CPU cores"], 1, "A row store reads entire rows even though only one column is needed. A column store reads that column's contiguous blocks, often compressed, so far fewer bytes move."],
+  sb: {
+    t: "Row vs column scan", p: "Grow the table and compare bytes read by a row store and a column store for a one-column aggregate.", slider: "Rows in the orders table", unit: "rows", min: 1000000, max: 1000000000, step: 1000000, def: 200000000,
+    prims: ["postgres_db", "blob_storage", "stream_processor"], kind: "cost",
+  },
+});
+
+addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Batch vs stream: Lambda and Kappa in practice", {
+  a: "A daily newspaper and a live ticker both tell you what happened. The newspaper is cheaper and easier to check; the ticker is fresher and harder to keep correct. Most businesses need both, and the argument is about which one owns the truth.",
+  learn: [
+    "What batch and stream processing are each good at, in cost and latency terms.",
+    "The Lambda architecture and the duplicate-logic problem it creates.",
+    "When Kappa (stream-only) is simpler and when it is a trap.",
+  ],
+  s: [
+    "Nightly batch job",
+    "A cron job reads yesterday's events, computes aggregates, and writes a table. It is cheap, easy to reprocess, and always at least a day stale.",
+    "Batch is the right default for anything that does not need to react within minutes.",
+    "Lambda: batch plus speed layer",
+    "The Lambda architecture runs a batch layer for correctness and a stream layer for freshness, then merges them. It works, but the same business logic now lives in two codebases with two sets of bugs.",
+    "Two implementations of one rule is a consistency bug waiting for a quarter-end.",
+    "Kappa and the streaming-first bet",
+    "Kappa keeps one stream pipeline and replays history when logic changes. It removes duplicate logic but demands a durable log (Kafka), replay discipline, and stateful processing that can handle late events. Flink and Kafka Streams make this practical.",
+    "Choose Kappa when replay is cheap and the team can operate stateful streams. Otherwise batch plus a small speed layer is honest.",
+  ],
+  d: [
+    ["Events", "Append to a log", "The log is the durable source for both paths.", "emerald"],
+    ["Batch layer", "Correct and cheap", "Reprocess history on a schedule.", "sky"],
+    ["Speed layer", "Fresh and approximate", "Handle the last few minutes with the same rules.", "violet"],
+    ["Serving layer", "Merge", "Batch results plus recent stream results, with a clear precedence rule.", "amber"],
+  ],
+  c: ["LinkedIn", "LinkedIn popularized Kafka as the durable log behind both batch and streaming pipelines, letting consumers replay history instead of maintaining a separate batch implementation for every metric.", "A replayable log is the enabling primitive for Kappa-style pipelines."],
+  q: ["What is the core criticism of the Lambda architecture?", ["It cannot process events", "The same business logic is implemented twice, in batch and stream", "It requires a relational database"], 1, "Lambda maintains a batch and a speed layer. Keeping their logic identical is an ongoing engineering cost and a common source of disagreement between the two outputs."],
+  sb: {
+    t: "Stream backlog drain", p: "Increase arrivals and watch whether the stream processor keeps up or the backlog grows.", slider: "Events per second", unit: "events/s", min: 1000, max: 500000, step: 1000, def: 50000,
+    prims: ["kafka_stream", "stream_processor", "blob_storage"], kind: "queue",
+  },
+});
+
+addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Data modeling for analytics: facts, dimensions, and grains", {
+  a: "A sales report is a stack of receipts plus a directory of stores, products, and dates. The receipts are facts; the directory is dimensions. Confuse the two and every question becomes a join you cannot explain.",
+  learn: [
+    "What a fact table's grain is and why declaring it prevents double counting.",
+    "Star vs snowflake schemas and when each is worth the joins.",
+    "Slowly changing dimensions and why history changes the answer.",
+  ],
+  s: [
+    "One wide events table",
+    "Every event lands in one table with user, product, and timestamp columns. Simple to write, painful to query: the same user attribute is repeated on every row and updates rewrite history.",
+    "Denormalized events are fine for ingestion. They are a poor model for answering questions consistently.",
+    "Facts and dimensions",
+    "Fact tables store measurements at a declared grain (one row per order line). Dimension tables store descriptive attributes (customer, product, date). A star schema joins facts to dimensions; a snowflake normalizes dimensions further.",
+    "Write the grain in the table comment. If two analysts disagree about what one row means, every metric is suspect.",
+    "History and late data",
+    "Type 2 slowly changing dimensions keep effective dates so a report can answer 'what region was this customer in when they bought'. Late-arriving facts are handled with watermarks or restatements, not by silently overwriting yesterday.",
+    "Analytics is a historical record. Updates must be explicit restatements, not quiet mutations.",
+  ],
+  d: [
+    ["Events", "Raw material", "Immutable facts as they arrived.", "emerald"],
+    ["Fact table", "Declared grain", "One row per order line, with keys and measures.", "sky"],
+    ["Dimensions", "Context", "Customer, product, date, region — with history where needed.", "violet"],
+    ["Mart", "Answer a question", "Pre-joined, pre-aggregated views for a domain.", "amber"],
+  ],
+  c: ["Amazon Redshift", "Redshift's documentation centers on star schemas and declared grains for warehouse modeling, because distribution and sort keys only help when the fact table's grain and join paths are explicit.", "Warehouse performance tuning starts with the model, not the cluster size."],
+  q: ["What does the grain of a fact table describe?", ["The number of columns", "What one row represents", "The compression algorithm"], 1, "The grain states exactly what a single fact row means, such as one order line or one daily snapshot. Every measure and join must respect it."],
+  sb: {
+    t: "Fact table growth", p: "Increase daily events and watch storage and scan cost grow with the declared grain.", slider: "Events per day", unit: "events/day", min: 100000, max: 100000000, step: 100000, def: 5000000,
+    prims: ["blob_storage", "stream_processor", "postgres_db"], kind: "cost",
+  },
+});
+
+addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Recommendations: collaborative filtering to embeddings", {
+  a: "Ask a friend with similar taste what to watch next. That is collaborative filtering: you are recommended what people like you liked. Ask a critic who understands genre and mood, and that is content-based. Modern systems blend both.",
+  learn: [
+    "User-item matrices, co-occurrence, and the cold-start problem.",
+    "Matrix factorization and two-tower embeddings in plain language.",
+    "Why candidate generation and ranking are separate stages.",
+  ],
+  s: [
+    "Popularity baseline",
+    "Recommend the same top 100 items to everyone. It is trivial, surprisingly hard to beat, and completely blind to individual taste.",
+    "Always ship the popularity baseline. If a fancy model cannot beat it, the model is not ready.",
+    "Collaborative filtering",
+    "Build a user-item matrix of interactions. Item-item co-occurrence ('people who watched A also watched B') is cheap and effective. Matrix factorization learns latent factors, and two-tower models learn a user vector and an item vector whose dot product predicts affinity.",
+    "Collaborative filtering needs interactions. New users and new items have no signal — that is the cold-start problem.",
+    "Two-stage retrieval and ranking",
+    "Candidate generation retrieves a few hundred plausible items with an approximate nearest-neighbour index over embeddings. A heavier ranker scores those candidates with features like recency, price, and business rules. The split keeps latency bounded while allowing a complex model.",
+    "You cannot rank what you never retrieved. Recall in candidate generation caps the quality of everything downstream.",
+  ],
+  d: [
+    ["Interactions", "Clicks, views, buys", "The raw signal, with position bias to correct.", "emerald"],
+    ["Candidates", "ANN over embeddings", "Retrieve a few hundred items cheaply.", "sky"],
+    ["Ranker", "Features and model", "Score candidates with context and business rules.", "violet"],
+    ["Policy", "Diversity and guardrails", "Remove duplicates, enforce freshness, cap exposure.", "amber"],
+  ],
+  c: ["Netflix", "Netflix's recommendation system combines collaborative signals with content metadata and ranks candidates in multiple stages, because a single model over the full catalogue cannot meet the latency budget.", "Multi-stage retrieval and ranking is the standard architecture for large catalogues."],
+  q: ["Why is candidate generation separated from ranking?", ["Ranking models cannot read embeddings", "Scoring every item with a heavy model would exceed the latency budget", "Candidates must be sorted alphabetically"], 1, "A complex ranker over millions of items is too slow. Retrieval narrows the set with a cheap model, then the ranker spends its budget on a few hundred candidates."],
+  sb: {
+    t: "Catalogue ranking budget", p: "Grow the catalogue and watch how a two-stage system keeps latency flat while a full scan explodes.", slider: "Items in the catalogue", unit: "items", min: 10000, max: 10000000, step: 10000, def: 1000000,
+    prims: ["vector_database", "redis_cache", "rest_service"], kind: "latency",
+  },
+});
+
+addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Ranking a feed: candidates, features, and reranking", {
+  a: "A newspaper editor does not print every story. They pick a shortlist, decide the front page, then check that the page is not all sport. A feed ranker does the same three jobs at millisecond speed.",
+  learn: [
+    "The three stages of a feed: candidate generation, scoring, and reranking.",
+    "Which features actually move the ranking and where they come from.",
+    "Why diversity and freshness are applied after the model, not inside it.",
+  ],
+  s: [
+    "Reverse chronological",
+    "The first feed shows the newest posts first. It is transparent and easy to explain, but it rewards volume and ignores whether anyone cares.",
+    "Chronological is a defensible v1. It is not a ranking strategy.",
+    "Score with engagement features",
+    "Candidates come from follows, trends, and embeddings. Features include affinity, recency, predicted click or watch time, and author quality. A model combines them into a score, and the top K are returned.",
+    "The model optimizes what you measure. If you optimize clicks, you will get clickbait unless you add satisfaction signals.",
+    "Rerank for diversity and policy",
+    "After scoring, rerank to remove near-duplicates, cap the same author, inject fresh content, and enforce policy. Exploration slots keep the model learning. The final list is a product decision, not just a model output.",
+    "Reranking is where product policy lives. Keep it explicit and auditable.",
+  ],
+  d: [
+    ["Sources", "Follows, trends, embeddings", "Generate a few hundred candidates per request.", "emerald"],
+    ["Features", "Affinity and context", "User, author, item, and time signals joined cheaply.", "sky"],
+    ["Model", "Predict engagement", "A lightweight ranker scores each candidate.", "violet"],
+    ["Rerank", "Diversity and policy", "Dedupe, cap exposure, inject exploration, enforce rules.", "amber"],
+  ],
+  c: ["Meta", "Meta has published how feed ranking combines candidate generation, lightweight ranking, and heavier final ranking, with integrity and diversity constraints applied after the model score.", "Large-scale feeds are multi-stage systems, not one model over all posts."],
+  q: ["Why apply diversity after the ranking model instead of training it into the model?", ["Diversity is impossible to model", "It keeps product policy explicit, auditable, and adjustable without retraining", "It reduces the candidate set"], 1, "Policy constraints change faster than models and must be explainable. Post-processing keeps them separate from the learned score."],
+  sb: {
+    t: "Feed fan-out cost", p: "Increase followers per user and watch candidate generation and ranking work grow per request.", slider: "Followers per user", unit: "followers", min: 10, max: 10000, step: 10, def: 500,
+    prims: ["redis_cache", "vector_database", "kafka_stream", "rest_service"], kind: "fanout",
+  },
+});
+
+addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Measuring quality: offline metrics vs online experiments", {
+  a: "A restaurant can win a taste test in the kitchen and still fail on the street. Offline metrics are the taste test; an A/B test is the street. You need both, and they disagree for good reasons.",
+  learn: [
+    "Precision, recall, NDCG, and why one number never tells the whole story.",
+    "How an A/B test isolates a change and the traps that invalidate it.",
+    "Why offline gains often fail to become online wins.",
+  ],
+  s: [
+    "One offline metric",
+    "The team computes precision@10 on a labelled set. It goes up, everyone ships, and the online metric does not move. The labelled set was collected from the old ranker's impressions, so it shares the old ranker's blind spots.",
+    "Offline evaluation is only as good as the labels. Biased logs produce confident, wrong conclusions.",
+    "Rank-aware metrics and holdouts",
+    "NDCG rewards putting relevant items higher, not just including them. Recall@K measures whether the candidate stage found the item at all. A time-based holdout and a fresh labelled set reduce leakage and distribution drift.",
+    "Measure the stage you changed. A ranking improvement cannot fix a candidate stage that never retrieved the item.",
+    "Online experiments and guardrails",
+    "An A/B test randomizes users, runs long enough to see the effect, and watches guardrail metrics (latency, error rate, unsubscribe) alongside the primary metric. Novelty effects and interference between users are the classic traps.",
+    "Ship on a statistically sound online win, not on an offline curve. Guardrails decide whether the win is allowed.",
+  ],
+  d: [
+    ["Labels", "What good means", "Human judgements or trustworthy behaviour.", "emerald"],
+    ["Offline", "Fast iteration", "Precision, recall, NDCG on a held-out set.", "sky"],
+    ["Experiment", "Randomize users", "One change, a primary metric, and guardrails.", "violet"],
+    ["Decision", "Ship or revert", "Statistical significance plus operational safety.", "amber"],
+  ],
+  c: ["Booking.com", "Booking.com has written extensively about running hundreds of concurrent experiments and the discipline required to avoid false positives, including guardrail metrics and avoiding peeking at results.", "Experiment velocity is a process capability, not just a tool."],
+  q: ["Why can an offline NDCG improvement fail to produce an online win?", ["NDCG is always wrong", "Offline labels come from historical logs and may not reflect live behaviour", "Online metrics are random"], 1, "Logs reflect the old system's exposure and user mix. A model can improve on those labels while missing what live users actually do."],
+  sb: {
+    t: "Experiment sample size", p: "Shrink the effect you want to detect and watch the required sample size explode.", slider: "Minimum detectable effect", unit: "%", min: 0.1, max: 5, step: 0.1, def: 1,
+    prims: ["observability_stack", "rest_service", "redis_cache"], kind: "slo",
+  },
+});
+
 /**
  * Completeness proof at module load: every lesson in PATH_PARTS must have a
  * blog (or this import fails loudly, which fails tests and dev builds).

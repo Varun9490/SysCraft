@@ -611,6 +611,49 @@ export const PATH_PARTS: PathPart[] = [
       },
     ],
   },
+  {
+    id: "data-retrieval-scale",
+    title: "Data, search & recommendations",
+    subtitle: "The systems that answer questions over data: search, analytics, and personalization.",
+    accentClass: "text-amber-300",
+    accentHex: "#FCD34D",
+    modules: [
+      {
+        id: "search-at-scale",
+        number: 30,
+        title: "Search at scale",
+        description:
+          "Why a search box is not a SQL query: inverted indexes, ranking, analyzers, sharding, and keeping the index fresh.",
+        lessonTitles: [
+          "Inverted indexes: why search is not a WHERE clause",
+          "Analyzers, tokenization, and the query you actually meant",
+          "Ranking: TF-IDF, BM25, and learning to rank",
+          "Sharding and replicating a search cluster",
+          "Keeping the index fresh: CDC and reindexing",
+          "Autocomplete, typo tolerance, and query suggestions",
+        ],
+        encyclopediaId: "vector-search",
+        practiceLabIds: ["search-autocomplete"],
+      },
+      {
+        id: "analytics-and-recommendations",
+        number: 31,
+        title: "Analytics and recommendations",
+        description:
+          "Columnar stores, batch vs stream, and how personalization turns behaviour into a ranked list.",
+        lessonTitles: [
+          "Columnar analytics: why OLAP is a different database",
+          "Batch vs stream: Lambda and Kappa in practice",
+          "Data modeling for analytics: facts, dimensions, and grains",
+          "Recommendations: collaborative filtering to embeddings",
+          "Ranking a feed: candidates, features, and reranking",
+          "Measuring quality: offline metrics vs online experiments",
+        ],
+        encyclopediaId: "event-streaming",
+        practiceLabIds: ["netflix-streaming", "instagram-feed"],
+      },
+    ],
+  },
 ];
 
 export const TOTAL_MODULES = PATH_PARTS.reduce((sum, part) => sum + part.modules.length, 0);

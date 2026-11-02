@@ -3,6 +3,7 @@ import { SITE_URL } from "@/data/contentManifest";
 import { GUIDED_LABS } from "@/data/guidedLabs";
 import { ENCYCLOPEDIA_MODULES } from "@/data/encyclopediaData";
 import { TOPICS } from "@/data/topics";
+import { LESSON_ROUTES } from "@/lib/lessonRoutes";
 
 /**
  * Honest sitemap: reading surfaces and interactive surfaces get listed;
@@ -24,6 +25,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     page("/", 1),
     page("/learn", 0.9),
+    ...LESSON_ROUTES.map((lesson) => page(lesson.href, 0.7)),
+    page("/case-studies", 0.85),
+    page("/roadmap", 0.8),
     page("/start", 0.9),
     page("/labs", 0.85),
     ...GUIDED_LABS.map((lab) =>

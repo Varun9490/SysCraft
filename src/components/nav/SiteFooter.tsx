@@ -14,6 +14,8 @@ import { CONTENT_COUNTS } from "@/data/contentManifest";
 
 const LEARN_LINKS = [
   { href: "/learn", label: "Learning path" },
+  { href: "/roadmap", label: "Roadmap" },
+  { href: "/case-studies", label: "Case studies" },
   { href: "/start", label: "Start here" },
   { href: "/progress", label: "Progress" },
 ];

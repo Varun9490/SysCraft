@@ -13,6 +13,7 @@ import { ArrowRight, Menu, X } from "@/components/ui/icons";
  */
 const NAV_LINKS = [
   { href: "/learn", label: "Learn" },
+  { href: "/case-studies", label: "Case studies" },
   { href: "/labs", label: "Labs" },
   { href: "/cloud", label: "Cloud & K8s" },
   { href: "/security", label: "Security & CVEs" },
