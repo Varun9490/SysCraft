@@ -27,14 +27,15 @@ function sortedNodes(topology: GraphTopology) {
   return [...topology.nodes].sort((a, b) => a.id.localeCompare(b.id));
 }
 
-function costPerHour(resourceId: string): number {
+function costPerHour(resourceId: string, override?: number): number {
+  if (typeof override === "number" && override >= 0) return override;
   return seedById.get(resourceId)?.defaults.costPerHourUsd ?? 0.1;
 }
 
 /** Monthly burn ≈ Σ hourly × 730. */
 export function estimateMonthlyCost(topology: GraphTopology): number {
   return topology.nodes.reduce(
-    (sum, n) => sum + costPerHour(n.resourceId) * Math.max(1, Math.floor(n.replicationFactor)) * 730,
+    (sum, n) => sum + costPerHour(n.resourceId, n.costPerHourUsdOverride) * Math.max(1, Math.floor(n.replicationFactor)) * 730,
     0,
   );
 }
@@ -283,6 +284,8 @@ export interface RfcOptions {
   author?: string;
   targetRps?: number;
   sloP99Ms?: number;
+  /** ISO date (YYYY-MM-DD) for the RFC header; defaults to today. */
+  date?: string;
 }
 
 export function compileRfc(topology: GraphTopology, options: RfcOptions = {}): string {
@@ -294,7 +297,7 @@ export function compileRfc(topology: GraphTopology, options: RfcOptions = {}): s
   const lines = [
     `# RFC: ${options.title ?? "Untitled system"}`,
     ``,
-    `Author: ${options.author ?? "SysCraft workbench"} · Date: ${new Date().toISOString().slice(0, 10)}`,
+    `Author: ${options.author ?? "SysCraft workbench"} · Date: ${options.date ?? new Date().toISOString().slice(0, 10)}`,
     ``,
     `## 1. Overview`,
     ``,
