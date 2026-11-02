@@ -17,8 +17,8 @@ function edge(source: string, target: string): DoctorEdgeInput {
 }
 
 describe("cveAndPlugins", () => {
-  it("curated CVE feed has twelve items with valid primitives", () => {
-    expect(CURATED_CVE_FEED).toHaveLength(13);
+  it("curated CVE feed has thirteen items with valid primitives", () => {
+    expect(CURATED_CVE_FEED).toHaveLength(14);
     for (const cve of CURATED_CVE_FEED) {
       for (const primitive of cve.affectedPrimitives) {
         expect(SEED_RESOURCE_MAP[primitive], `${cve.id} affected ${primitive}`).toBeTruthy();

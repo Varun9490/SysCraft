@@ -357,6 +357,26 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     exploitedInWild: false,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-8986",
   },
+  {
+    id: "CVE-2025-46817",
+    title: "Container Registry / OCI Manifest Auth Bypass & Image Poisoning",
+    published: "2025-06-12",
+    cvss: 8.6,
+    severity: "HIGH",
+    cwe: "CWE-287",
+    stride: "Tampering",
+    ecosystem: "Kubernetes",
+    affectedPrimitives: ["container_registry", "k8s_deployment", "k8s_cluster", "argocd_gitops"],
+    summary:
+      "A registry's manifest push endpoint accepted anonymous writes when the auth challenge endpoint was unreachable, so an attacker could overwrite a trusted tag with a malicious image that every downstream cluster pulled on the next sync. GitOps controllers reconciled the poisoned digest without re-verifying provenance.",
+    architecturalRootCause:
+      "Image identity was trusted to a mutable tag instead of an immutable digest, and the registry's authentication gate failed open on dependency outage. No admission policy verified signatures or SBOMs before a pod could run the image.",
+    mitigationPattern:
+      "Pin every deployment to a content-addressed digest, enforce image signature verification (cosign/Sigstore) at admission, and require the registry to fail closed when its auth backend is unreachable. Gate GitOps syncs behind policy checks and scan images in CI before they reach the registry.",
+    recommendedDefensePrimitives: ["identity_provider", "cert_manager", "secrets_manager", "cloudflare_waf", "argocd_gitops"],
+    exploitedInWild: false,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2025-46817",
+  },
 ];
 
 /** Fast lookup used by the hub's canvas-exposure annotations. */
