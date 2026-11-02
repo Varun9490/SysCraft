@@ -1001,4 +1001,215 @@ Scale retrieval (vector DB sharding, GPU indexing), inference (P/D disaggregatio
       { value: "MCP / A2A", label: "Agent protocols (2026)", note: "MCP for tools/data, A2A for agent-to-agent." },
     ],
   },
+  {
+    id: "llm-architecture-transformers",
+    title: "LLM Architecture: Transformers & Attention",
+    difficulty: "advanced",
+    estimatedMinutes: 24,
+    summary: "How transformers work: self-attention, multi-head attention, positional encoding, feed-forward layers, and why the architecture scales to trillion-parameter models.",
+    bodyMarkdown: `# LLM Architecture: Transformers & Attention
+
+The transformer is the foundation of every modern LLM. It replaced recurrence (RNNs/LSTMs) with attention, enabling parallel training and scaling to trillion-parameter models.
+
+## Core components
+
+- **Token embedding + positional encoding.** Converts token IDs to vectors; positional encoding injects sequence order (sinusoidal or learned RoPE).
+- **Multi-head self-attention.** Each token attends to all others, computing Q/K/V projections. Multiple heads capture different relation types (syntax, coreference, etc.).
+- **Feed-forward network (FFN).** Per-token MLP (usually 4x hidden dim). In MoE models, this becomes a router + expert subset.
+- **Layer norm + residual connections.** Stabilise deep training; residuals let gradients flow.
+- **Stack N layers.** Each layer refines representations; deeper = more abstract reasoning.
+
+## Attention variants
+
+- **MHA (multi-head attention):** full K/V per head — memory-heavy at scale.
+- **GQA (grouped-query attention):** share K/V across heads — cuts KV cache 4-8x with minimal quality loss (LLaMA-2/3, Mistral).
+- **MLA (multi-head latent attention):** compress K/V into a low-rank latent — extreme compression (DeepSeek).
+- **Linear attention (KDA/Mamba):** O(n) instead of O(n^2); constant-size state; enables 1M-token context.
+
+## Training at scale
+
+- **Pre-training:** next-token prediction on trillions of tokens; compute = 6 * params * tokens (FLOPs).
+- **Scaling laws:** loss decreases predictably with compute, data, and params (Chinchilla: ~20 tokens/param optimal).
+- **Alignment:** SFT + RLHF/DPO to follow instructions and reduce harm.
+- **Quantization:** FP8/FP4/INT4 weights cut memory 2-4x with small quality loss.
+
+## System design implications
+
+- **Memory:** weights (params * bytes) + KV cache (seq_len * layers * heads * dim * bytes) + activations. A 70B model at FP16 = 140 GB; at FP8 = 70 GB.
+- **Compute:** training needs thousands of GPUs for weeks; inference needs 1-8 GPUs per replica.
+- **Latency:** TTFT = prefill time (compute-bound); ITL = decode time (memory-bandwidth-bound).
+- **Throughput:** tokens/s = memory_bandwidth / (params * bytes_per_param) for decode.
+
+## Trade-offs
+
+| Dimension | Dense attention | Sparse/MoE | Recommendation |
+| --- | --- | --- | --- |
+| Quality per param | High | Higher (more params, same compute) | MoE for large models; dense for small/edge |
+| Memory | Linear in params | Same (all experts stored) | Quantize (FP8/INT4) to fit |
+| Routing overhead | None | Router + load balancing | Use proven MoE (Mixtral, DeepSeek) |
+
+## When to use
+
+- Any LLM-based product
+- Understanding model limits (context, latency, cost)
+- Capacity planning for inference
+
+## When not to use
+
+- You don't need to know internals for simple API consumption
+- Edge/mobile (use small distilled models)
+
+## Scaling notes
+
+Scale via tensor/pipeline/expert parallelism; quantize weights; use KV-cache compression (GQA/MLA); monitor TTFT/ITL/goodput.
+`,
+    tradeOffs: [
+      { dimension: "MHA vs GQA", optionA: "Full K/V per head (higher quality)", optionB: "Shared K/V (4-8x smaller KV cache)", recommendation: "GQA for production; MHA only for research/small models." },
+      { dimension: "Dense vs MoE", optionA: "All params active", optionB: "Subset active (more params, same compute)", recommendation: "MoE for >30B params; dense for edge/small." },
+    ],
+    whenToUse: ["LLM products", "Capacity planning", "Model selection"],
+    whenNotToUse: ["Simple API consumption", "Edge/mobile (use distilled)"],
+    scalingNotes: "Scale via TP/PP/EP; quantize; compress KV cache; monitor TTFT/ITL.",
+    relatedModuleIds: ["llm-systems", "ai-inference-serving-2026"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "llm-arch-1", front: "What does GQA (grouped-query attention) reduce?", back: "KV cache size by 4-8x by sharing K/V across heads, with minimal quality loss.", conceptTag: "llm-architecture-transformers", moduleId: "llm-architecture-transformers" },
+      { cardId: "llm-arch-2", front: "Chinchilla scaling law (tokens per param)?", back: "Roughly 20 tokens per parameter is compute-optimal for training.", conceptTag: "llm-architecture-transformers", moduleId: "llm-architecture-transformers" },
+    ],
+    quiz: [
+      {
+        id: "llm-arch-q1",
+        prompt: "Which attention variant most reduces KV-cache memory at scale?",
+        options: [
+          { id: "a", text: "MLA (multi-head latent attention) — compresses K/V into a low-rank latent", correct: true },
+          { id: "b", text: "MHA (multi-head attention) — full K/V per head", correct: false },
+          { id: "c", text: "Increasing the number of heads", correct: false },
+        ],
+        explanation: "MLA (DeepSeek) compresses K/V into a latent vector, achieving extreme compression vs MHA/GQA.",
+        conceptTag: "llm-architecture-transformers",
+      },
+      {
+        id: "llm-arch-q2",
+        prompt: "For a 70B model at FP16, approximate weight memory?",
+        options: [
+          { id: "a", text: "140 GB", correct: true },
+          { id: "b", text: "70 GB", correct: false },
+          { id: "c", text: "14 GB", correct: false },
+        ],
+        explanation: "70B params * 2 bytes (FP16) = 140 GB. FP8 halves it to 70 GB.",
+        conceptTag: "llm-architecture-transformers",
+      },
+    ],
+    keyNumbers: [
+      { value: "2 bytes", label: "FP16 per param", note: "FP8 = 1 byte; INT4 = 0.5 byte." },
+      { value: "4x", label: "FFN expansion ratio", note: "Hidden dim * 4 in standard transformer FFN." },
+      { value: "20:1", label: "Chinchilla tokens:param ratio", note: "Compute-optimal training data size." },
+    ],
+  },
+  {
+    id: "ai-safety-guardrails-evals",
+    title: "AI Safety, Guardrails & Evaluation",
+    difficulty: "advanced",
+    estimatedMinutes: 22,
+    summary: "How to keep AI systems safe and accurate: guardrails, prompt-injection defence, PII redaction, evals (RAGAS), human-in-the-loop, and continuous quality monitoring.",
+    bodyMarkdown: `# AI Safety, Guardrails & Evaluation
+
+Shipping an LLM feature is easy; keeping it safe and accurate in production is the hard part. AI safety is a system property, not a model property — it spans input, model, output, and the surrounding platform.
+
+## Threat model
+
+- **Prompt injection.** Malicious content in retrieved docs or user input overrides instructions. Defence: separate trusted (system) from untrusted (user/retrieved) channels; validate tool calls; sandbox execution.
+- **Hallucination.** Model invents facts. Defence: ground answers in retrieved sources with citations; RAG; reduce temperature; require evidence.
+- **Data leakage.** PII/secrets in prompts or outputs. Defence: PII redaction in input/output; least-privilege data access; audit logs.
+- **Jailbreaks.** Users bypass safety filters. Defence: layered guardrails (input classifier, output filter, policy engine); red-team continuously.
+- **Runaway agents.** Tool loops consume resources or take harmful actions. Defence: step limits, budget caps, human approval for high-stakes actions.
+
+## Guardrail layers
+
+1. **Input guardrails:** PII redaction, toxicity classifier, prompt-injection detector, rate limiting.
+2. **Model guardrails:** system prompt hardening, tool allow-lists, structured output (JSON schema), temperature/top-p tuning.
+3. **Output guardrails:** factuality check vs retrieved sources, toxicity filter, PII scan, format validation.
+4. **Policy engine (OPA/Rego):** gate tool calls and data access based on user/role/context.
+5. **Sandboxed execution:** run tool code in isolated containers with resource limits.
+
+## Evaluation (evals)
+
+- **Offline evals:** golden datasets, RAGAS (faithfulness, answer relevance, context precision/recall), LLM-as-judge.
+- **Online evals:** A/B tests, user feedback (thumbs up/down), implicit signals (regeneration rate, session length).
+- **Continuous:** re-run evals on every model/prompt change; track regressions; alert on metric drops.
+- **Red-teaming:** adversarial prompts; jailbreak attempts; bias/fairness probes.
+
+## Human-in-the-loop
+
+- Require approval for high-stakes actions (payments, deletions, external comms).
+- Escalate low-confidence answers to humans.
+- Log all decisions for audit and improvement.
+
+## Trade-offs
+
+| Dimension | Strict guardrails | Loose guardrails | Recommendation |
+| --- | --- | --- | --- |
+| Safety | High | Lower | Strict for regulated/PII; loose for creative |
+| Latency | +50-200ms per guardrail | Low | Cache guardrail results; parallelise |
+| False positives | Higher | Lower | Tune thresholds; monitor override rate |
+
+## When to use
+
+- Any user-facing LLM feature
+- Regulated domains (healthcare, finance, legal)
+- Agentic systems with tool access
+- Multi-tenant platforms
+
+## When not to use
+
+- Internal prototypes (still add basic PII redaction)
+- Fully offline, non-user-facing batch jobs
+
+## Scaling notes
+
+Scale guardrails as separate services (input/output classifiers); cache results; use async eval pipelines; monitor cost per query and quality metrics (faithfulness, relevance) alongside latency.
+`,
+    tradeOffs: [
+      { dimension: "Strict vs loose guardrails", optionA: "Block aggressively (safer, more false positives)", optionB: "Allow with monitoring (faster, riskier)", recommendation: "Strict for regulated/PII; tune thresholds with real traffic." },
+      { dimension: "Offline vs online evals", optionA: "Golden datasets (reproducible)", optionB: "Live user feedback (realistic)", recommendation: "Both: offline for CI, online for production truth." },
+    ],
+    whenToUse: ["User-facing LLM features", "Regulated domains", "Agentic tool access", "Multi-tenant"],
+    whenNotToUse: ["Internal prototypes (basic PII redaction still)", "Offline batch jobs"],
+    scalingNotes: "Scale guardrails as services; cache; async evals; monitor quality + cost + latency.",
+    relatedModuleIds: ["ai-agents-rag-architecture", "ai-inference-serving-2026"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "ai-safe-1", front: "What is prompt injection?", back: "Malicious content in user input or retrieved docs that overrides the model's instructions.", conceptTag: "ai-safety-guardrails-evals", moduleId: "ai-safety-guardrails-evals" },
+      { cardId: "ai-safe-2", front: "What does RAGAS measure?", back: "Faithfulness, answer relevance, context precision, and context recall for RAG systems.", conceptTag: "ai-safety-guardrails-evals", moduleId: "ai-safety-guardrails-evals" },
+    ],
+    quiz: [
+      {
+        id: "ai-safe-q1",
+        prompt: "Which defence most directly prevents a retrieved document from hijacking the model's instructions?",
+        options: [
+          { id: "a", text: "Separate trusted (system) from untrusted (retrieved) channels; validate all tool calls", correct: true },
+          { id: "b", text: "Increase model temperature", correct: false },
+          { id: "c", text: "Disable all logging", correct: false },
+        ],
+        explanation: "Channel separation + tool-call validation prevents prompt injection from retrieved content.",
+        conceptTag: "ai-safety-guardrails-evals",
+      },
+      {
+        id: "ai-safe-q2",
+        prompt: "When should a human approve an agent action?",
+        options: [
+          { id: "a", text: "For high-stakes actions (payments, deletions, external comms) and low-confidence answers", correct: true },
+          { id: "b", text: "Never — fully autonomous is always better", correct: false },
+          { id: "c", text: "Only on the first request ever", correct: false },
+        ],
+        explanation: "Human-in-the-loop for high-stakes and low-confidence; fully autonomous risks runaway harm.",
+        conceptTag: "ai-safety-guardrails-evals",
+      },
+    ],
+    keyNumbers: [
+      { value: "50-200 ms", label: "Guardrail latency overhead", note: "Cache results; parallelise layers." },
+      { value: "4 metrics", label: "RAGAS core metrics", note: "Faithfulness, answer relevance, context precision/recall." },
+      { value: "5 layers", label: "Guardrail stack", note: "Input, model, output, policy, sandbox." },
+    ],
+  },
 ];

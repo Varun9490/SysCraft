@@ -15,9 +15,9 @@ import { PATH_PARTS, TOTAL_LESSONS, TOTAL_MODULES } from "@/data/pathData";
  */
 
 describe("encyclopedia modules", () => {
-  it("ships 34 uniquely-identified modules (base deep dives + curriculum)", () => {
-    expect(ENCYCLOPEDIA_MODULES).toHaveLength(34);
-    expect(new Set(ENCYCLOPEDIA_MODULE_IDS).size).toBe(34);
+  it("ships 36 uniquely-identified modules (base deep dives + curriculum)", () => {
+    expect(ENCYCLOPEDIA_MODULES).toHaveLength(36);
+    expect(new Set(ENCYCLOPEDIA_MODULE_IDS).size).toBe(36);
   });
 
   it("has substantive articles starting with an H1 title", () => {
