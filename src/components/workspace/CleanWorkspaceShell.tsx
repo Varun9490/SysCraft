@@ -45,6 +45,7 @@ import { BlueprintsPanel } from "@/components/shell/BlueprintsPanel";
 import { ResourcesPanel } from "@/components/shell/ResourcesPanel";
 import { SoundBridge } from "@/components/shell/SoundBridge";
 import { IaCExportModal } from "@/components/studio/IaCExportModal";
+import { ThreatModelPanel } from "@/components/studio/ThreatModelPanel";
 import { CustomResourceStudio } from "@/components/studio/CustomResourceStudio";
 import { PostMortemModal } from "@/components/telemetry/PostMortemModal";
 import { TelemetryDrawer } from "@/components/telemetry/TelemetryDrawer";
@@ -657,6 +658,7 @@ export default function CleanWorkspaceShell() {
             <SysCraftCanvas className="h-full w-full" />
             <ConnectionInspector />
             <RoomSession />
+            <ThreatModelPanel />
             <TimeTravelScrubber />
           </CanvasErrorBoundary>
         </div>

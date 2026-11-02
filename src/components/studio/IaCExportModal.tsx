@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ClipboardCopy, Download, FileCode2, X } from "@/components/ui/icons";
 import { compileAll, estimateMonthlyCost, type IacFormat } from "@/engine/iacCompiler";
+import { lintIac } from "@/engine/iacLint";
 import { parseDsl, serializeDsl, type DslEdge, type DslNode } from "@/engine/dslParser";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useWorkbenchStore } from "@/store/useWorkbenchStore";
@@ -175,9 +176,30 @@ export function IaCExportModal({ open, onClose }: IaCExportModalProps) {
               </button>
             </div>
           ) : (
-            <pre className="overflow-auto rounded-md border border-zinc-800 bg-ink p-3 font-mono text-[11px] leading-relaxed text-emerald-200">
-              {currentText}
-            </pre>
+            <div>
+              <pre className="overflow-auto rounded-md border border-zinc-800 bg-ink p-3 font-mono text-[11px] leading-relaxed text-emerald-200">
+                {currentText}
+              </pre>
+              {(() => {
+                const lint = lintIac(format, currentText);
+                if (lint.findings.length === 0) return null;
+                return (
+                  <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-900/60 p-3">
+                    <div className="text-xs font-semibold text-zinc-200">
+                      IaC lint: {lint.findings.length} finding{lint.findings.length === 1 ? "" : "s"} · {lint.passed ? "passed" : "failed"}
+                    </div>
+                    <ul className="mt-2 space-y-1">
+                      {lint.findings.map((f, i) => (
+                        <li key={i} className="text-[11px]">
+                          <span className={f.severity === "error" ? "text-red-400" : f.severity === "warning" ? "text-amber-400" : "text-sky-400"}>{f.rule}</span>
+                          <span className="text-zinc-300"> — {f.title}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
+            </div>
           )}
         </div>
       </div>
