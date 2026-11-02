@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -74,6 +74,10 @@ export function LessonBlogViewer({
   const [stageIndex, setStageIndex] = useState(0);
   const [quizChoice, setQuizChoice] = useState<number | null>(null);
   const [quizRevealed, setQuizRevealed] = useState(false);
+  const [packetX, setPacketX] = useState(0);
+
+  const trackRef = useRef<HTMLDivElement>(null);
+  const stepRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // Reset per-lesson interactive state whenever the blog changes.
   useEffect(() => {
@@ -127,7 +131,24 @@ export function LessonBlogViewer({
 
   const stepForward = () => setActiveStep((prev) => (prev + 1) % flowLen);
 
-  const packetLeft = flowLen > 1 ? (activeStep / (flowLen - 1)) * 100 : 0;
+  // Measure the active step's button centre so the packet dot travels to the
+  // exact node instead of a guessed percentage (which drifted off-track).
+  useEffect(() => {
+    const measure = () => {
+      const container = trackRef.current;
+      const btn = stepRefs.current[activeStep];
+      if (!container || !btn) return;
+      setPacketX(btn.offsetLeft + btn.offsetWidth / 2 - 6);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (trackRef.current) ro.observe(trackRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [activeStep, flowLen]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -254,12 +275,12 @@ export function LessonBlogViewer({
         </div>
 
         {/* Track + packet */}
-        <div className="relative mt-5 px-2">
+        <div ref={trackRef} className="relative mt-5 px-2">
           <div className="absolute left-2 right-2 top-5 h-0.5 bg-line" />
           <motion.div
-            className="absolute top-3.5 h-3 w-3 rounded-full bg-brass shadow-[0_0_12px_rgba(205,168,106,0.8)]"
-            animate={{ left: `calc(${packetLeft}% + 8px)` }}
-            transition={{ type: "spring", stiffness: 120, damping: 18 }}
+            className="absolute top-[14px] h-3 w-3 rounded-full bg-brass shadow-[0_0_12px_rgba(205,168,106,0.8)]"
+            animate={{ x: packetX }}
+            transition={{ type: "spring", stiffness: 140, damping: 20 }}
           />
           <div className="relative flex items-start justify-between gap-2">
             {flow.map((step, idx) => {
@@ -267,6 +288,9 @@ export function LessonBlogViewer({
               return (
                 <button
                   key={idx}
+                  ref={(el) => {
+                    stepRefs.current[idx] = el;
+                  }}
                   type="button"
                   onClick={() => setActiveStep(idx)}
                   className="flex w-full flex-col items-center gap-2 text-center"
