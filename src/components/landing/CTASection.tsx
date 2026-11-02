@@ -32,7 +32,7 @@ export function CTASection() {
             </h2>
             <p className="max-w-md text-[15px] leading-relaxed text-content-secondary">
               Start with the Bitly lab or follow the path from module one. Everything runs in your browser — no signup, no
-              setup, no backend.
+              setup, no accounts, no server of our own.
             </p>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -53,7 +53,7 @@ export function CTASection() {
             </div>
 
             <p className="text-xs text-content-tertiary">
-              100% client-side · Your designs stay in your browser · Free to explore
+              No accounts · Your designs stay in your browser · Free to explore
             </p>
           </div>
 
