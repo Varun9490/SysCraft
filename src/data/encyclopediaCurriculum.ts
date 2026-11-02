@@ -682,4 +682,323 @@ Enterprise architecture fails if a system meets its p99 SLO by burning 10x the m
       { value: "38–65%", label: "Reserved + Spot compute FinOps savings", note: "Combine with edge cache offload and VPC endpoints for maximum TCO reduction." },
     ],
   },
+  {
+    id: "security-by-design-zero-trust",
+    title: "Security by Design & Zero Trust Architecture",
+    difficulty: "advanced",
+    estimatedMinutes: 28,
+    summary: "Secure-by-design principles, zero trust (never trust, always verify), defence in depth, least privilege, trust boundaries, and how to bake security into the system design instead of bolting it on later.",
+    bodyMarkdown: `# Security by Design & Zero Trust Architecture
+
+Security is not a feature you add at the end — it is a property of the architecture. Secure-by-design treats the system as hostile from day one: trust boundaries are explicit, every request is authenticated and authorised, and a single control failure does not compromise the whole system.
+
+## Core principles
+
+- **Trust boundaries & threat modelling.** Define where data, identities, and execution contexts cross from a more-trusted to a less-trusted domain. Treat every input as untrusted at the boundary. Model threats (STRIDE) before code is written.
+- **Least privilege.** Grant the minimum feasible access for the shortest duration. Apply consistently across users, services, APIs, and admins. Elevate only when needed.
+- **Strong identity & authentication.** Authoritative identity sources, MFA, mTLS between services, short-lived tokens, and rotation. Resist credential stuffing, replay, and session hijacking.
+- **Attack-surface minimisation.** Remove unused features, default accounts, and non-essential ports. Hardened baselines scale better than ad-hoc hardening.
+- **Defence in depth.** Layered preventive, detective, and corrective controls. Diverse controls (not all on the same trust assumption). Degrade gracefully.
+- **Open design.** Security rests on protected keys and robust implementation, not on hiding the mechanism.
+
+## Zero trust architecture (ZTA)
+
+Zero trust moves defence from a static network perimeter to per-request decisions over users, devices, services, and data:
+
+1. **Know your architecture** — users, devices, services, data, and the flows between them.
+2. **Know identities** — every user, service, and device uniquely identifiable.
+3. **Assess health** — user behaviour, device posture, service health as policy signals.
+4. **Policy-based authorisation** — every request authorised against policy; the policy engine is the key component.
+5. **Authenticate & authorise everywhere** — assume the network is hostile; mTLS + short tokens on every hop.
+6. **Monitor users, devices, services** — focus telemetry on identities and resources, not just network segments.
+7. **Trust no network** — including your own; secure transport (TLS 1.3) end to end.
+
+## Applying it in a system design
+
+- Put an **identity-aware proxy / API gateway** at every entry point; verify JWT/mTLS before any upstream call.
+- **Segment** by blast radius: separate network zones per tier; restrict east-west traffic via service mesh.
+- **Encrypt in transit (TLS everywhere) and at rest** (KMS-managed keys, envelope encryption).
+- **Audit log** every access decision with identity, resource, policy, and outcome.
+- **Rotate secrets** via a secrets manager; never bake credentials into images.
+- **Scan** dependencies (SBOM, SCA) and images (CVE scanning) in CI.
+
+## Trade-offs
+
+| Dimension | Perimeter model | Zero trust | Recommendation |
+| --- | --- | --- | --- |
+| Complexity | Low initially | Higher (identity + policy infra) | Zero trust for anything internet-facing or multi-tenant |
+| Latency | Low (single chokepoint) | +1-3ms per hop for auth | Acceptable; cache auth decisions at the gateway |
+| Failure mode | Breach = full lateral movement | Breach = single resource | Zero trust limits blast radius |
+
+## When to use
+
+- Any internet-facing or multi-tenant system
+- Regulated data (PII, PCI, HIPAA, CUI)
+- Microservice architectures with east-west traffic
+- Systems with third-party or partner access
+
+## When not to use
+
+- Single-tenant, air-gapped, low-risk internal tools (still apply least privilege + MFA)
+- Legacy monoliths where retrofitting identity is impractical (use a strangler pattern)
+
+## Scaling notes
+
+Security scales with automation: policy-as-code (OPA/Rego), IaC scanning (Checkov/tfsec), runtime admission control (OPA Gatekeeper/Kyverno), and continuous posture management. Manual security reviews do not scale past a few services.
+`,
+    tradeOffs: [
+      { dimension: "Perimeter vs zero trust", optionA: "Network firewall perimeter", optionB: "Identity-aware per-request policy", recommendation: "Zero trust for internet-facing/multi-tenant; perimeter + least privilege for internal-only." },
+      { dimension: "Auth granularity", optionA: "Coarse roles", optionB: "Fine-grained ABAC/RBAC per resource", recommendation: "Coarse roles to start; ABAC once you have >5 resource types." },
+    ],
+    whenToUse: ["Internet-facing services", "Multi-tenant SaaS", "Regulated data (PII/PCI/HIPAA)", "Microservice east-west traffic"],
+    whenNotToUse: ["Air-gapped single-tenant internal tools", "Legacy monoliths without identity retrofit (strangler first)"],
+    scalingNotes: "Automate with policy-as-code, IaC scanning, admission control, and continuous posture management.",
+    relatedModuleIds: ["microservices-monolith", "llm-systems"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "sbd-zt-1", front: "What is a trust boundary?", back: "A point where data, identity, or execution context crosses from a more-trusted to a less-trusted domain; inputs must be treated as untrusted there.", conceptTag: "security-by-design-zero-trust", moduleId: "security-by-design-zero-trust" },
+      { cardId: "sbd-zt-2", front: "Zero trust's three core tenets?", back: "Never trust, always verify; assume breach; verify explicitly — per-request auth over users, devices, services, and data.", conceptTag: "security-by-design-zero-trust", moduleId: "security-by-design-zero-trust" },
+    ],
+    quiz: [
+      {
+        id: "sbd-zt-q1",
+        prompt: "Which control most directly limits blast radius after a single service is compromised?",
+        options: [
+          { id: "a", text: "Zero-trust segmentation + least-privilege service accounts so the compromised service can only reach what it needs", correct: true },
+          { id: "b", text: "A single shared admin password stored in code", correct: false },
+          { id: "c", text: "Disabling all logging to reduce attack surface", correct: false },
+        ],
+        explanation: "Least privilege + segmentation contain compromise to one service; shared creds and disabled logging make breaches worse.",
+        conceptTag: "security-by-design-zero-trust",
+      },
+      {
+        id: "sbd-zt-q2",
+        prompt: "In zero trust, where does authorisation happen?",
+        options: [
+          { id: "a", text: "On every request, via a policy engine using identity + device health + context signals", correct: true },
+          { id: "b", text: "Once at login, then trust the session forever", correct: false },
+          { id: "c", text: "Only at the network firewall", correct: false },
+        ],
+        explanation: "Zero trust re-evaluates every request; session-only or network-only auth is the perimeter model it replaces.",
+        conceptTag: "security-by-design-zero-trust",
+      },
+    ],
+    keyNumbers: [
+      { value: "1-3 ms", label: "Auth overhead per hop (JWT/mTLS)", note: "Cache auth decisions at the gateway to keep p99 flat." },
+      { value: "TLS 1.3", label: "Minimum transport protocol", note: "0-RTT resumption; mandatory for zero trust east-west traffic." },
+      { value: "90 days", label: "Typical secret rotation cadence", note: "Automate via secrets manager; manual rotation drifts." },
+    ],
+  },
+  {
+    id: "ai-inference-serving-2026",
+    title: "AI Inference Serving at Scale (2026)",
+    difficulty: "advanced",
+    estimatedMinutes: 30,
+    summary: "Modern LLM serving: PagedAttention, continuous batching, prefill/decode disaggregation, KV-cache hierarchies, MoE routing, speculative decoding, and multimodal encoders — the inference factory.",
+    bodyMarkdown: `# AI Inference Serving at Scale (2026)
+
+The serving unit is no longer one process behind an HTTP endpoint. It is a topology of encoder, prefill, and decode workers, tensor/expert-parallel groups, KV-cache tiers, request routers, and policy gateways. "The model" is only one piece; the real system is an inference factory.
+
+## Core mechanisms
+
+- **PagedAttention.** KV cache stored in non-contiguous pages (like OS virtual memory) eliminates fragmentation and enables sharing across requests with common prefixes.
+- **Continuous batching.** New requests join an in-flight batch at token boundaries instead of waiting for the whole batch to finish — keeps GPUs saturated.
+- **Prefill/decode disaggregation.** Prefill is compute-bound (long prompt, one pass); decode is memory-bandwidth-bound (one token at a time). Splitting them onto separate GPU pools cuts cost 25-40% on RAG/chat traffic.
+- **KV-cache hierarchy.** Hot pages in HBM, warm in host RAM, cold on local SSD/remote store. Treat KV cache as shared infrastructure, not ephemeral GPU state. Cache-aware routing sends requests to the replica that already holds the prefix.
+- **MoE routing.** Mixture-of-experts activates a subset of experts per token (e.g. 16 of 896), so a 2.8T-param model runs like a much smaller one. Requires expert parallelism + load balancing.
+- **Speculative decoding.** A small draft model proposes tokens; the big model verifies in parallel — 2-3x throughput on decode-heavy traffic.
+- **Hybrid/linear attention (KDA).** Linear-attention layers keep a fixed-size recurrent state instead of a growing KV cache, making 1M-token context affordable; periodic full-attention layers preserve exact global recall.
+
+## Multimodal & agentic serving
+
+Inputs are no longer just token IDs — they include images, audio, tool schemas, retrieval context. Multimodal adds an **encode stage** (ViT pass) before prefill, plus an **encoder cache** (keyed by media hash) that can skip the ViT pass entirely. Agentic workloads amplify prefix reuse across turns and tool traces, and need structured-decoding constraints in the hot path.
+
+## Capacity planning
+
+- Size GPU memory as: weights (FP8/FP4) + KV cache (pages * bytes/token * seq_len * batch) + activations.
+- Prefill throughput ≈ FLOPs/s / (2 * params * prompt_tokens). Decode throughput ≈ memory_bandwidth / (params * bytes).
+- For long-context RAG: prefill dominates; disaggregate and cache prefixes aggressively.
+- For chat: decode dominates; speculative decoding + continuous batching.
+
+## Trade-offs
+
+| Dimension | Monolithic serving | Disaggregated | Recommendation |
+| --- | --- | --- | --- |
+| Complexity | Low | High (routing, transfer, failure modes) | Disaggregate once fleet > ~8 GPUs or p99 variance hurts |
+| Cost | Baseline | -25 to -40% on RAG/chat | Worth it at scale |
+| Latency | Single queue | Prefill and decode scale independently | Better tail latency under mixed load |
+
+## When to use
+
+- Any LLM-backed product with >100 RPS
+- Long-context RAG (>8k tokens prompt)
+- Agentic workflows with tool traces
+- Multimodal (vision/audio) inputs
+
+## When not to use
+
+- Single-GPU, low-traffic prototypes (vLLM default is fine)
+- Batch offline inference (use simpler throughput-optimised paths)
+
+## Scaling notes
+
+Scale encoder/prefill/decode independently; add KV-cache tiers (HBM -> RAM -> SSD -> remote) as context grows; use cache-aware routing; monitor TTFT, ITL, and goodput (not just tokens/s).
+`,
+    tradeOffs: [
+      { dimension: "Monolithic vs disaggregated", optionA: "One process, one queue", optionB: "Separate prefill/decode workers", recommendation: "Disaggregate once fleet > ~8 GPUs or p99 variance hurts." },
+      { dimension: "KV cache placement", optionA: "GPU-only", optionB: "Hierarchical HBM/RAM/SSD/remote", recommendation: "Hierarchical once context > 32k tokens or agentic reuse is high." },
+    ],
+    whenToUse: ["LLM products >100 RPS", "Long-context RAG", "Agentic tool loops", "Multimodal inputs"],
+    whenNotToUse: ["Single-GPU prototypes", "Offline batch inference"],
+    scalingNotes: "Scale encoder/prefill/decode independently; add KV tiers as context grows; monitor TTFT/ITL/goodput.",
+    relatedModuleIds: ["llm-systems", "vector-search"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "ai-inf-1", front: "What does PagedAttention solve?", back: "KV-cache fragmentation and sharing: pages are non-contiguous and shareable across requests with common prefixes, like OS virtual memory.", conceptTag: "ai-inference-serving-2026", moduleId: "ai-inference-serving-2026" },
+      { cardId: "ai-inf-2", front: "Why disaggregate prefill and decode?", back: "Prefill is compute-bound, decode is memory-bandwidth-bound; splitting them cuts cost 25-40% and improves tail latency under mixed load.", conceptTag: "ai-inference-serving-2026", moduleId: "ai-inference-serving-2026" },
+    ],
+    quiz: [
+      {
+        id: "ai-inf-q1",
+        prompt: "Which optimisation most directly reduces cost on a RAG workload with 16k-token prompts and short answers?",
+        options: [
+          { id: "a", text: "Prefill/decode disaggregation + prefix caching of the shared document context", correct: true },
+          { id: "b", text: "Increasing batch size on a single monolithic instance", correct: false },
+          { id: "c", text: "Speculative decoding alone", correct: false },
+        ],
+        explanation: "Long prompts are prefill-bound; disaggregation + prefix cache reuse of shared docs cuts prefill cost most.",
+        conceptTag: "ai-inference-serving-2026",
+      },
+      {
+        id: "ai-inf-q2",
+        prompt: "In a multimodal request, which cache can skip the entire ViT encode pass?",
+        options: [
+          { id: "a", text: "The encoder cache, keyed by media hash", correct: true },
+          { id: "b", text: "The KV cache alone", correct: false },
+          { id: "c", text: "The prompt cache only", correct: false },
+        ],
+        explanation: "The encoder cache holds output embeddings keyed by media hash, so a hit skips the ViT pass regardless of text.",
+        conceptTag: "ai-inference-serving-2026",
+      },
+    ],
+    keyNumbers: [
+      { value: "25-40%", label: "Cost reduction from P/D disaggregation", note: "On chat- and RAG-shaped traffic vs monolithic." },
+      { value: "2-3x", label: "Speculative decoding throughput gain", note: "Decode-heavy traffic with a good draft model." },
+      { value: "1M tokens", label: "Kimi K3 context window", note: "Linear attention (KDA) keeps state constant-size." },
+    ],
+  },
+  {
+    id: "ai-agents-rag-architecture",
+    title: "AI Agents, RAG & Knowledge Architecture",
+    difficulty: "advanced",
+    estimatedMinutes: 26,
+    summary: "Retrieval-augmented generation, cache-augmented (CAG) knowledge, hybrid retrieval, agentic tool loops, MCP/A2A protocols, context discipline (CDAD), and how to build AI systems that stay accurate and cheap at scale.",
+    bodyMarkdown: `# AI Agents, RAG & Knowledge Architecture
+
+Scaled AI platforms are multi-plane systems: model-adaptation, distributed inference, KV-cache/memory, knowledge, agentic execution, security/policy, observability, and value-governance. The most successful designs separate these concerns so they scale, fail, and are governed independently.
+
+## Retrieval vs cache-augmented knowledge
+
+- **RAG** (retrieval-augmented generation): retrieve relevant external documents at query time. Best for unbounded or frequently changing corpora.
+- **CAG / prompt-cached context**: pre-compute or cache context. Best for bounded, stable, frequently reused "golden knowledge".
+- **Hybrid**: RAG for volatile/large corpora; CAG/prompt-caching for stable, hot knowledge. Long context windows do not remove the need for context discipline.
+
+| Dimension | RAG | CAG / prompt-cached |
+| --- | --- | --- |
+| Corpus volatility | Changing data | Stable data |
+| Corpus size | Very large | Bounded by context/cache |
+| Latency | Retrieval + prefill | Lower with cache reuse |
+| Complexity | Higher (indexing, reranking) | Lower if stable |
+| Refresh | Incremental index updates | Cache rebuild/invalidation |
+
+## Retrieval pipeline (production)
+
+1. **Ingestion**: extract text/tables/charts/images/audio/video; chunk with overlap; enrich metadata.
+2. **Indexing**: dense embeddings + sparse (BM25) for hybrid retrieval; GPU-accelerated indexing.
+3. **Retrieval**: hybrid dense+sparse, reranking, multi-collection search, metadata filtering.
+4. **Generation**: grounded answer with citations; guardrails for safety.
+
+## Agentic execution
+
+Agents are goal-directed loops: plan -> tool call -> observe -> repeat. Key engineering concerns:
+
+- **Context discipline (CDAD)**: durable knowledge lives outside the active prompt; build a minimal task packet per step; compact traces after each tool boundary. More context != better answers.
+- **Tool protocols**: MCP (Model Context Protocol) connects agents to tools/data; A2A connects agent-to-agent. Both now governed by a neutral foundation.
+- **Durability**: long-running tasks must survive crashes — use a durable execution engine (Temporal/Restate) underneath.
+- **Verification**: AI increases throughput but also verification pressure; weak platforms become unstable. Add evals (RAGAS), guardrails, and human-in-the-loop for high-stakes actions.
+
+## Security & governance plane
+
+- Policy engine (OPA) gates tool calls and data access.
+- Sandboxed tool execution; least-privilege service accounts.
+- PII redaction, prompt-injection defences, output filtering.
+- OpenTelemetry GenAI conventions for traces; cost/latency/quality dashboards.
+
+## Trade-offs
+
+| Dimension | Single-shot LLM | Agentic RAG | Recommendation |
+| --- | --- | --- | --- |
+| Accuracy on fresh data | Poor (stale weights) | High (live retrieval) | RAG for any factual/enterprise data |
+| Cost | Low | Higher (retrieval + multi-step) | Cache hot knowledge; limit agent steps |
+| Latency | Low | Higher (tool round-trips) | Stream; parallelise independent tool calls |
+| Risk | Hallucination | Tool misuse, runaway loops | Guardrails, step limits, human approval |
+
+## When to use
+
+- Enterprise search / knowledge assistants / copilots
+- Any task needing current or proprietary data
+- Multi-step workflows (research, coding, ops)
+
+## When not to use
+
+- Pure creative generation with no factual grounding
+- Latency-critical paths where a single fast call suffices
+
+## Scaling notes
+
+Scale retrieval (vector DB sharding, GPU indexing), inference (P/D disaggregation), and the agent loop (durable execution) independently. Treat KV cache and the vector index as shared infrastructure. Monitor accuracy (RAGAS), cost per query, and p99 latency.
+`,
+    tradeOffs: [
+      { dimension: "Single-shot vs agentic", optionA: "One LLM call", optionB: "Multi-step tool loop", recommendation: "Agentic for tasks needing tools/data; single-shot for latency-critical generation." },
+      { dimension: "RAG vs CAG", optionA: "Retrieve at query time", optionB: "Pre-cached context", recommendation: "Hybrid: RAG for volatile/large, CAG for stable/hot." },
+    ],
+    whenToUse: ["Enterprise search", "Knowledge assistants/copilots", "Multi-step workflows", "Current/proprietary data"],
+    whenNotToUse: ["Pure creative generation", "Ultra-low-latency single calls"],
+    scalingNotes: "Scale retrieval, inference, and agent loop independently; monitor accuracy/cost/p99.",
+    relatedModuleIds: ["llm-systems", "vector-search"],
+    interactiveVisual: "none",
+    flashcards: [
+      { cardId: "ai-rag-1", front: "When is CAG better than RAG?", back: "When the corpus is bounded, stable, and reused frequently — pre-cached context lowers latency and cost.", conceptTag: "ai-agents-rag-architecture", moduleId: "ai-agents-rag-architecture" },
+      { cardId: "ai-rag-2", front: "What is CDAD?", back: "Context Discipline for Agentic Design: keep durable knowledge outside the active prompt, build a minimal task packet per step, compact traces after each tool boundary.", conceptTag: "ai-agents-rag-architecture", moduleId: "ai-agents-rag-architecture" },
+    ],
+    quiz: [
+      {
+        id: "ai-rag-q1",
+        prompt: "Which knowledge strategy fits a 50k-doc corpus that changes daily?",
+        options: [
+          { id: "a", text: "RAG with incremental index updates", correct: true },
+          { id: "b", text: "CAG with a single cached prompt", correct: false },
+          { id: "c", text: "Stuffing everything into the context window", correct: false },
+        ],
+        explanation: "Volatile, large corpora need RAG; CAG is for stable/bounded knowledge.",
+        conceptTag: "ai-agents-rag-architecture",
+      },
+      {
+        id: "ai-rag-q2",
+        prompt: "What is the main risk of carrying the full conversation history in every agent step?",
+        options: [
+          { id: "a", text: "Context bloat degrades attention quality and inflates cost; compact after each tool boundary", correct: true },
+          { id: "b", text: "It always improves accuracy", correct: false },
+          { id: "c", text: "It has no effect", correct: false },
+        ],
+        explanation: "Long context hurts attention and cost; CDAD compacts traces after each tool boundary.",
+        conceptTag: "ai-agents-rag-architecture",
+      },
+    ],
+    keyNumbers: [
+      { value: "50k+ docs", label: "RAG sweet spot", note: "Hybrid retrieval + reranking keeps precision high." },
+      { value: "8k tokens", label: "Context discipline target", note: "Minimal task packet; compact traces per step." },
+      { value: "MCP / A2A", label: "Agent protocols (2026)", note: "MCP for tools/data, A2A for agent-to-agent." },
+    ],
+  },
 ];
