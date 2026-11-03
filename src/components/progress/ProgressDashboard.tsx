@@ -171,7 +171,7 @@ export function ProgressDashboard() {
         <p className="text-[11px] font-semibold tracking-[0.2em] text-sky-400/80">PROGRESS</p>
         <h1 className="mt-2 font-display text-3xl font-semibold text-zinc-100">Your mastery map</h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
-          Card scheduling, lab grades, and game records — rolled into one view over the 19-module curriculum. Stored
+          Card scheduling, lab grades, and game records - rolled into one view over the {TOTAL_MODULES}-module curriculum. Stored
           on-device with FSRS; it survives refreshes and never phones home.
         </p>
       </header>

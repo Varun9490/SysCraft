@@ -22,7 +22,7 @@ import { useLearningStore } from '@/store/useLearningStore';
 /**
  * FSRS review queue runner.
  *
- * Pulls due items from the learning store across all 19 concept modules,
+ * Pulls due items from the learning store across every concept module,
  * enforces a daily cap with quiet overflow (no "overdue" shame), supports a
  * one-click catch-up mode after a break, and records a practice session for
  * the Weekly Rhythm tracker when the queue is finished.

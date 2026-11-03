@@ -1,5 +1,5 @@
 /**
- * Brand accent colors for the 16 guided labs' companies.
+ * Brand accent colors for the guided labs' companies.
  * Used by lab cards, previews, and workspace headers. Colors are tuned
  * for legibility on the zinc-950 dark surface.
  */

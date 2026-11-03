@@ -10,8 +10,9 @@ import { canvasHrefWithAdd } from '@/store/canvasDeepLink';
 import type { ResourceCategory, ResourceDefinition } from '@/types/resource';
 
 /**
- * The primitives library: every canvas block (32 cloud + Kubernetes services)
- * exposing its full encyclopedia article, production-realistic defaults,
+ * The primitives library: every canvas block (the full cloud + Kubernetes
+ * catalogue, counted by SEED_RESOURCES.length) exposing its full encyclopedia
+ * article, production-realistic defaults,
  * trade-off matrix, and when-to-use guidance. Same single source of truth the
  * NodeInspector and simulator read, so the docs can never drift from the sim.
  */

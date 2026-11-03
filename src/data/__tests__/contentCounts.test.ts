@@ -99,7 +99,9 @@ describe("path structural invariants", () => {
 
 const COPY_SURFACES: Array<{ dir: string; include: RegExp }> = [
   { dir: "src/app", include: /page\.tsx$/ },
-  { dir: "src/components/landing", include: /\.tsx$/ },
+  // Every client component can render copy, so scan the whole component tree —
+  // a stale count hiding in a card, panel, or empty state is just as visible.
+  { dir: "src/components", include: /\.tsx$/ },
 ];
 
 const LOCAL_FILES = [
@@ -110,8 +112,21 @@ const LOCAL_FILES = [
   "src/data/guidedLabs.ts",
 ];
 
-/** Digits beside module/lesson/lab/primitive words in copy = manifest bypass. */
-const STALE_COUNT = /\b(\d{1,3})\s*(?:\+\s*)?(structured\s+)?(lessons|modules|modules|primitives|labs)\b/gi;
+/**
+ * Digits beside a content noun in copy = manifest bypass. Up to two adjectives
+ * may sit between the number and the noun, so phrasings like "16 real-world
+ * labs" or "48 core primitives" cannot slip through, and the hyphenated form
+ * ("19-module curriculum") is caught separately.
+ */
+const COUNT_NOUNS =
+  "lessons|modules|primitives|labs|articles|topics|drills|blueprints|play\\s?modes|case\\s+studies|quizzes";
+const STALE_COUNT_PATTERNS = [
+  new RegExp(
+    `\\b(\\d{1,3})\\s*(?:\\+\\s*)?(?:[A-Za-z][\\w-]*[- ]+){0,2}(?:${COUNT_NOUNS})\\b`,
+    "gi",
+  ),
+  new RegExp(`\\b(\\d{1,3})-(?:${COUNT_NOUNS})\\b`, "gi"),
+];
 
 function* walkFiles(dir: string, include: RegExp): Generator<string> {
   const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
@@ -123,22 +138,25 @@ function* walkFiles(dir: string, include: RegExp): Generator<string> {
 }
 
 describe("no hard-coded content counts in copy", () => {
-  it("scans route pages and landing components for literal counts", () => {
+  it("scans route pages and components for literal counts", () => {
     const offenders: string[] = [];
     for (const surface of COPY_SURFACES) {
       for (const file of walkFiles(surface.dir, surface.include)) {
         const text = readFileSync(file, "utf8");
-        for (const match of text.matchAll(STALE_COUNT)) {
-          offenders.push(`${file}: "${match[0]}"`);
+        for (const pattern of STALE_COUNT_PATTERNS) {
+          for (const match of text.matchAll(pattern)) {
+            offenders.push(`${file}: "${match[0]}"`);
+          }
         }
       }
     }
     for (const file of LOCAL_FILES) {
       const text = readFileSync(file, "utf8");
-      for (const match of text.matchAll(STALE_COUNT)) {
-        const line = match[0];
-        // Header comments are allowed to explain composition in words, not digits.
-        offenders.push(`${file}: "${line}"`);
+      for (const pattern of STALE_COUNT_PATTERNS) {
+        for (const match of text.matchAll(pattern)) {
+          // Header comments are allowed to explain composition in words, not digits.
+          offenders.push(`${file}: "${match[0]}"`);
+        }
       }
     }
     expect(offenders, offenders.join("\n")).toEqual([]);

@@ -43,7 +43,7 @@ const FEATURES: Feature[] = [
   },
   {
     Icon: FlaskConical,
-    title: "16 real-world labs",
+    title: `${CONTENT_COUNTS.labs} real-world labs`,
     description: "Design Bitly, YouTube, WhatsApp, Uber, and Stripe's rate limiter — graded automatically against SLOs and budgets.",
     span: "lg:col-span-4",
   },
