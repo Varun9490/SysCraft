@@ -8,7 +8,6 @@ import {
   createDebouncedCanvasStorage,
   migratePersistedCanvas,
   sanitizePersistedCanvas,
-  type PersistedCanvasState,
 } from "../canvasPersistence";
 
 /** Round-trip helper: anything a component can serialize must survive. */

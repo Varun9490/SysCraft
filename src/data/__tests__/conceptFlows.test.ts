@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ENCYCLOPEDIA_MODULE_IDS, getEncyclopediaModule } from "@/data/encyclopediaData";
-import { CONCEPT_FLOWS, CONCEPT_FLOW_IDS, CONCEPT_FLOW_MAP } from "@/data/conceptFlows";
+import { getEncyclopediaModule } from "@/data/encyclopediaData";
+import { CONCEPT_FLOWS, CONCEPT_FLOW_IDS } from "@/data/conceptFlows";
 import { CONCEPT_DEFINITIONS, CONCEPT_DEFINITION_MAP } from "@/data/conceptSources";
 import { LESSON_ROUTES } from "@/lib/lessonRoutes";
-import { GLOSSARY, GLOSSARY_MAP, GLOSSARY_PATTERN, lookupGlossary } from "@/data/glossary";
+import { GLOSSARY, GLOSSARY_PATTERN, lookupGlossary } from "@/data/glossary";
 
 /**
  * Docs-quality gate for the teaching scaffolding: every module must open
