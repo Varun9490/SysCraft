@@ -6595,7 +6595,7 @@ function evaluateCapacity(sandbox: LessonSandboxSpec, value: number): SandboxMet
     secondaryMetricLabel: "Worst-case (p99) response time",
     secondaryMetricValue: `${clamped} ms`,
     status,
-    explanation: `With ${value.toLocaleString()} ${sandbox.unit} arriving at once, a single app server still walks through each request at its own pace, so the typical response is ${p50} ms. But near 1,600 concurrent ${sandbox.unit} the queue math changes: past that point the line grows much faster than the crowd does, and worst-case response times spread into ${clamped > 400 ? "whole seconds" : "hundreds of ms"} while the average barely moves.`,
+    explanation: `With ${value.toLocaleString("en-US")} ${sandbox.unit} arriving at once, a single app server still walks through each request at its own pace, so the typical response is ${p50} ms. But near 1,600 concurrent ${sandbox.unit} the queue math changes: past that point the line grows much faster than the crowd does, and worst-case response times spread into ${clamped > 400 ? "whole seconds" : "hundreds of ms"} while the average barely moves.`,
   };
 }
 
@@ -6605,11 +6605,11 @@ function evaluateRetry(sandbox: LessonSandboxSpec, value: number): SandboxMetric
   const successWindow = clamp(100 - (value - 1) * 6, 20, 100);
   return {
     primaryMetricLabel: "Retry-storm traffic amplification",
-    primaryMetricValue: `${amplification.toLocaleString()}%`,
+    primaryMetricValue: `${amplification.toLocaleString("en-US")}%`,
     secondaryMetricLabel: "Requests finishing inside the deadline",
     secondaryMetricValue: `${successWindow}%`,
     status,
-    explanation: `Retrying ${value.toLocaleString()} times means one temporary failure can turn into ${amplification.toLocaleString()}% extra traffic aimed at an already-struggling service. With exponential backoff and a cap, one retry is polite; three or four starts piling load on a system already gasping; more than that becomes a self-inflicted retry storm where everyone waits even if the underlying service recovers.`,
+    explanation: `Retrying ${value.toLocaleString("en-US")} times means one temporary failure can turn into ${amplification.toLocaleString("en-US")}% extra traffic aimed at an already-struggling service. With exponential backoff and a cap, one retry is polite; three or four starts piling load on a system already gasping; more than that becomes a self-inflicted retry storm where everyone waits even if the underlying service recovers.`,
   };
 }
 
@@ -6622,7 +6622,7 @@ function evaluateReceipt(sandbox: LessonSandboxSpec, value: number): SandboxMetr
     secondaryMetricLabel: "Duplicate charges that slip through",
     secondaryMetricValue: `${escaped} per 10,000 requests`,
     status,
-    explanation: `When ${value.toLocaleString()}% of duplicate requests are caught by the dedupe key, only ${(100 - value).toFixed(0)}% slip past — which at 10,000 payments is ${escaped} double effects. An idempotency key turns most network hiccups into harmless replays; without one the ledger silently grows a second charge the customer will dispute.`,
+    explanation: `When ${value.toLocaleString("en-US")}% of duplicate requests are caught by the dedupe key, only ${(100 - value).toFixed(0)}% slip past — which at 10,000 payments is ${escaped} double effects. An idempotency key turns most network hiccups into harmless replays; without one the ledger silently grows a second charge the customer will dispute.`,
   };
 }
 
@@ -6636,7 +6636,7 @@ function evaluatePlot(sandbox: LessonSandboxSpec, value: number): SandboxMetric 
     secondaryMetricLabel: "Slow-query risk",
     secondaryMetricValue: `${slowRisk}%`,
     status,
-    explanation: `Serving ${value.toLocaleString()} ${sandbox.unit} cleanly means planning ${indexes} structures (indexes, projections, read models) so every common read has a shortcut. Below roughly a handful of patterns this is comfortable; past that, un-modeled patterns start scanning whole tables and slow-query risk jumps into the danger zone.`,
+    explanation: `Serving ${value.toLocaleString("en-US")} ${sandbox.unit} cleanly means planning ${indexes} structures (indexes, projections, read models) so every common read has a shortcut. Below roughly a handful of patterns this is comfortable; past that, un-modeled patterns start scanning whole tables and slow-query risk jumps into the danger zone.`,
   };
 }
 
@@ -6660,11 +6660,11 @@ function evaluateFanout(sandbox: LessonSandboxSpec, value: number): SandboxMetri
   const status = value <= 150 ? "healthy" : value <= 1500 ? "warning" : "critical";
   return {
     primaryMetricLabel: "Inboxes to write per action",
-    primaryMetricValue: `${value.toLocaleString()}`,
+    primaryMetricValue: `${value.toLocaleString("en-US")}`,
     secondaryMetricLabel: "Time for everyone to receive",
     secondaryMetricValue: `~${seconds} s`,
     status,
-    explanation: `One message to ${value.toLocaleString()} recipients means ${value.toLocaleString()} write operations at send time. Small groups are instant; a few thousand fans out in a couple of seconds; huge audiences (hundreds of thousands) make send-time copying uneconomical — which is why hybrid fan-out designs switch large senders to assemble-on-read.`,
+    explanation: `One message to ${value.toLocaleString("en-US")} recipients means ${value.toLocaleString("en-US")} write operations at send time. Small groups are instant; a few thousand fans out in a couple of seconds; huge audiences (hundreds of thousands) make send-time copying uneconomical — which is why hybrid fan-out designs switch large senders to assemble-on-read.`,
   };
 }
 
@@ -6678,9 +6678,9 @@ function evaluateQueue(sandbox: LessonSandboxSpec, value: number): SandboxMetric
     primaryMetricLabel: "Wait before a job starts",
     primaryMetricValue: delay > 0 ? `${delay.toFixed(1)}+ s behind the line` : "Under 1 s",
     secondaryMetricLabel: "Backlog waiting",
-    secondaryMetricValue: `${backlog.toLocaleString()} jobs`,
+    secondaryMetricValue: `${backlog.toLocaleString("en-US")} jobs`,
     status,
-    explanation: `At ${value} ${sandbox.unit} arriving against ${steady} jobs/s of steady processing capacity${overload > 0 ? `, ${overload} jobs pile up every second and the backlog climbs to ${backlog.toLocaleString()}` : ` the pool keeps pace and the line stays short`}. The closer the arrival rate gets to the pool's ceiling, the faster the line grows — classic queueing math where p99 explodes just before full saturation.`,
+    explanation: `At ${value} ${sandbox.unit} arriving against ${steady} jobs/s of steady processing capacity${overload > 0 ? `, ${overload} jobs pile up every second and the backlog climbs to ${backlog.toLocaleString("en-US")}` : ` the pool keeps pace and the line stays short`}. The closer the arrival rate gets to the pool's ceiling, the faster the line grows — classic queueing math where p99 explodes just before full saturation.`,
   };
 }
 
@@ -6694,7 +6694,7 @@ function evaluateRateLimit(sandbox: LessonSandboxSpec, value: number): SandboxMe
     secondaryMetricLabel: "Requests admitted within the cap",
     secondaryMetricValue: `${Math.min(100, Math.round((cap / Math.max(value, 1)) * 100))}%`,
     status,
-    explanation: `With a fixed cap of ${cap} ${sandbox.unit} per window and ${value.toLocaleString()} arriving, ${rejected.toFixed(1)}% get 429s while the rest go through. Pushing 2-3× past the cap is normal burst territory for honest clients; anything beyond that is worth asking who exactly is hammering the door.`,
+    explanation: `With a fixed cap of ${cap} ${sandbox.unit} per window and ${value.toLocaleString("en-US")} arriving, ${rejected.toFixed(1)}% get 429s while the rest go through. Pushing 2-3× past the cap is normal burst territory for honest clients; anything beyond that is worth asking who exactly is hammering the door.`,
   };
 }
 
@@ -6705,11 +6705,11 @@ function evaluateCost(sandbox: LessonSandboxSpec, value: number): SandboxMetric 
   const status = value <= 4 ? "healthy" : value <= 16 ? "warning" : "critical";
   return {
     primaryMetricLabel: "Monthly bill",
-    primaryMetricValue: `$${Math.round(perMonth).toLocaleString()}`,
+    primaryMetricValue: `$${Math.round(perMonth).toLocaleString("en-US")}`,
     secondaryMetricLabel: "Unit cost per hour",
     secondaryMetricValue: `$${perHour.toFixed(2)}`,
     status,
-    explanation: `${value.toLocaleString()} ${sandbox.unit} at $${perUnit.toFixed(2)} per ${sandbox.unit.replace(/s$/, "")}/hour runs about $${perHour.toFixed(2)}/hour and roughly $${Math.round(perMonth).toLocaleString()}/month. Before scaling out further, check the cheaper levers: caching to offload the origin, right-sizing under-utilized units, and correcting the expensive requests themselves.`,
+    explanation: `${value.toLocaleString("en-US")} ${sandbox.unit} at $${perUnit.toFixed(2)} per ${sandbox.unit.replace(/s$/, "")}/hour runs about $${perHour.toFixed(2)}/hour and roughly $${Math.round(perMonth).toLocaleString("en-US")}/month. Before scaling out further, check the cheaper levers: caching to offload the origin, right-sizing under-utilized units, and correcting the expensive requests themselves.`,
   };
 }
 
@@ -6722,7 +6722,7 @@ function evaluateOutbox(sandbox: LessonSandboxSpec, value: number): SandboxMetri
     secondaryMetricLabel: "Reads that briefly disagree",
     secondaryMetricValue: lag < 1 ? "Barely any" : `Most reads within the window`,
     status,
-    explanation: `At ${value.toLocaleString()} ${sandbox.unit}, the second copy of the truth updates about ${lag.toFixed(2)} s behind the first. Under one second is imperceptible for most flows; a few seconds means dashboards and cross-service reads briefly disagree with the source of truth; past that, users start seeing stale answers and the risk of acting on outdated data climbs.`,
+    explanation: `At ${value.toLocaleString("en-US")} ${sandbox.unit}, the second copy of the truth updates about ${lag.toFixed(2)} s behind the first. Under one second is imperceptible for most flows; a few seconds means dashboards and cross-service reads briefly disagree with the source of truth; past that, users start seeing stale answers and the risk of acting on outdated data climbs.`,
   };
 }
 
@@ -6748,9 +6748,9 @@ function evaluateHitRatio(sandbox: LessonSandboxSpec, value: number): SandboxMet
     primaryMetricLabel: "Hit ratio",
     primaryMetricValue: `${offloadPct}%`,
     secondaryMetricLabel: "Requests still reaching the origin",
-    secondaryMetricValue: `${originPerSec.toLocaleString()} of 12,800/s`,
+    secondaryMetricValue: `${originPerSec.toLocaleString("en-US")} of 12,800/s`,
     status,
-    explanation: `A ${value} ${sandbox.unit} shelf answers roughly ${offloadPct}% of reads on its own, so only ${originPerSec.toLocaleString()} of every 12,800 requests per second bother the origin. Bigger shelf means fewer origin trips; but the shape of the access matters too — if reads are evenly spread rather than skewed, the same shelf protects far less.`,
+    explanation: `A ${value} ${sandbox.unit} shelf answers roughly ${offloadPct}% of reads on its own, so only ${originPerSec.toLocaleString("en-US")} of every 12,800 requests per second bother the origin. Bigger shelf means fewer origin trips; but the shape of the access matters too — if reads are evenly spread rather than skewed, the same shelf protects far less.`,
   };
 }
 
@@ -6765,7 +6765,7 @@ function evaluateSlo(sandbox: LessonSandboxSpec, value: number): SandboxMetric {
     secondaryMetricLabel: "Budget used",
     secondaryMetricValue: `${Math.round((value / 43) * 100)}% of a 30-day 99.9% budget`,
     status,
-    explanation: `${value} minutes of downtime per ${quarterMinutes.toLocaleString()} minutes works out to ${formatPct(availability)} — about ${nines}. Your error-budget math says ${Math.round((value / 43) * 100)}% of the classic 30-day 99.9% allowance is spent, and multiplying nines costs roughly 10× the operational effort each step.`,
+    explanation: `${value} minutes of downtime per ${quarterMinutes.toLocaleString("en-US")} minutes works out to ${formatPct(availability)} — about ${nines}. Your error-budget math says ${Math.round((value / 43) * 100)}% of the classic 30-day 99.9% allowance is spent, and multiplying nines costs roughly 10× the operational effort each step.`,
   };
 }
 

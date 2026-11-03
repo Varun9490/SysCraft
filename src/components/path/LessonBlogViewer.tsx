@@ -117,21 +117,27 @@ export function LessonBlogViewer({
   }, [quizRevealed, quizCorrect]);
 
   const handleTryOnCanvas = () => {
+    const blueprint = blog.sandbox.blueprintId ? getBlueprint(blog.sandbox.blueprintId) : undefined;
+    let stashed = false;
     try {
       sessionStorage.setItem("syscraft:resetCanvas", "1");
+      if (blueprint) {
+        // The workspace reads this after rehydrating and before the reset, so
+        // the blueprint survives the clean-slate wipe.
+        sessionStorage.setItem("syscraft:pendingBlueprint", blueprint.id);
+        stashed = true;
+      }
     } catch {
       /* storage disabled */
     }
-    if (blog.sandbox.blueprintId) {
-      const bp = getBlueprint(blog.sandbox.blueprintId);
-      if (bp) {
-        useCanvasStore.getState().loadBlueprintTemplate(bp);
-        flushPendingCanvasWrite();
-        router.push("/canvas");
-        return;
-      }
+
+    if (blueprint && !stashed) {
+      // Storage blocked: hand the blueprint over in memory instead.
+      useCanvasStore.getState().loadBlueprintTemplate(blueprint);
+      flushPendingCanvasWrite();
     }
-    router.push(canvasHrefWithAdd(blog.sandbox.canvasPrimitives));
+
+    router.push(blueprint ? "/canvas" : canvasHrefWithAdd(blog.sandbox.canvasPrimitives));
   };
 
   const stepForward = () => setActiveStep((prev) => (prev + 1) % flowLen);
@@ -316,10 +322,10 @@ export function LessonBlogViewer({
                       active ? "text-content" : "text-content-secondary"
                     }`}
                   >
-                    <GlossaryText text={step.label} />
+                    <GlossaryText text={step.label} plain />
                   </span>
                   <span className="text-[10px] leading-tight text-content-tertiary">
-                    <GlossaryText text={step.subtitle} />
+                    <GlossaryText text={step.subtitle} plain />
                   </span>
                 </button>
               );
@@ -424,7 +430,7 @@ export function LessonBlogViewer({
               {blog.sandbox.sliderLabel}
             </label>
             <span className="font-mono text-[12px] text-brass">
-              {sliderValue.toLocaleString()} {blog.sandbox.unit}
+              {sliderValue.toLocaleString("en-US")} {blog.sandbox.unit}
             </span>
           </div>
           <input
@@ -439,8 +445,8 @@ export function LessonBlogViewer({
             style={{ accentColor: "rgb(var(--accent))" }}
           />
           <div className="mt-1 flex justify-between text-[10px] tabular-nums text-content-tertiary">
-            <span>{blog.sandbox.min.toLocaleString()}</span>
-            <span>{blog.sandbox.max.toLocaleString()}</span>
+            <span>{blog.sandbox.min.toLocaleString("en-US")}</span>
+            <span>{blog.sandbox.max.toLocaleString("en-US")}</span>
           </div>
         </div>
 
@@ -542,7 +548,7 @@ export function LessonBlogViewer({
                   {String.fromCharCode(65 + idx)}
                 </span>
                 <span className="flex-1">
-                  <GlossaryText text={opt} />
+                  <GlossaryText text={opt} plain />
                 </span>
                 {quizRevealed && correct && <CheckCircle2 size={15} className="shrink-0 text-emerald-300" />}
               </button>

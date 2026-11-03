@@ -34,9 +34,16 @@ export function glossifyText(text: string): ReactNode {
   return <>{out}</>;
 }
 
-/** Renders a paragraph-sized run of prose with hover definitions enabled. */
-export function GlossaryText({ text }: { text: string }) {
-  const nodes = useMemo(() => glossifyText(text), [text]);
+/**
+ * Renders a paragraph-sized run of prose with hover definitions enabled.
+ *
+ * `plain` skips the hover-card spans. Use it inside buttons, links, and other
+ * interactive parents: a hover trigger is itself a button, and nesting one
+ * inside another interactive element is invalid HTML that browsers repair
+ * before hydration (React error #418).
+ */
+export function GlossaryText({ text, plain = false }: { text: string; plain?: boolean }) {
+  const nodes = useMemo(() => (plain ? text : glossifyText(text)), [text, plain]);
   return <>{nodes}</>;
 }
 

@@ -29,6 +29,7 @@ import { getCompanyBrand } from "@/data/companyBrands";
 import { GUIDED_LABS } from "@/data/guidedLabs";
 import { formatRps, labCleanTitle } from "@/data/labMeta";
 import { isSoundEnabled, playToggle, setSoundEnabled } from "@/engine/soundEngine";
+import { flushPendingCanvasWrite, readPersistedCanvas, setCanvasScope } from "@/store/canvasPersistence";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useLearningStore } from "@/store/useLearningStore";
 import { simSnapshotRef, useSimStore } from "@/store/useSimStore";
@@ -127,6 +128,10 @@ export function LabWorkspace({ labId }: { labId: string }) {
   const [tab, setTab] = useState<TabId>("brief");
   const [nonce, setNonce] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
+  // The canvas must not mount until the lab's storage scope is active. Child
+  // effects (e.g. SysCraftCanvas applying edge style) run before this parent
+  // effect, and would otherwise queue an empty write against the main scope.
+  const [canvasReady, setCanvasReady] = useState(false);
 
   const labProgress = useLearningStore((s) => (lab ? s.labProgress[lab.id] : undefined));
   const completeLabStage = useLearningStore((s) => s.completeLabStage);
@@ -140,12 +145,34 @@ export function LabWorkspace({ labId }: { labId: string }) {
   );
 
   useEffect(() => {
+    // Each lab owns a separate autosave scope. It starts empty on first open
+    // (never inheriting the freeform workspace) and resumes its own work on
+    // later visits without touching the learner's main canvas.
+    const scope = `lab:${labId}`;
+    setCanvasScope(scope);
+    const saved = readPersistedCanvas(scope);
+    const nodes = (saved?.nodes ?? []).map((node) => ({ ...node, type: "resource" as const }));
+    useCanvasStore.getState().replaceTopology(nodes, saved?.edges ?? []);
+    useCanvasStore.getState().setSceneName(saved?.sceneName ?? `Lab: ${lab?.title ?? ""}`);
+    useCanvasStore.getState().setHydrated(true);
     void useLearningStore.getState().hydrateFromDb();
     setSoundOn(isSoundEnabled());
-    // A lab canvas must start empty, never inherit the user's previous design.
-    useCanvasStore.getState().replaceTopology([], []);
-    useCanvasStore.getState().setSceneName(`Lab: ${lab?.title ?? ""}`);
-  }, []);
+    setCanvasReady(true);
+
+    return () => {
+      flushPendingCanvasWrite();
+      setCanvasScope("main");
+      // Put the freeform workspace back into the store before this component
+      // unmounts. Otherwise the lab topology would still be in memory when
+      // autosave switches back to the main scope, overwriting the learner's
+      // architecture during the route transition.
+      const main = readPersistedCanvas("main");
+      const mainNodes = (main?.nodes ?? []).map((node) => ({ ...node, type: "resource" as const }));
+      const store = useCanvasStore.getState();
+      store.replaceTopology(mainNodes, main?.edges ?? []);
+      store.setSceneName(main?.sceneName ?? "Untitled system");
+    };
+  }, [labId, lab?.title]);
 
   if (!lab || !stage) {
     return (
@@ -418,7 +445,13 @@ export function LabWorkspace({ labId }: { labId: string }) {
         </aside>
 
         <div className="relative min-w-0 flex-1">
-          <SysCraftCanvas className="h-full w-full" />
+          {canvasReady ? (
+            <SysCraftCanvas className="h-full w-full" />
+          ) : (
+            <div className="flex h-full items-center justify-center text-[12px] text-zinc-500">
+              Preparing the lab canvas…
+            </div>
+          )}
         </div>
       </div>
     </main>

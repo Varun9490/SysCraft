@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CANVAS_PERSIST_VERSION,
+  CANVAS_STORAGE_KEY,
   MAX_PERSISTED_NODES,
+  canvasStorageKeyForScope,
   flushPendingCanvasWrite,
   createDebouncedCanvasStorage,
   migratePersistedCanvas,
@@ -115,6 +117,20 @@ describe("sanitizePersistedCanvas", () => {
     expect(sanitizePersistedCanvas(null)).toBeUndefined();
     expect(sanitizePersistedCanvas("json string")).toBeUndefined();
     expect(sanitizePersistedCanvas({ nodes: [] })).toBeUndefined();
+  });
+
+  it("restores the resource renderer type, not React Flow's default node", () => {
+    const out = sanitizePersistedCanvas(validState());
+    expect(out?.nodes[0]?.type).toBe("resource");
+  });
+});
+
+describe("canvas storage scopes", () => {
+  it("keeps the freeform workspace and each lab in separate keys", () => {
+    expect(canvasStorageKeyForScope("main")).toBe(CANVAS_STORAGE_KEY);
+    expect(canvasStorageKeyForScope("lab:bitly-url-shortener")).toBe(
+      `${CANVAS_STORAGE_KEY}:lab:bitly-url-shortener`,
+    );
   });
 });
 

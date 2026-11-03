@@ -25,6 +25,28 @@ export const CANVAS_PERSIST_VERSION = 1;
 export const MAX_PERSISTED_NODES = 200;
 export const MAX_PERSISTED_EDGES = 400;
 
+/**
+ * Canvas scopes keep independent autosaves. The freeform workspace uses
+ * "main"; each lab uses "lab:<id>". Without this, opening a lab replaced the
+ * learner's saved architecture with the lab's empty starter canvas.
+ */
+let activeCanvasScope = "main";
+
+export function canvasStorageKeyForScope(scope: string): string {
+  return scope === "main" ? CANVAS_STORAGE_KEY : `${CANVAS_STORAGE_KEY}:${scope}`;
+}
+
+export function getCanvasScope(): string {
+  return activeCanvasScope;
+}
+
+/** Switch autosave targets, flushing trailing edits to the old scope first. */
+export function setCanvasScope(scope: string): void {
+  if (scope === activeCanvasScope) return;
+  flushPendingCanvasWrite();
+  activeCanvasScope = scope;
+}
+
 export type PersistedCanvasNode = Node<ResourceNodeData>;
 export type PersistedCanvasEdge = Edge<CanvasEdgeData>;
 
@@ -117,7 +139,9 @@ export function sanitizePersistedNode(raw: unknown): PersistedCanvasNode | null 
   const comment = dataRaw.comment;
   if (typeof comment === "string" && comment.trim().length > 0) data.comment = comment.trim().slice(0, 2000);
 
-  return { id, position: { x, y }, data, selected: false };
+  // Persist the React Flow node type: without it the restored node falls back
+  // to the library's default renderer and loses the resource card UI.
+  return { id, type: "resource", position: { x, y }, data, selected: false };
 }
 
 /** Narrow a raw edge object; returns null for self-loops, or malformed pairs. */
@@ -211,6 +235,20 @@ export function migratePersistedCanvas(persisted: unknown, version: number): Per
   }
 }
 
+/** Read a saved canvas for a scope without going through the store. */
+export function readPersistedCanvas(scope: string): PersistedCanvasState | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(canvasStorageKeyForScope(scope));
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as { state?: unknown; version?: unknown };
+    const version = typeof parsed?.version === "number" ? parsed.version : CANVAS_PERSIST_VERSION;
+    return migratePersistedCanvas(parsed?.state ?? parsed, version);
+  } catch {
+    return undefined;
+  }
+}
+
 /** Sync-compatible adapter constrained to zustand's StateStorage<void>. */
 type CanvasStateStorage = StateStorage<void>;
 
@@ -235,11 +273,13 @@ export function createDebouncedCanvasStorage(getBase: () => CanvasStateStorage |
       return undefined;
     }
   };
+  const scopedName = (name: string) =>
+    name === CANVAS_STORAGE_KEY ? canvasStorageKeyForScope(activeCanvasScope) : name;
   return {
     getItem(name) {
       const base = resolve();
       try {
-        return base?.getItem(name) ?? null;
+        return base?.getItem(scopedName(name)) ?? null;
       } catch {
         return null;
       }
@@ -248,7 +288,7 @@ export function createDebouncedCanvasStorage(getBase: () => CanvasStateStorage |
       // Bind the underlying storage now so the trailing-flush (which runs
       // outside the getter's own call stack) has a target to write to.
       resolve();
-      pendingWrite = { name, value };
+      pendingWrite = { name: scopedName(name), value };
       if (flushTimer !== null) clearTimeout(flushTimer);
       flushTimer = setTimeout(() => {
         flushTimer = null;
@@ -262,7 +302,7 @@ export function createDebouncedCanvasStorage(getBase: () => CanvasStateStorage |
         flushTimer = null;
       }
       try {
-        resolve()?.removeItem(name);
+        resolve()?.removeItem(scopedName(name));
       } catch {
         /* storage unavailable — nothing to clear */
       }

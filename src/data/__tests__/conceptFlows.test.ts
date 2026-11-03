@@ -105,12 +105,10 @@ describe("glossary hover terms", () => {
       expect(entry.meaning.length).toBeGreaterThan(30);
       if (entry.href) {
         const isWiki = entry.href.startsWith("/wiki/");
-        const isLearn = entry.href.startsWith("/learn/");
-        expect(isWiki || isLearn).toBe(true);
+        const isLesson = LESSON_ROUTES.some((route) => route.href === entry.href);
+        expect(isWiki || isLesson, `unresolvable glossary href: ${entry.term} -> ${entry.href}`).toBe(true);
         if (isWiki) {
           expect(getEncyclopediaModule(entry.href.slice("/wiki/".length))).toBeDefined();
-        } else {
-          expect(LESSON_ROUTES.some((route) => route.href === entry.href)).toBe(true);
         }
       }
     }

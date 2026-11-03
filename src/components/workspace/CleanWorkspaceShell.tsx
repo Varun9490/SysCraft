@@ -394,6 +394,19 @@ export default function CleanWorkspaceShell() {
         // A case study opened from /case-studies stashes its blueprint id here
         // so the canvas can load it AFTER the persisted topology is restored
         // (otherwise the restore overwrites the blueprint).
+        // A lesson/lab "Try on canvas" or "Open on canvas" asked for a clean
+        // slate: drop the restored topology BEFORE any blueprint or deep-link
+        // handoff runs. Resetting after the handoff wiped the blueprint that
+        // the case study had just opened.
+        try {
+          if (sessionStorage.getItem("syscraft:resetCanvas") === "1") {
+            sessionStorage.removeItem("syscraft:resetCanvas");
+            useCanvasStore.getState().replaceTopology([], []);
+          }
+        } catch {
+          /* storage disabled */
+        }
+
         let pendingBlueprintId: string | null = null;
         try {
           pendingBlueprintId = sessionStorage.getItem("syscraft:pendingBlueprint");
@@ -407,16 +420,6 @@ export default function CleanWorkspaceShell() {
         }
         // Restored coordinates may sit off the previous viewport: refit once.
         useCanvasStore.setState((state) => ({ fitViewNonce: state.fitViewNonce + 1 }));
-        // A lesson/lab "Try on canvas" or "Open on canvas" asked for a clean
-        // slate: drop the restored topology before the deep-link drop runs.
-        try {
-          if (sessionStorage.getItem("syscraft:resetCanvas") === "1") {
-            sessionStorage.removeItem("syscraft:resetCanvas");
-            useCanvasStore.getState().replaceTopology([], []);
-          }
-        } catch {
-          /* storage disabled */
-        }
 
         // Tell the canvas the persisted topology is in place, so a wiki deep
         // link (?add=...) can drop its primitives on top of the restore
