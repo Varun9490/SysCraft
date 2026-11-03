@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build && node scripts/fix-segment-paths.js",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "ai": "node server/opencode-ai-bridge.mjs",
     "test": "vitest run"

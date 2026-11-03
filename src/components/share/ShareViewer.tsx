@@ -174,7 +174,7 @@ export function ShareViewer() {
         <section className="rounded-2xl border border-amber-500/40 bg-amber-500/[0.06] p-5" role="alert">
           <h2 className="flex items-center gap-2 text-[13px] font-semibold text-amber-300">
             <AlertTriangle className="h-4 w-4" aria-hidden />
-            This link didn't decode
+            This link didn&apos;t decode
           </h2>
           <p className="mt-2 text-[12.5px] leading-relaxed text-zinc-400">{error}</p>
           <p className="mt-2 text-[12px] text-zinc-500">

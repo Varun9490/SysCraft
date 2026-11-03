@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ENCYCLOPEDIA_MODULE_IDS, getEncyclopediaModule } from "@/data/encyclopediaData";
 import { CONCEPT_FLOWS, CONCEPT_FLOW_IDS, CONCEPT_FLOW_MAP } from "@/data/conceptFlows";
 import { CONCEPT_DEFINITIONS, CONCEPT_DEFINITION_MAP } from "@/data/conceptSources";
+import { LESSON_ROUTES } from "@/lib/lessonRoutes";
 import { GLOSSARY, GLOSSARY_MAP, GLOSSARY_PATTERN, lookupGlossary } from "@/data/glossary";
 
 /**
@@ -103,8 +104,14 @@ describe("glossary hover terms", () => {
       lower.add(key);
       expect(entry.meaning.length).toBeGreaterThan(30);
       if (entry.href) {
-        expect(entry.href.startsWith("/wiki/")).toBe(true);
-        expect(getEncyclopediaModule(entry.href.slice("/wiki/".length))).toBeDefined();
+        const isWiki = entry.href.startsWith("/wiki/");
+        const isLearn = entry.href.startsWith("/learn/");
+        expect(isWiki || isLearn).toBe(true);
+        if (isWiki) {
+          expect(getEncyclopediaModule(entry.href.slice("/wiki/".length))).toBeDefined();
+        } else {
+          expect(LESSON_ROUTES.some((route) => route.href === entry.href)).toBe(true);
+        }
       }
     }
   });

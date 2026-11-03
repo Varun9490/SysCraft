@@ -391,7 +391,7 @@ export function ProgressDashboard() {
         <section className="mt-10 rounded-2xl border border-sky-500/30 bg-sky-500/[0.05] p-6">
           <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-zinc-100">
             <Sparkles className="h-4 w-4 text-sky-400" aria-hidden />
-            Nothing to chart yet — that's fine
+            Nothing to chart yet — that&apos;s fine
           </h2>
           <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-zinc-400">
             Progress appears the moment you do anything: read a concept, answer a quiz card, grade a lab, or play a

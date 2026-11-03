@@ -136,7 +136,7 @@ export function PrimitivesBrowser({ primitives = SEED_RESOURCES }: { primitives?
             <p className="mt-4 text-[15px] leading-relaxed text-content-secondary">
               Every canvas block, fully documented: per-block latency and cost defaults, hardening scores, trade-off
               matrices, and a written engineering walkthrough. The article you read here is the exact definition the
-              simulator's 20 Hz physics run against.
+              simulator&apos;s 20 Hz physics run against.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line/70 bg-line/60">

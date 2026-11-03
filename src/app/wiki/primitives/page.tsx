@@ -1,4 +1,5 @@
 import { SiteChrome } from "@/components/nav/SiteChrome";
+import Link from "next/link";
 import { PrimitivesBrowser } from "@/components/wiki/PrimitivesBrowser";
 
 export const metadata = {
@@ -12,9 +13,9 @@ export default function WikiPrimitivesPage() {
     <SiteChrome>
       <div className="pt-6">
         <nav className="section-container mb-4 text-[12.5px] text-zinc-500" aria-label="Breadcrumb">
-          <a href="/wiki" className="hover:text-zinc-300">
+          <Link href="/wiki" className="hover:text-zinc-300">
             Wiki
-          </a>
+          </Link>
           <span className="mx-2">/</span>
           <span className="text-zinc-300">Primitives</span>
         </nav>

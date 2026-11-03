@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CONTENT_COUNTS, HERO_STATS } from "@/data/contentManifest";
@@ -129,7 +129,7 @@ const STALE_COUNT_PATTERNS = [
 ];
 
 function* walkFiles(dir: string, include: RegExp): Generator<string> {
-  const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
+
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) yield* walkFiles(full, include);

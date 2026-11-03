@@ -95,7 +95,7 @@ describe("flow propagation", () => {
   it("sheds overload as errors with bounded queues", () => {
     const small = { ...node("tiny", "rest_service", { clientRps: 50000 }), replicationFactor: 1, baseThroughputRps: 100, maxConcurrency: 10 };
     const topology: GraphTopology = { nodes: [small], edges: [] };
-    let state = createInitialEngineState();
+    const state = createInitialEngineState();
     let last = stepSimulationTick(topology, IDLE_CHAOS, state);
     for (let i = 0; i < 30; i += 1) {
       last = stepSimulationTick(topology, IDLE_CHAOS, last.nextState);
@@ -131,7 +131,7 @@ describe("cycles and circuit breakers", () => {
       nodes: [node("api", "rest_service", { clientRps: 5000 }), down],
       edges: [edge("e1", "api", "db")],
     };
-    let state = createInitialEngineState();
+    const state = createInitialEngineState();
     let last = stepSimulationTick(topology, IDLE_CHAOS, state);
     for (let i = 0; i < 80; i += 1) {
       last = stepSimulationTick(topology, IDLE_CHAOS, last.nextState);
@@ -176,7 +176,7 @@ describe("cache flush chaos", () => {
 
   it("recovers to the configured hit rate once the flush clears", () => {
     const topology = flushTopology();
-    let state = stepSimulationTick(topology, FLUSH_CHAOS, createInitialEngineState()).nextState;
+    const state = stepSimulationTick(topology, FLUSH_CHAOS, createInitialEngineState()).nextState;
     let last = stepSimulationTick(topology, IDLE_CHAOS, state);
     for (let i = 0; i < 40; i += 1) {
       last = stepSimulationTick(topology, IDLE_CHAOS, last.nextState);

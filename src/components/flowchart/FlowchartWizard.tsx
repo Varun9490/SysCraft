@@ -179,7 +179,7 @@ export function FlowchartWizard() {
       <section className="mt-12">
         <h2 className="text-[11px] font-semibold tracking-[0.2em] text-zinc-500">ALL {FLOWCHART_LEAVES.length} PATTERNS</h2>
         <p className="mt-2 text-[12.5px] text-zinc-500">
-          Already know where you're headed? Jump straight to a pattern — every card is a complete, runnable preset.
+          Already know where you&apos;re headed? Jump straight to a pattern — every card is a complete, runnable preset.
         </p>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {FLOWCHART_LEAVES.map((leaf) => (

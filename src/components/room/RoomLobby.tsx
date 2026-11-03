@@ -91,7 +91,7 @@ export function RoomLobby() {
           Craft together, peer-to-peer
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
-          A room mirrors the same canvas between every browser: nodes, edges, positions, and who's online. The
+          A room mirrors the same canvas between every browser: nodes, edges, positions, and who&apos;s online. The
           topology travels directly between peers over WebRTC — there is no SysCraft server, no account, and no copy
           of your architecture anywhere but the browsers in the room.
         </p>
@@ -101,7 +101,7 @@ export function RoomLobby() {
         <section className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/[0.06] p-4">
           <div>
             <p className="text-[13px] font-semibold text-emerald-200">
-              You're in room <span className="font-mono tracking-[0.14em]">{existing.code}</span> as {existing.name}
+              You&apos;re in room <span className="font-mono tracking-[0.14em]">{existing.code}</span> as {existing.name}
             </p>
             <p className="mt-0.5 text-[11.5px] text-zinc-400">Rejoin to resume syncing, or leave to edit alone.</p>
           </div>

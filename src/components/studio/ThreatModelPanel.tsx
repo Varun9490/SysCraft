@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Shield, X } from "@/components/ui/icons";
-import { analyzeThreats, type ThreatFinding, type ThreatModelReport } from "@/engine/threatModel";
+import { analyzeThreats, toThreatTopology, type ThreatFinding, type ThreatModelReport } from "@/engine/threatModel";
 import { useCanvasStore } from "@/store/useCanvasStore";
 
 export function ThreatModelPanel() {
@@ -11,8 +11,8 @@ export function ThreatModelPanel() {
 
   const run = () => {
     const state = useCanvasStore.getState();
-    const topo = { nodes: state.nodes, edges: state.edges };
-    setReport(analyzeThreats(topo as any));
+    const topo = toThreatTopology(state.nodes, state.edges);
+    setReport(analyzeThreats(topo));
     setOpen(true);
   };
 

@@ -46,7 +46,7 @@ export function RoomSession() {
   const [posReady, setPosReady] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const destroyedRef = useRef(false);
-  const awarenessRef = useRef<any>(null);
+  const awarenessRef = useRef<unknown>(null);
 
   useEffect(() => {
     setConfig(loadRoomConfig());

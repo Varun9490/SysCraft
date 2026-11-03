@@ -77,6 +77,36 @@ function resourceIdOf(nodes: NodeLike[], id: string): string {
   return nodes.find((n) => n.id === id)?.resourceId ?? "";
 }
 
+export function toThreatTopology(nodesInput: unknown, edgesInput: unknown): TopologyLike {
+  const nodes = Array.isArray(nodesInput) ? nodesInput : [];
+  const edges = Array.isArray(edgesInput) ? edgesInput : [];
+  return {
+    nodes: nodes.map((raw) => {
+      const n = (raw ?? {}) as { id?: unknown; position?: { x?: unknown; y?: unknown }; resourceId?: unknown; data?: { resourceId?: unknown } };
+      return {
+        id: String(n.id ?? ""),
+        resourceId: String(n.resourceId ?? n.data?.resourceId ?? ""),
+        position: { x: Number(n.position?.x ?? 0), y: Number(n.position?.y ?? 0) },
+      };
+    }),
+    edges: edges.map((raw) => {
+      const e = (raw ?? {}) as { id?: unknown; source?: unknown; target?: unknown; data?: { protocol?: unknown; auth?: unknown; pii?: unknown; async?: unknown } };
+      const d = e.data ?? {};
+      return {
+        id: String(e.id ?? ""),
+        source: String(e.source ?? ""),
+        target: String(e.target ?? ""),
+        data: {
+          protocol: d.protocol as string | undefined,
+          auth: d.auth as string | undefined,
+          pii: d.pii as boolean | undefined,
+          async: d.async as boolean | undefined,
+        },
+      };
+    }),
+  };
+}
+
 export function analyzeThreats(topology: TopologyLike): ThreatModelReport {
   const findings: ThreatFinding[] = [];
   let nextId = 1;

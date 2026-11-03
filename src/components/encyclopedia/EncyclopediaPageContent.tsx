@@ -103,20 +103,20 @@ export function EncyclopediaPageContent() {
               every infrastructure primitive in the canvas.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <a
+              <Link
                 href="/wiki/primitives"
                 className="group inline-flex items-center gap-2 rounded-full border border-brass/40 bg-brass/10 px-4 py-2 text-[13px] font-semibold text-brass-bright transition-colors hover:border-brass/70 hover:bg-brass/20"
               >
                 Browse {SEED_RESOURCES.length} infrastructure primitives
                 <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/wiki/graph"
                 className="group inline-flex items-center gap-2 rounded-full border border-zinc-700 px-4 py-2 text-[13px] font-medium text-content-secondary transition-colors hover:border-zinc-500 hover:text-content"
               >
                 <Sparkles size={13} />
                 See the knowledge graph
-              </a>
+              </Link>
             </div>
           </AnimatedSection>
 
