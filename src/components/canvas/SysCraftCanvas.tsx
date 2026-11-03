@@ -169,6 +169,25 @@ function CanvasInner({ className }: { className: string }) {
     }
   };
 
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName ?? "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        useCanvasStore.getState().selectAllNodes();
+        return;
+      }
+      if (event.key === "Escape") {
+        useCanvasStore.getState().clearSelection();
+        return;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const onNodesDelete = (deleted: CanvasFlowNode[]) => {
     const store = useCanvasStore.getState();
     if (store.selectedNodeId && deleted.some((node) => node.id === store.selectedNodeId)) {
@@ -189,8 +208,15 @@ function CanvasInner({ className }: { className: string }) {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodesDelete={onNodesDelete}
-        onNodeClick={(_, node) => useCanvasStore.getState().setSelectedNodeId(node.id)}
+        onNodeClick={(event, node) => {
+          // Modifier clicks multi-select: keep React Flow's selection state and
+          // mirror the last-clicked node into the single-selection inspector.
+          useCanvasStore.getState().setSelectedNodeId(node.id);
+          void event;
+        }}
         onPaneClick={() => useCanvasStore.getState().setSelectedNodeId(null)}
+        multiSelectionKeyCode={["Shift", "Control", "Meta"]}
+        selectionKeyCode="Shift"
         nodeTypes={nodeTypes}
         deleteKeyCode={["Delete", "Backspace"]}
         colorMode="dark"

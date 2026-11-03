@@ -187,6 +187,8 @@ interface CanvasState {
   setEdgeStyle: (style: CanvasEdgeRouting) => void;
   setSemanticZoomLevel: (level: 1 | 2 | 3) => void;
   setSelectedNodeId: (nodeId: string | null) => void;
+  selectAllNodes: () => void;
+  clearSelection: () => void;
   setSceneName: (name: string) => void;
   setOutlineMode: (enabled: boolean) => void;
   setDoctorOpen: (enabled: boolean) => void;
@@ -784,6 +786,16 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId }),
+      selectAllNodes: () =>
+        set((state) => ({
+          nodes: state.nodes.map((node) => ({ ...node, selected: true })),
+          selectedNodeId: state.nodes.length > 0 ? state.nodes[state.nodes.length - 1].id : null,
+        })),
+      clearSelection: () =>
+        set((state) => ({
+          nodes: state.nodes.map((node) => ({ ...node, selected: false })),
+          selectedNodeId: null,
+        })),
       setSceneName: (name) => set({ sceneName: name }),
       setOutlineMode: (enabled) => set({ outlineMode: enabled }),
       setDoctorOpen: (enabled) => set({ doctorOpen: enabled }),

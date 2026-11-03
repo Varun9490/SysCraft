@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Command } from "cmdk";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -52,6 +52,7 @@ import { TelemetryDrawer } from "@/components/telemetry/TelemetryDrawer";
 import { TimeTravelScrubber } from "@/components/telemetry/TimeTravelScrubber";
 import { TraceWaterfallModal } from "@/components/telemetry/TraceWaterfallModal";
 import { DesignWorkbench } from "@/components/workbench/DesignWorkbench";
+import { BLUEPRINTS } from "@/data/blueprints";
 import { CONTENT_COUNTS } from "@/data/contentManifest";
 import { ENCYCLOPEDIA_MODULES } from "@/data/encyclopediaData";
 import { SEED_RESOURCES } from "@/data/seedResources";
@@ -339,6 +340,12 @@ export default function CleanWorkspaceShell() {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return true;
     return !window.matchMedia("(max-width: 1023px)").matches;
   });
+  const [railWidth, setRailWidth] = useState(() => {
+    if (typeof window === "undefined") return 300;
+    const stored = Number(window.localStorage?.getItem("syscraft.railWidth"));
+    return Number.isFinite(stored) && stored >= 220 && stored <= 520 ? stored : 300;
+  });
+  const resizeRef = useRef<{ startX: number; startW: number } | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [isCompact, setIsCompact] = useState(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
@@ -369,6 +376,13 @@ export default function CleanWorkspaceShell() {
   useEffect(() => {
     setSoundOn(isSoundEnabled());
   }, []);
+  useEffect(() => {
+    try {
+      window.localStorage?.setItem("syscraft.railWidth", String(railWidth));
+    } catch {
+      /* ignore */
+    }
+  }, [railWidth]);
 
   // Auto-save restore: pull the last serialized topology into the store
   // BEFORE first paint (layout effect) so returning users see their canvas,
@@ -377,6 +391,20 @@ export default function CleanWorkspaceShell() {
   useLayoutEffect(() => {
     void Promise.resolve(useCanvasStore.persist.rehydrate())
       .then(() => {
+        // A case study opened from /case-studies stashes its blueprint id here
+        // so the canvas can load it AFTER the persisted topology is restored
+        // (otherwise the restore overwrites the blueprint).
+        let pendingBlueprintId: string | null = null;
+        try {
+          pendingBlueprintId = sessionStorage.getItem("syscraft:pendingBlueprint");
+          if (pendingBlueprintId) sessionStorage.removeItem("syscraft:pendingBlueprint");
+        } catch {
+          /* storage disabled */
+        }
+        if (pendingBlueprintId) {
+          const blueprint = BLUEPRINTS.find((b) => b.id === pendingBlueprintId);
+          if (blueprint) useCanvasStore.getState().loadBlueprintTemplate(blueprint);
+        }
         // Restored coordinates may sit off the previous viewport: refit once.
         useCanvasStore.setState((state) => ({ fitViewNonce: state.fitViewNonce + 1 }));
         // Tell the canvas the persisted topology is in place, so a wiki deep
@@ -579,7 +607,7 @@ export default function CleanWorkspaceShell() {
         )}
         <motion.aside
           initial={false}
-          animate={{ width: railOpen ? 300 : 0, opacity: railOpen ? 1 : 0 }}
+          animate={{ width: railOpen ? railWidth : 0, opacity: railOpen ? 1 : 0 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className={`${
             isCompact ? "absolute inset-y-0 left-0 z-[60] shadow-2xl" : "relative"
@@ -587,7 +615,7 @@ export default function CleanWorkspaceShell() {
           aria-hidden={!railOpen}
           aria-label="Workspace palette"
         >
-          <div className="flex h-full w-[300px] min-h-0 flex-col" inert={!railOpen}>
+          <div className="flex h-full min-h-0 flex-col" style={{ width: railWidth }} inert={!railOpen}>
             <div className="flex gap-1 overflow-x-auto border-b border-zinc-800/80 p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:h-0">
               {tabs.map(({ id, label, Icon }) => {
                 const active = tab === id;
@@ -632,6 +660,36 @@ export default function CleanWorkspaceShell() {
               </AnimatePresence>
             </div>
           </div>
+          {railOpen && !isCompact && (
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize palette"
+              className="absolute right-0 top-0 z-10 h-full w-1.5 cursor-col-resize bg-transparent transition-colors hover:bg-brass/40"
+              onPointerDown={(e) => {
+                resizeRef.current = { startX: e.clientX, startW: railWidth };
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                if (!resizeRef.current) return;
+                const next = Math.min(520, Math.max(220, resizeRef.current.startW + (e.clientX - resizeRef.current.startX)));
+                setRailWidth(next);
+              }}
+              onPointerUp={(e) => {
+                resizeRef.current = null;
+                try {
+                  (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+                } catch {
+                  /* ignore */
+                }
+                try {
+                  window.localStorage?.setItem("syscraft.railWidth", String(railWidth));
+                } catch {
+                  /* ignore */
+                }
+              }}
+            />
+          )}
         </motion.aside>
 
         <AnimatePresence>

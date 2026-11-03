@@ -110,14 +110,17 @@ export function RoomSession() {
             if (typeof current === 'string') {
               applyRemotePayload(current);
             } else {
-              sceneMap.set('payload', useCanvasStore.getState().serializeScene());
+              doc.transact(() => {
+                sceneMap.set('payload', useCanvasStore.getState().serializeScene());
+              }, 'local');
             }
           }, SEED_GRACE_MS);
         }
 
-        // 2. Remote → local.
-        const observer = () => {
+        // 2. Remote → local (ignore our own writes via the 'local' origin).
+        const observer = (event: { transaction?: { origin?: unknown } }) => {
           if (cancelled || applyingRemote) return;
+          if (event?.transaction?.origin === 'local') return;
           applyRemotePayload(sceneMap.get('payload'));
         };
         sceneMap.observe(observer);
@@ -130,7 +133,7 @@ export function RoomSession() {
           if (writeTimer !== null) window.clearTimeout(writeTimer);
           writeTimer = window.setTimeout(() => {
             if (cancelled || applyingRemote) return;
-            sceneMap.set('payload', useCanvasStore.getState().serializeScene());
+            doc.transact(() => { sceneMap.set('payload', useCanvasStore.getState().serializeScene()); }, 'local');
           }, SYNC_DEBOUNCE_MS);
         });
 

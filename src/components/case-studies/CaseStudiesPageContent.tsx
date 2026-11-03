@@ -29,6 +29,11 @@ export function CaseStudiesPageContent() {
   }, [category, query]);
 
   const open = (blueprint: Blueprint) => {
+    try {
+      sessionStorage.setItem("syscraft:pendingBlueprint", blueprint.id);
+    } catch {
+      /* storage disabled — fall back to in-memory load */
+    }
     useCanvasStore.getState().loadBlueprintTemplate(blueprint);
     router.push("/canvas");
   };
