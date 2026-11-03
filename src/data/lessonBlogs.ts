@@ -7306,8 +7306,422 @@ addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", 
   },
 });
 
-/**
- * Completeness proof at module load: every lesson in PATH_PARTS must have a
+/* ------------------------------------------------------------------ */
+/* Module 32 - Networking fundamentals                                 */
+/* ------------------------------------------------------------------ */
+
+addLesson("networking-fundamentals", 32, "Networking fundamentals", "TCP vs UDP: reliability, ordering, and when to drop packets", {
+  a: "TCP is a registered letter: it arrives, in order, or you are told it failed. UDP is a postcard: fast, cheap, and it may never arrive. Pick the postcard for voice and video; pick the letter for money and state.",
+  learn: [
+    "What TCP guarantees (delivery, ordering, congestion control) and what it costs.",
+    "Why UDP exists and where it wins despite having no guarantees.",
+    "How to choose between them for a real service, and how to fake reliability on top of UDP.",
+  ],
+  s: [
+    "TCP: the safe default",
+    "TCP gives you an ordered, lossless byte stream. The kernel handles retransmission, congestion control, and flow control. Your application sees a socket that behaves like a file. The cost is latency: at least one RTT to set up, and head-of-line blocking when a packet is lost.",
+    "Default to TCP for request/response APIs, databases, and anything where correctness beats speed. The kernel has spent decades making it fast.",
+    "UDP: fire and forget",
+    "UDP sends one datagram with no setup, no ack, and no ordering. If a packet is lost, nobody retries. That is a feature for real-time media: a late frame is useless, so dropping it is better than queueing it.",
+    "Use UDP for voice, video, gaming, and telemetry. Use it when staleness is worse than loss, and when you can tolerate occasional gaps.",
+    "QUIC: getting both",
+    "HTTP/3 runs over QUIC, which is UDP plus a user-space reliability layer with per-stream ordering. You get TCP-like reliability without TCP's head-of-line blocking, plus 0-RTT resumption and connection migration across IP changes.",
+    "QUIC is the modern answer: most new protocols should start here. Fall back to TCP only when middleboxes block UDP.",
+  ],
+  d: [
+    ["Sender", "Choose the transport", "TCP for correctness, UDP for latency, QUIC when you want both.", "emerald"],
+    ["Network", "Packets in flight", "TCP acks and retransmits; UDP lets losses pass.", "sky"],
+    ["Receiver", "Reorder or drop", "TCP buffers until gaps fill; UDP delivers what arrived.", "violet"],
+    ["Application", "Read the stream", "TCP: ordered bytes. UDP: discrete datagrams. QUIC: streams over UDP.", "amber"],
+  ],
+  c: ["Cloudflare", "Cloudflare measured that QUIC reduced connection setup time and improved performance on lossy mobile networks compared to TCP, because QUIC avoids TCP's head-of-line blocking across streams.", "HTTP/3 over QUIC now carries a large share of Cloudflare's traffic."],
+  q: ["When is UDP the better choice over TCP?", ["When you need guaranteed delivery", "When a late packet is useless, like live video", "When you want ordered byte streams", "When you need TLS"], 1, "UDP wins when staleness beats loss: live media, gaming, and telemetry where a retransmitted packet would arrive too late to matter."],
+  sb: { t: "Loss vs staleness", p: "Raise packet loss and watch TCP's latency climb as it retransmits, while UDP keeps moving and drops frames.", slider: "Packet loss", unit: "%", min: 0, max: 15, step: 1, def: 2, prims: ["rest_service", "cdn_edge", "observability_stack"], kind: "latency" },
+});
+
+addLesson("networking-fundamentals", 32, "Networking fundamentals", "The TCP handshake, congestion control, and head-of-line blocking", {
+  a: "Three handshakes to say hello, then a slow start while the road learns your speed. TCP is polite to a fault: it will not send faster than the network can carry, and it stops the whole line when one packet trips.",
+  learn: [
+    "The three-way handshake and why it costs one RTT before any data.",
+    "Slow start, congestion avoidance, and how TCP discovers available bandwidth.",
+    "Head-of-line blocking and why one lost packet stalls every stream on a connection.",
+  ],
+  s: [
+    "The handshake tax",
+    "SYN, SYN-ACK, ACK: three packets before the first byte of application data. On a 50 ms RTT that is 150 ms before anything useful happens. TLS adds more round trips on top.",
+    "Every new connection pays this tax. Reuse connections, or use 0-RTT resumption where the protocol allows it.",
+    "Congestion control",
+    "TCP starts slow, doubles each RTT until loss, then backs off and grows linearly. It is a distributed algorithm that shares bandwidth fairly among flows. The price is that a single flow never fills a high-BDP link quickly.",
+    "Slow start is why a fresh connection feels slow. Warm connections, connection pooling, and larger initial windows (IW10) all exist to hide this.",
+    "Head-of-line blocking",
+    "TCP delivers bytes in order. If packet 7 is lost, packets 8 through 20 sit in the kernel buffer until 7 is retransmitted, even though the application could have used them. On HTTP/2 this stalls every multiplexed stream on that connection.",
+    "Head-of-line blocking is the reason HTTP/3 moved to QUIC, where each stream is independent. One lost packet stalls one stream, not all of them.",
+  ],
+  d: [
+    ["Client", "SYN", "I want to talk; here is my initial sequence number.", "emerald"],
+    ["Server", "SYN-ACK", "Agreed; here is mine. One RTT spent so far.", "sky"],
+    ["Client", "ACK + data", "Handshake complete; application data finally flows.", "violet"],
+    ["Network", "Loss anywhere", "One lost packet stalls ordered delivery for every stream.", "amber"],
+  ],
+  c: ["Google", "Google's QUIC work showed that moving transport to user space over UDP removed TCP's head-of-line blocking, improving page load times on lossy networks by allowing independent stream recovery.", "Per-stream recovery is the headline benefit of QUIC over TCP for HTTP."],
+  q: ["Why does a single lost packet on an HTTP/2 connection stall all streams?", ["HTTP/2 has no multiplexing", "TCP delivers bytes in order, so later packets wait for the gap to fill", "The server stops sending", "TLS blocks retransmission"], 1, "TCP guarantees in-order delivery. A gap blocks everything behind it, including bytes that belong to other HTTP/2 streams."],
+  sb: { t: "Handshake cost", p: "Raise RTT and watch the time before first byte grow with three round trips.", slider: "Round-trip time", unit: "ms", min: 10, max: 200, step: 10, def: 50, prims: ["rest_service", "cdn_edge", "dns_load_balancer"], kind: "latency" },
+});
+
+addLesson("networking-fundamentals", 32, "Networking fundamentals", "TLS 1.3: the handshake, 0-RTT, and certificate chains", {
+  a: "TLS is the lock on the envelope. TLS 1.3 makes the lock faster: one round trip instead of two, and sometimes zero, while still proving both sides are who they claim to be.",
+  learn: [
+    "What TLS protects (confidentiality, integrity, authenticity) and what it does not.",
+    "The TLS 1.3 handshake and why it is one RTT instead of two.",
+    "0-RTT resumption and the replay risk it carries.",
+  ],
+  s: [
+    "What TLS does",
+    "TLS encrypts the payload, detects tampering, and authenticates the server (and optionally the client) with certificates. It does not hide who is talking to whom, how much data moves, or when. Metadata leaks are real.",
+    "TLS is mandatory for anything crossing a network you do not control. Treat plaintext as a bug, not a default.",
+    "TLS 1.3 in one RTT",
+    "TLS 1.2 needed two round trips: key exchange, then encrypted application data. TLS 1.3 folds key exchange into the first flight, so client and server agree on keys in one RTT and application data follows immediately.",
+    "One RTT saved per connection. On mobile networks that is the difference between a snappy app and a sluggish one.",
+    "0-RTT and replay",
+    "With a previous session ticket, the client can send application data in the first packet (0-RTT). The server may accept it, but an attacker can replay that packet. Only idempotent requests belong in 0-RTT.",
+    "0-RTT is a performance feature with a security caveat. Never put non-idempotent writes in the early data.",
+  ],
+  d: [
+    ["ClientHello", "Keys and intent", "Supported ciphers, key share, and SNI in one flight.", "emerald"],
+    ["ServerHello", "Agree and certify", "Chosen cipher, key share, and the certificate chain.", "sky"],
+    ["Finished", "Switch to encrypted", "Both sides confirm; application data can now flow.", "violet"],
+    ["0-RTT", "Early data", "Resumed sessions send data with the first packet; replay risk applies.", "amber"],
+  ],
+  c: ["Cloudflare", "Cloudflare reported that TLS 1.3 reduced handshake latency and improved connection setup times at scale, and that 0-RTT resumption measurably improved time-to-first-byte for repeat visitors.", "TLS 1.3 is now the default on most major CDNs and browsers."],
+  q: ["What is the replay risk of 0-RTT in TLS 1.3?", ["The server certificate can be forged", "An attacker can replay the early-data packet", "The session key leaks", "0-RTT disables encryption"], 1, "0-RTT early data can be captured and replayed by an attacker. Only idempotent requests should use it."],
+  sb: { t: "Handshake round trips", p: "Compare TLS 1.2 (two RTTs) and TLS 1.3 (one RTT) as RTT grows.", slider: "Round-trip time", unit: "ms", min: 10, max: 200, step: 10, def: 60, prims: ["cdn_edge", "rest_service", "identity_provider"], kind: "latency" },
+});
+
+addLesson("networking-fundamentals", 32, "Networking fundamentals", "HTTP/2 multiplexing, HTTP/3 QUIC, and the end of head-of-line", {
+  a: "HTTP/1.1 opens six lanes and hopes they do not collide. HTTP/2 puts everything on one lane with numbered parcels. HTTP/3 rebuilds the lane so one dropped parcel does not stop the others.",
+  learn: [
+    "Why HTTP/1.1's connection limit and head-of-line blocking hurt performance.",
+    "How HTTP/2 multiplexing and header compression fix it.",
+    "Why HTTP/3 over QUIC removes the last head-of-line bottleneck.",
+  ],
+  s: [
+    "HTTP/1.1: six connections and a queue",
+    "Browsers open about six parallel connections per origin. Each request on a connection must finish before the next starts, so one slow asset blocks the rest on that connection. Domain sharding and spriting were hacks to work around this.",
+    "HTTP/1.1 is simple and debuggable. Its limits are structural, not tuning problems.",
+    "HTTP/2: one connection, many streams",
+    "HTTP/2 multiplexes requests as numbered streams over one TCP connection, with HPACK header compression. One connection, no per-origin limit, and priority hints for critical resources.",
+    "HTTP/2 fixes the application-layer head-of-line problem but inherits TCP's transport-layer one: a lost packet stalls every stream.",
+    "HTTP/3: QUIC finishes the job",
+    "HTTP/3 runs over QUIC, where each stream is independent. A lost packet stalls only its stream. Connection migration and 0-RTT resumption come for free.",
+    "Adopt HTTP/2 everywhere now; HTTP/3 where your edge and clients support it. Measure, do not assume.",
+  ],
+  d: [
+    ["Request", "One origin", "HTTP/1.1 needs many connections; HTTP/2 needs one.", "emerald"],
+    ["Multiplex", "Numbered streams", "Interleaved frames on a single connection.", "sky"],
+    ["Compress", "HPACK/QPACK", "Headers shrink from hundreds of bytes to a few.", "violet"],
+    ["Transport", "TCP vs QUIC", "HTTP/2 stalls on TCP loss; HTTP/3 isolates streams.", "amber"],
+  ],
+  c: ["Akamai", "Akamai's measurements showed HTTP/2 reduced page load times significantly over high-latency links compared to HTTP/1.1, primarily through multiplexing and header compression rather than more connections.", "Multiplexing is the single biggest HTTP/2 win."],
+  q: ["What problem does HTTP/2 solve that HTTP/1.1 could not?", ["It removes the need for TLS", "It multiplexes many requests over one connection with header compression", "It makes responses smaller", "It eliminates DNS"], 1, "HTTP/2 multiplexes streams and compresses headers, removing the six-connection limit and per-connection head-of-line blocking at the application layer."],
+  sb: { t: "Connection count", p: "Raise assets per page and watch HTTP/1.1's six-connection limit force queueing while HTTP/2 stays on one connection.", slider: "Assets per page", unit: "assets", min: 10, max: 200, step: 10, def: 60, prims: ["cdn_edge", "rest_service", "dns_load_balancer"], kind: "latency" },
+});
+
+addLesson("networking-fundamentals", 32, "Networking fundamentals", "DNS resolution, caching, TTLs, and the 5-second outage", {
+  a: "DNS is the phone book. When the phone book is wrong, every call fails, even though the phones work. A five-second TTL mistake can take a service down for hours.",
+  learn: [
+    "The DNS resolution chain from browser to authoritative server.",
+    "Caching at every layer and why TTLs are a deployment tool.",
+    "How DNS failures become outages and how to make them survivable.",
+  ],
+  s: [
+    "The resolution chain",
+    "Browser cache, OS cache, recursive resolver, root, TLD, authoritative. Each layer caches. A change at the authoritative server propagates only as fast as the shortest TTL in the chain allows.",
+    "Know the chain. A DNS change is not instant; it is bounded by the lowest TTL anyone cached.",
+    "TTLs as a deployment tool",
+    "Lower the TTL hours before a migration, make the change, wait for propagation, then raise it again. Leaving a low TTL forever wastes resolver capacity and hurts cache hit rates.",
+    "TTLs are a change-management lever, not a set-and-forget number. Treat them like a deploy step.",
+    "Surviving DNS failures",
+    "DNS is a single point of failure if you let it be. Use multiple providers, health-checked failover, and client-side retry with backoff. Never hard-code one resolver.",
+    "A DNS outage looks like total failure even when your servers are healthy. Monitor resolution, not just HTTP.",
+  ],
+  d: [
+    ["Browser", "Cache first", "OS and browser caches answer instantly if fresh.", "emerald"],
+    ["Resolver", "Recursive lookup", "The resolver walks root, TLD, authoritative.", "sky"],
+    ["Authoritative", "The answer", "Returns the record with its TTL.", "violet"],
+    ["Cache", "TTL countdown", "Every layer holds the answer until the TTL expires.", "amber"],
+  ],
+  c: ["Dyn", "The 2016 Dyn DNS attack took down major sites not because their servers failed, but because DNS resolution failed. Services with multiple DNS providers and cached fallbacks survived better.", "DNS is a dependency, not a given. Design for its failure."],
+  q: ["Why does lowering a DNS TTL before a migration help?", ["It makes responses faster", "It bounds how long stale records are cached so the change propagates sooner", "It reduces DNS costs", "It encrypts the query"], 1, "A lower TTL means cached entries expire sooner, so the new record reaches clients faster after the change."],
+  sb: { t: "TTL propagation", p: "Raise the TTL and watch how long a stale record survives in caches after a change.", slider: "TTL", unit: "s", min: 30, max: 86400, step: 30, def: 300, prims: ["dns_load_balancer", "cdn_edge", "observability_stack"], kind: "latency" },
+});
+
+addLesson("networking-fundamentals", 32, "Networking fundamentals", "Connection pooling, keep-alive, and the cost of a new connection", {
+  a: "Opening a connection is like a phone call: dial, ring, greet, then talk. Pooling keeps the line open between calls so you skip the greeting. The savings are enormous at scale.",
+  learn: [
+    "Why a new connection costs more than people expect.",
+    "How connection pools and keep-alive amortise that cost.",
+    "Pool sizing, exhaustion, and the failure modes of a mis-sized pool.",
+  ],
+  s: [
+    "The cost of a new connection",
+    "A new TCP connection costs a handshake (1 RTT), TLS (1 RTT), and slow start. At 50 ms RTT that is 150 ms before the first byte, plus kernel state and file descriptors on both sides.",
+    "A request that should take 20 ms takes 170 ms if it opens a new connection. Never open a connection per request in production.",
+    "Pooling and keep-alive",
+    "A pool holds warm connections and reuses them. Keep-alive on HTTP/1.1 and multiplexing on HTTP/2 do the same at the protocol level. The pool's job is to match concurrency to backend capacity.",
+    "Pool size is a capacity decision, not a tuning knob. Size it to the backend's concurrent-connection limit, not to client thread count.",
+    "Pool exhaustion",
+    "When all connections are busy, new requests wait or fail. A pool that is too small causes queueing; one that is too large overwhelms the backend. Watch pool wait time and active connections as first-class metrics.",
+    "Pool exhaustion looks like backend slowness but is actually client-side. Measure wait time, not just latency.",
+  ],
+  d: [
+    ["Request", "Needs a connection", "Check the pool for a warm one.", "emerald"],
+    ["Pool", "Reuse or create", "Reuse if available; create if under the cap.", "sky"],
+    ["Backend", "Handle and release", "Connection returns to the pool when done.", "violet"],
+    ["Metrics", "Wait time", "Pool wait time reveals exhaustion before latency does.", "amber"],
+  ],
+  c: ["Stripe", "Stripe's API clients use connection pooling and keep-alive to avoid per-request handshake overhead, keeping p99 latency low even under high request rates.", "Connection reuse is a latency feature, not just a resource saver."],
+  q: ["What is the most common symptom of an undersized connection pool?", ["High CPU on the client", "Requests queueing and high pool wait time", "DNS failures", "TLS errors"], 1, "An undersized pool makes requests wait for a connection, which shows up as pool wait time before backend latency."],
+  sb: { t: "Pool wait", p: "Raise concurrency against a fixed pool and watch wait time climb.", slider: "Concurrent requests", unit: "req", min: 10, max: 500, step: 10, def: 50, prims: ["rest_service", "postgres_db", "redis_cache"], kind: "queue" },
+});
+
+addLesson("networking-fundamentals", 32, "Networking fundamentals", "Latency budgets: where the milliseconds go in a request", {
+  a: "A request's budget is a pie. DNS, TLS, queueing, service work, database, and network each take a slice. If you do not measure the slices, you optimise the wrong one.",
+  learn: [
+    "The components of end-to-end latency in a typical request.",
+    "How to build a latency budget and allocate it across services.",
+    "Where the milliseconds hide and how to find them.",
+  ],
+  s: [
+    "Decompose the request",
+    "A typical request spends time in DNS, TCP/TLS handshake, queueing at the load balancer, service execution, database query, and network transit back. Each is measurable. Most teams measure only total latency and guess.",
+    "You cannot optimise what you do not measure. Instrument every hop, including the network.",
+    "Allocate the budget",
+    "Set a target p99 (say 300 ms) and divide it: 50 ms network and TLS, 50 ms queueing, 150 ms service and database, 50 ms margin. When a service exceeds its allocation, it is a bug, not a tuning issue.",
+    "A budget turns latency from a vague complaint into a contract. Services that exceed their slice must justify it or fix it.",
+    "Finding hidden milliseconds",
+    "The usual suspects: DNS resolution on every request, connection setup without pooling, lock contention, GC pauses, and serial calls that could be parallel. Distributed tracing (OpenTelemetry) makes them visible.",
+    "The biggest wins are usually structural: parallelise independent calls, cache hot reads, and pool connections. Micro-optimisations come last.",
+  ],
+  d: [
+    ["DNS + TLS", "Setup", "Resolution and handshake before any application byte.", "emerald"],
+    ["Network", "Transit", "Propagation and queueing across hops.", "sky"],
+    ["Service", "Work", "Business logic, serialisation, validation.", "violet"],
+    ["Database", "Query", "Index lookup, lock wait, disk read.", "amber"],
+  ],
+  c: ["Amazon", "Amazon's latency work showed that every 100 ms of latency cost 1 percent of sales, which drove a culture of measuring and budgeting latency at every layer of the stack.", "Latency is a revenue metric, not just an engineering one."],
+  q: ["What is the most common hidden source of latency in a microservice call?", ["CPU speed", "Opening a new connection per request without pooling", "Disk size", "Log level"], 1, "Per-request connection setup adds handshake and TLS round trips that dwarf the actual work, and it is invisible in application metrics."],
+  sb: { t: "Budget allocation", p: "Grow the number of serial downstream calls and watch the budget evaporate.", slider: "Serial downstream calls", unit: "calls", min: 1, max: 10, step: 1, def: 3, prims: ["rest_service", "postgres_db", "redis_cache", "observability_stack"], kind: "latency" },
+});
+
+/* ------------------------------------------------------------------ */
+/* Module 33 - Security vulnerabilities and attacks                     */
+/* ------------------------------------------------------------------ */
+
+addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "OWASP Top 10 in one page: the vulnerabilities that keep shipping", {
+  a: "The OWASP Top 10 is the same list every year with new names. The underlying mistakes - trusting input, forgetting authorisation, and shipping defaults - never change.",
+  learn: [
+    "The recurring vulnerability families and why they persist.",
+    "How to map each OWASP category to a system-design control.",
+    "A practical triage: which ones to fix first.",
+  ],
+  s: [
+    "The recurring families",
+    "Broken access control, cryptographic failures, injection, insecure design, security misconfiguration, vulnerable components, auth failures, data integrity failures, logging failures, and SSRF. Ten categories, but three root causes: trusting input, missing authorisation, and insecure defaults.",
+    "Memorise the root causes, not the list. The list changes; the causes do not.",
+    "Mapping to design controls",
+    "Access control maps to authorisation at every boundary. Injection maps to parameterised queries and input validation. Misconfiguration maps to IaC scanning and least-privilege defaults. Each category has a control you can build into the architecture.",
+    "Security is a design property, not a review step. Build the control into the component, not a checklist after it.",
+    "Triage order",
+    "Fix broken access control and injection first: they are the most exploited and the cheapest to prevent. Then cryptographic failures and SSRF. Misconfiguration and vulnerable components are continuous work, not one-off fixes.",
+    "Prioritise by exploitability times blast radius, not by how scary the name sounds.",
+  ],
+  d: [
+    ["Input", "Never trust it", "Validate, parameterise, and encode at every boundary.", "emerald"],
+    ["Authorisation", "Check every request", "No implicit trust based on network location.", "sky"],
+    ["Configuration", "Secure defaults", "IaC scanning, least privilege, no default credentials.", "violet"],
+    ["Dependencies", "Track and patch", "SBOM, automated updates, and CVE monitoring.", "amber"],
+  ],
+  c: ["Equifax", "The 2017 Equifax breach exploited an unpatched Apache Struts vulnerability - a vulnerable-component failure - exposing 147 million records. Patching and component tracking would have prevented it.", "Vulnerable components are the cheapest category to prevent and the most expensive to ignore."],
+  q: ["Which OWASP category is consistently the most exploited?", ["Cryptographic failures", "Broken access control", "Security misconfiguration", "Vulnerable components"], 1, "Broken access control has topped the OWASP list because authorisation is easy to skip and hard to audit retroactively."],
+  sb: { t: "Attack surface", p: "Grow the number of public endpoints and watch the number of controls you must enforce per request.", slider: "Public endpoints", unit: "endpoints", min: 5, max: 200, step: 5, def: 30, prims: ["api_gateway", "web_application_firewall", "identity_provider"], kind: "capacity" },
+});
+
+addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "Cross-site request forgery: how a cookie becomes an attack", {
+  a: "Your browser carries your session cookie everywhere, including to sites you did not ask to visit. CSRF is an attacker making your browser spend that cookie on their behalf.",
+  learn: [
+    "How CSRF works: the victim's browser sends an authenticated request the user did not intend.",
+    "Why cookies make it possible and why SameSite is the modern fix.",
+    "Defences: CSRF tokens, SameSite, and origin checks.",
+  ],
+  s: [
+    "The attack",
+    "A malicious page contains a form or image that submits a POST to your bank. The browser attaches your session cookie automatically. The bank sees a valid, authenticated request and executes it.",
+    "CSRF works because the browser, not the user, decides to send the cookie. The request looks legitimate to the server.",
+    "Why it is less common now",
+    "SameSite cookie attribute (Lax or Strict) tells the browser not to send the cookie on cross-site requests. Modern browsers default to Lax. This single change eliminated most CSRF.",
+    "SameSite is the baseline. Do not rely on it alone for state-changing endpoints; add a token too.",
+    "Defence in depth",
+    "CSRF tokens (synchroniser token pattern), double-submit cookies, and Origin/Referer checks. Combine SameSite=Lax with a token for state-changing requests. Never use GET for state changes.",
+    "Defence in depth for CSRF: SameSite plus token plus origin check. Any one of them alone has known bypasses.",
+  ],
+  d: [
+    ["Victim", "Logs in", "Session cookie stored in the browser.", "emerald"],
+    ["Attacker", "Tricks the browser", "A hidden form or image targets your endpoint.", "sky"],
+    ["Browser", "Sends the cookie", "The cookie travels automatically with the request.", "violet"],
+    ["Server", "Executes", "Valid session, so the action runs. SameSite blocks this.", "amber"],
+  ],
+  c: ["GitHub", "GitHub mitigates CSRF with synchroniser tokens and SameSite cookies, and requires re-authentication for sensitive actions like changing an email or deleting a repository.", "Sensitive actions deserve a second factor, not just a session."],
+  q: ["What is the primary modern defence against CSRF?", ["Longer session timeouts", "SameSite cookie attribute plus CSRF tokens", "HTTPS only", "Stronger passwords"], 1, "SameSite prevents the browser from sending cookies cross-site, and tokens add a second check that the request originated from your own page."],
+  sb: { t: "Cross-site requests", p: "Raise the share of requests from other origins and watch how SameSite blocks the unauthenticated ones.", slider: "Cross-origin requests", unit: "%", min: 0, max: 100, step: 5, def: 20, prims: ["web_application_firewall", "identity_provider", "api_gateway"], kind: "denied" },
+});
+
+addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "Cross-site scripting: stored, reflected, and DOM-based", {
+  a: "XSS is letting someone else write code that runs in your users' browsers. Stored XSS is a poisoned comment; reflected is a poisoned link; DOM-based is a poisoned client script. All three end with attacker code in a trusted origin.",
+  learn: [
+    "The three XSS types and how each delivers attacker-controlled script.",
+    "Why output encoding and CSP are the two real defences.",
+    "How to choose encoding context and why escaping is not one-size-fits-all.",
+  ],
+  s: [
+    "Stored XSS",
+    "An attacker submits a comment containing a script. The server stores it and renders it to every visitor. Every viewer's browser executes the attacker's code in your origin, with access to their session.",
+    "Stored XSS is the most dangerous: one injection, many victims, and it persists until someone finds it.",
+    "Reflected and DOM-based",
+    "Reflected XSS bounces input off the server in an error message or search result. DOM-based XSS never touches the server: client JavaScript reads location.hash and writes it to innerHTML. Both execute in the victim's browser under your origin.",
+    "Reflected needs a crafted link; DOM-based needs a vulnerable client script. Both are common and both are preventable.",
+    "Defences",
+    "Context-aware output encoding (HTML, attribute, JavaScript, URL) at the point of rendering, plus a strict Content-Security-Policy that forbids inline scripts. Sanitise rich text with a allowlist, never a denylist.",
+    "Encoding is the fix; CSP is the safety net. Use both, because encoding mistakes happen.",
+  ],
+  d: [
+    ["Input", "Attacker payload", "Script enters through a form, URL, or client route.", "emerald"],
+    ["Storage", "Stored or reflected", "Server stores it or echoes it back.", "sky"],
+    ["Render", "Unencoded output", "The browser parses the payload as code.", "violet"],
+    ["Defence", "Encode + CSP", "Context-aware encoding and a strict CSP stop execution.", "amber"],
+  ],
+  c: ["British Airways", "The 2018 British Airways breach used a cross-site scripting and skimming payload injected into the payment page, stealing 380,000 card details. The payload ran in the trusted origin with access to the payment form.", "XSS on a payment page is a data-breach multiplier."],
+  q: ["Which defence most directly prevents XSS?", ["Parameterised queries", "Context-aware output encoding plus a strict CSP", "Rate limiting", "TLS"], 1, "Encoding ensures untrusted data is treated as data, not code; CSP is the backstop when encoding is missed."],
+  sb: { t: "Inline script risk", p: "Raise the share of user-controlled content rendered unencoded and watch the number of execution paths grow.", slider: "Unencoded user content", unit: "%", min: 0, max: 100, step: 5, def: 10, prims: ["web_application_firewall", "cdn_edge", "rest_service"], kind: "denied" },
+});
+
+addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "SQL injection and parameterised queries: why OR 1=1 still works", {
+  a: "SQL injection is asking the database a question that includes an answer. OR 1=1 is the classic: the attacker does not break in, they rewrite the question so every row qualifies.",
+  learn: [
+    "How string concatenation turns input into executable SQL.",
+    "Why parameterised queries and ORMs close the hole.",
+    "Second-order injection and the limits of escaping.",
+  ],
+  s: [
+    "The classic injection",
+    "A login query built by concatenating input into SELECT * FROM users WHERE name = '...' lets the input ' OR 1=1 -- turn the condition always true. The database executes the attacker's logic, not the developer's.",
+    "Injection is a construction bug, not an input bug. The fix is how you build the query, not how you filter the input.",
+    "Parameterised queries",
+    "Parameterised queries send the SQL template and the values separately. The database parses the template first, then binds values as data. The value ' OR 1=1 -- is treated as a literal string, not SQL.",
+    "Always use parameterised queries or a query builder. String concatenation in SQL is a bug waiting to ship.",
+    "Second-order and stored injection",
+    "Data stored safely can still be dangerous when later concatenated into a query. Escaping at input time does not protect against a different query later. Parameterisation at every query site is the only reliable defence.",
+    "Defence in depth: parameterised queries, least-privilege database users, and WAF rules as a safety net. Never rely on escaping alone.",
+  ],
+  d: [
+    ["Input", "User value", "Arrives as data, must stay data.", "emerald"],
+    ["Concatenation", "Bug", "Input becomes part of the SQL text.", "sky"],
+    ["Parser", "Executes attacker logic", "The database runs the rewritten query.", "violet"],
+    ["Defence", "Parameterise", "Template and values travel separately.", "amber"],
+  ],
+  c: ["Heartland Payment Systems", "The 2008 Heartland breach used SQL injection to reach card data, exposing 130 million cards. Parameterised queries and least-privilege database access would have blocked the path.", "SQL injection remains in the OWASP Top 10 because string concatenation is still common."],
+  q: ["Why do parameterised queries prevent SQL injection?", ["They encrypt the query", "They separate SQL structure from data so input is never parsed as code", "They block all special characters", "They run queries faster"], 1, "The database parses the template before binding values, so injected SQL is treated as literal data."],
+  sb: { t: "Query construction", p: "Raise the share of queries built by concatenation and watch injection risk grow.", slider: "Concatenated queries", unit: "%", min: 0, max: 100, step: 5, def: 15, prims: ["postgres_db", "web_application_firewall", "rest_service"], kind: "denied" },
+});
+
+addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "Server-side request forgery: when your server attacks itself", {
+  a: "SSRF is tricking your server into making a request it should not. The attacker does not attack you directly; they make your own server attack your internal network or cloud metadata endpoint.",
+  learn: [
+    "How SSRF works and why internal endpoints are the real target.",
+    "The cloud metadata endpoint as the classic SSRF prize.",
+    "Defences: allowlists, network segmentation, and metadata hardening.",
+  ],
+  s: [
+    "The mechanism",
+    "Your service fetches a URL supplied by the user (a webhook, an image, a preview). The attacker supplies http://169.254.169.254/... (the cloud metadata endpoint) or an internal service address. Your server, which is allowed to reach those, fetches them and returns the result.",
+    "SSRF turns your server into a proxy for the attacker. The attacker never touches the internal network directly.",
+    "The cloud metadata prize",
+    "Cloud instance metadata endpoints return IAM credentials, instance identity, and sometimes user data. SSRF to the metadata endpoint is the most common path to cloud account takeover.",
+    "Treat the metadata endpoint as a secret store. Block it at the network layer and require IMDSv2 (session-oriented) everywhere.",
+    "Defences",
+    "Allowlist URLs and schemes (https only, known hosts), resolve and validate IPs (block private and link-local ranges), segment the network so the service cannot reach metadata or internal admin endpoints, and use IMDSv2 with hop limits.",
+    "Defence in depth: validate at the application, block at the network, and harden the metadata service. Any one layer alone has been bypassed.",
+  ],
+  d: [
+    ["User input", "URL supplied", "The attacker controls the destination.", "emerald"],
+    ["Server", "Fetches it", "The server has access the attacker lacks.", "sky"],
+    ["Internal", "Metadata or service", "Credentials or internal data leak out.", "violet"],
+    ["Defence", "Allowlist + segment", "Block private ranges and harden metadata.", "amber"],
+  ],
+  c: ["Capital One", "The 2019 Capital One breach used SSRF against a misconfigured WAF to reach the EC2 metadata endpoint, stealing IAM credentials and accessing 100 million records. IMDSv2 and network segmentation would have blocked it.", "SSRF to metadata is the single most common cloud takeover path."],
+  q: ["Why is SSRF especially dangerous in cloud environments?", ["It encrypts traffic", "It can reach the instance metadata endpoint and steal IAM credentials", "It only affects browsers", "It requires physical access"], 1, "Cloud metadata endpoints hand out credentials to any process on the instance, and SSRF makes your server that process."],
+  sb: { t: "Internal reachability", p: "Raise the number of internal endpoints reachable from the service and watch the blast radius grow.", slider: "Reachable internal endpoints", unit: "endpoints", min: 0, max: 50, step: 1, def: 5, prims: ["web_application_firewall", "api_gateway", "secrets_manager"], kind: "capacity" },
+});
+
+addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "Infrastructure attacks: SSRF to metadata, privilege escalation, and lateral movement", {
+  a: "An infrastructure attack is a chain, not a single exploit. SSRF gets credentials, credentials get access, access gets lateral movement. Each link is a design decision you made months earlier.",
+  learn: [
+    "The typical cloud attack chain from initial access to data exfiltration.",
+    "How privilege escalation and lateral movement exploit design choices.",
+    "Detection and containment: logging, segmentation, and blast-radius limits.",
+  ],
+  s: [
+    "The chain",
+    "Initial access (SSRF, leaked key, or vulnerable dependency) leads to credential theft from metadata, then API calls with those credentials, then privilege escalation via misconfigured IAM, then lateral movement to data stores, then exfiltration.",
+    "Each step is possible because of a design choice. Fix the choices, not just the symptoms.",
+    "Privilege escalation",
+    "An over-permissioned role (s3:* or iam:*) turns a stolen credential into full account control. Least privilege is not a nice-to-have; it is the difference between a contained incident and a total breach.",
+    "Scope every role to the exact resources and actions it needs. Review IAM policies like code.",
+    "Lateral movement",
+    "Flat networks let a compromised service reach the database, the metadata endpoint, and other services. Micro-segmentation and service mesh policies contain the blast radius.",
+    "Segmentation is the difference between one compromised pod and a full cluster breach.",
+  ],
+  d: [
+    ["Initial access", "SSRF or leaked key", "The attacker gets a foothold.", "emerald"],
+    ["Credential theft", "Metadata endpoint", "Stolen IAM credentials expand access.", "sky"],
+    ["Escalation", "Over-permissioned role", "Broad permissions turn access into control.", "violet"],
+    ["Lateral movement", "Flat network", "The attacker reaches data stores and other services.", "amber"],
+  ],
+  c: ["Uber", "The 2022 Uber breach started with a contractor's leaked credentials, escalated via an over-permissioned internal tool, and moved laterally to cloud and SaaS systems. Stronger MFA and least privilege would have broken the chain.", "Credential hygiene and least privilege are the two cheapest chain-breakers."],
+  q: ["Which control most directly limits lateral movement after a compromise?", ["Faster CI/CD", "Network micro-segmentation and least-privilege IAM", "Larger instances", "More logging"], 1, "Segmentation restricts which services can talk to which, and least privilege restricts what a stolen credential can do."],
+  sb: { t: "Blast radius", p: "Raise the number of services reachable from a compromised pod and watch the potential damage grow.", slider: "Reachable services", unit: "services", min: 1, max: 50, step: 1, def: 10, prims: ["service_mesh", "k8s_cluster", "web_application_firewall"], kind: "capacity" },
+});
+
+addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "Defence in depth: CSP, CORS, SameSite, and security headers", {
+  a: "One lock is a suggestion. Defence in depth is a lock, a camera, a guard, and a panic button. No single control is perfect; the goal is that an attacker must defeat several independent ones.",
+  learn: [
+    "What Content-Security-Policy, CORS, SameSite, and security headers each protect.",
+    "How they compose into layers rather than a single point of failure.",
+    "A practical header checklist for a production web app.",
+  ],
+  s: [
+    "CSP: the script allowlist",
+    "Content-Security-Policy tells the browser which scripts, styles, and connections are allowed. A strict CSP (no inline scripts, no eval, allowlisted origins) is the strongest defence against XSS after encoding.",
+    "CSP is a safety net, not a substitute for encoding. Use both.",
+    "CORS and SameSite",
+    "CORS controls which origins may read your responses; it is not a security boundary for writes. SameSite controls whether cookies travel cross-site. Together they prevent cross-origin data theft and cross-site request forgery.",
+    "CORS protects data; SameSite protects sessions. Confusing the two is a common design mistake.",
+    "The header checklist",
+    "Strict-Transport-Security, Content-Security-Policy, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, and a sensible Cache-Control. Each is one line and each closes a class of attacks.",
+    "Security headers are the cheapest security control you can ship. There is no excuse for missing them.",
+  ],
+  d: [
+    ["Browser", "Receives headers", "The browser enforces the policy.", "emerald"],
+    ["CSP", "Script allowlist", "Only approved scripts execute.", "sky"],
+    ["SameSite", "Cookie scope", "Cookies stay on your origin.", "violet"],
+    ["CORS", "Read access", "Only allowed origins read responses.", "amber"],
+  ],
+  c: ["Google", "Google's web security guidance treats CSP, CORS, and SameSite as complementary layers, with CSP as the primary XSS mitigation and SameSite as the primary CSRF mitigation.", "Layers are independent: each one must stand on its own."],
+  q: ["Which header primarily prevents XSS execution in the browser?", ["Strict-Transport-Security", "Content-Security-Policy", "Access-Control-Allow-Origin", "Cache-Control"], 1, "CSP restricts which scripts the browser is allowed to execute, blocking injected inline scripts."],
+  sb: { t: "Header coverage", p: "Raise the share of endpoints missing security headers and watch the attack surface grow.", slider: "Endpoints missing headers", unit: "%", min: 0, max: 100, step: 5, def: 20, prims: ["web_application_firewall", "cdn_edge", "api_gateway"], kind: "denied" },
+});
+
+/** 
+ * Completeness proof at module load: every lesson in PATH_PARTS must have a 
  * blog (or this import fails loudly, which fails tests and dev builds).
  */
 const missing: string[] = [];

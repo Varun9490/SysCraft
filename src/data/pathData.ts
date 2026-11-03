@@ -654,6 +654,51 @@ export const PATH_PARTS: PathPart[] = [
       },
     ],
   },
+  {
+    id: "networking-and-security",
+    title: "Networking and Security at depth",
+    subtitle: "How bytes move, how attackers move, and how L7 engineers defend.",
+    accentClass: "text-rose-300",
+    accentHex: "#FB7185",
+    modules: [
+      {
+        id: "networking-fundamentals",
+        number: 32,
+        title: "Networking fundamentals",
+        description:
+          "TCP, UDP, TLS, HTTP/2, DNS, connection pooling, and the latency budget every L7 engineer reasons about.",
+        lessonTitles: [
+          "TCP vs UDP: reliability, ordering, and when to drop packets",
+          "The TCP handshake, congestion control, and head-of-line blocking",
+          "TLS 1.3: the handshake, 0-RTT, and certificate chains",
+          "HTTP/2 multiplexing, HTTP/3 QUIC, and the end of head-of-line",
+          "DNS resolution, caching, TTLs, and the 5-second outage",
+          "Connection pooling, keep-alive, and the cost of a new connection",
+          "Latency budgets: where the milliseconds go in a request",
+        ],
+        encyclopediaId: "load-balancing",
+        practiceLabIds: ["whatsapp-chat", "twitter-timeline"],
+      },
+      {
+        id: "security-vulnerabilities-and-attacks",
+        number: 33,
+        title: "Security vulnerabilities and attacks",
+        description:
+          "OWASP Top 10, CSRF, XSS, SQL injection, SSRF, and the infrastructure attacks an L7 engineer must recognise and stop.",
+        lessonTitles: [
+          "OWASP Top 10 in one page: the vulnerabilities that keep shipping",
+          "Cross-site request forgery: how a cookie becomes an attack",
+          "Cross-site scripting: stored, reflected, and DOM-based",
+          "SQL injection and parameterised queries: why OR 1=1 still works",
+          "Server-side request forgery: when your server attacks itself",
+          "Infrastructure attacks: SSRF to metadata, privilege escalation, and lateral movement",
+          "Defence in depth: CSP, CORS, SameSite, and security headers",
+        ],
+        encyclopediaId: "security-zero-trust-architecture",
+        practiceLabIds: ["razorpay-payments", "agentic-rag-support"],
+      },
+    ],
+  },
 ];
 
 export const TOTAL_MODULES = PATH_PARTS.reduce((sum, part) => sum + part.modules.length, 0);
