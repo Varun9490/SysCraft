@@ -195,6 +195,13 @@ const KEYWORD_RULES: KeywordRule[] = [
     primitives: ["api_gateway", "rest_service", "document_store"],
   },
   {
+    tag: "react-rsc",
+    test: /\breact\b|next\.js|nextjs|server components?|\brsc\b|flight protocol|server functions?|server actions?/,
+    primitives: ["rest_service", "serverless_function"],
+    ecosystem: "Web Frameworks & Runtime",
+    weight: 3,
+  },
+  {
     tag: "nodejs",
     test: /node\.js|nodejs|bff|backend-for-frontend/,
     primitives: ["api_gateway", "rest_service"],
@@ -234,6 +241,8 @@ const MITIGATION_BY_STRIDE: Record<StrideCategory, string> = {
 };
 
 const ECOSYSTEM_CONTEXT: Partial<Record<CveEcosystem, string>> = {
+  "Web Frameworks & Runtime":
+    " In an application framework, the renderer and the business logic share one process, so a bug in the request decoder runs with the same secrets and database credentials the app was trusted with.",
   Kubernetes:
     " In Kubernetes the control plane and tenant workloads share a flat pod network, so a single reachable webhook or node component becomes a cluster-wide boundary failure.",
   "Cloudflare / Edge":
@@ -299,6 +308,7 @@ function classifyEcosystem(
   let winner: CveEcosystem | undefined;
   let best = 0;
   const ordered: CveEcosystem[] = [
+    "Web Frameworks & Runtime",
     "Kubernetes",
     "AI & LLM",
     "Databases & Cache",

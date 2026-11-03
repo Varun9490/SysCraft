@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CURATED_CVE_FEED } from "@/data/cveIntelligence";
+import { CURATED_CVE_FEED, CVE_ECOSYSTEMS } from "@/data/cveIntelligence";
 import { mapRawCveToArchitecture, auditCanvasSecurityArchitecture } from "@/engine/cveScanner";
 import { SEED_RESOURCE_MAP } from "@/data/seedResources";
 import { BUILTIN_PLUGINS, runDeclarativePluginRules } from "@/data/pluginsCatalog";
@@ -17,8 +17,8 @@ function edge(source: string, target: string): DoctorEdgeInput {
 }
 
 describe("cveAndPlugins", () => {
-  it("curated CVE feed has thirteen items with valid primitives", () => {
-    expect(CURATED_CVE_FEED).toHaveLength(14);
+  it("curated CVE feed has fifteen items with valid primitives", () => {
+    expect(CURATED_CVE_FEED).toHaveLength(15);
     for (const cve of CURATED_CVE_FEED) {
       for (const primitive of cve.affectedPrimitives) {
         expect(SEED_RESOURCE_MAP[primitive], `${cve.id} affected ${primitive}`).toBeTruthy();
@@ -26,6 +26,24 @@ describe("cveAndPlugins", () => {
       for (const primitive of cve.recommendedDefensePrimitives) {
         expect(SEED_RESOURCE_MAP[primitive], `${cve.id} defense ${primitive}`).toBeTruthy();
       }
+    }
+  });
+
+  it("CVE-2025-55182 is a React Server Components deserialization RCE in the web framework ecosystem", () => {
+    const cve = CURATED_CVE_FEED.find((entry) => entry.id === "CVE-2025-55182");
+    expect(cve).toBeDefined();
+    expect(cve!.cvss).toBe(10);
+    expect(cve!.severity).toBe("CRITICAL");
+    expect(cve!.cwe).toBe("CWE-502");
+    expect(cve!.stride).toBe("Elevation of Privilege");
+    expect(cve!.ecosystem).toBe("Web Frameworks & Runtime");
+    expect(cve!.exploitedInWild).toBe(true);
+    expect(CVE_ECOSYSTEMS).toContain(cve!.ecosystem);
+    for (const primitive of cve!.affectedPrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();
+    }
+    for (const primitive of cve!.recommendedDefensePrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} defense ${primitive}`).toBeTruthy();
     }
   });
 

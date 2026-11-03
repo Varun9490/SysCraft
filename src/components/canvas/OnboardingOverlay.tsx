@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Box, Play, Sparkles } from "@/components/ui/icons";
+import { useState } from "react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSimStore } from "@/store/useSimStore";
 
@@ -23,6 +24,7 @@ const PRO_TIPS = [
 const containerSpring = { type: "spring" as const, stiffness: 260, damping: 26 };
 
 export function OnboardingOverlay() {
+  const [dismissed, setDismissed] = useState(false);
   const loadStarter = () => useCanvasStore.getState().loadStarterTemplate();
 
   const addFirstNode = () => {
@@ -32,7 +34,10 @@ export function OnboardingOverlay() {
   const runNow = () => {
     const sim = useSimStore.getState();
     if (!sim.running) sim.startSimulation(() => useCanvasStore.getState().toGraphTopology());
+    setDismissed(true);
   };
+
+  if (dismissed) return null;
 
   return (
     <div className="pointer-events-none absolute inset-0 z-50 flex items-end justify-center p-4 pb-24 md:justify-start md:pb-28 md:pl-10">

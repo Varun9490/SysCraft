@@ -20,6 +20,7 @@ export type StrideCategory =
 export type CveSeverity = "CRITICAL" | "HIGH" | "MEDIUM";
 
 export type CveEcosystem =
+  | "Web Frameworks & Runtime"
   | "Kubernetes"
   | "Cloudflare / Edge"
   | "AWS / Cloud"
@@ -67,6 +68,7 @@ export const STRIDE_CATEGORIES: StrideCategory[] = [
 export const CVE_SEVERITIES: CveSeverity[] = ["CRITICAL", "HIGH", "MEDIUM"];
 
 export const CVE_ECOSYSTEMS: CveEcosystem[] = [
+  "Web Frameworks & Runtime",
   "Kubernetes",
   "Cloudflare / Edge",
   "AWS / Cloud",
@@ -85,9 +87,10 @@ export const STRIDE_INTENT: Record<StrideCategory, string> = {
 };
 
 /**
- * Offline-first intelligence cache. Ordered by attack surface — cluster control
- * plane, runtime, edge, managed cloud, data tier, then AI serving — so the hub
- * opens on the boundary failures architects most often get wrong.
+ * Offline-first intelligence cache. Ordered by attack surface — application
+ * framework, cluster control plane, runtime, edge, managed cloud, data tier,
+ * then AI serving — so the hub opens on the boundary failures architects most
+ * often get wrong.
  */
 export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
   {
@@ -109,6 +112,26 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     recommendedDefensePrimitives: ["cni_overlay", "cert_manager", "secrets_manager", "web_application_firewall"],
     exploitedInWild: true,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2025-1974",
+  },
+  {
+    id: "CVE-2025-55182",
+    title: 'React Server Components Flight Protocol Deserialization RCE ("React2Shell")',
+    published: "2025-12-03",
+    cvss: 10.0,
+    severity: "CRITICAL",
+    cwe: "CWE-502",
+    stride: "Elevation of Privilege",
+    ecosystem: "Web Frameworks & Runtime",
+    affectedPrimitives: ["rest_service", "serverless_function"],
+    summary:
+      "React's Flight protocol, the wire format React Server Components use to call Server Functions, deserialized attacker-supplied request bodies without validating their structure. One unauthenticated POST to a Server Function endpoint could pollute prototypes and run arbitrary JavaScript inside the server process. Every framework that bundled the affected react-server-dom packages inherited the flaw in its default configuration, including Next.js, React Router, Waku, RedwoodSDK, Parcel RSC, and the Vite RSC plugin.",
+    architecturalRootCause:
+      "The framework treated a client-controlled serialization format as trusted input and decoded it in the same process that held application secrets, database credentials, and build-time environment variables. Server and client code shared one runtime, so a parsing bug at the RSC boundary became a full server compromise instead of a rendering error.",
+    mitigationPattern:
+      "Patch the framework and its react-server-dom package together (React 19.0.1, 19.1.2, or 19.2.1, plus the matching Next.js release), then confirm the lockfile resolved the patched build rather than the caret range. Assume unpatched endpoints were probed: rotate server-side secrets, audit outbound connections, and add a WAF rule that rejects malformed Flight payloads while the fleet rolls. Authenticate Server Function endpoints where possible, cap request body size, and run the web tier with a least-privilege identity so code execution does not inherit production data access.",
+    recommendedDefensePrimitives: ["web_application_firewall", "rate_limiter", "api_gateway", "observability_stack"],
+    exploitedInWild: true,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2025-55182",
   },
   {
     id: "CVE-2024-21626",

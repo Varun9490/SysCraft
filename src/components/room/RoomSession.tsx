@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Share, Users, X } from '@/components/ui/icons';
+import { Menu, Share, Users, X } from '@/components/ui/icons';
 import { clearRoomConfig, colorForName, loadRoomConfig, type RoomConfig } from '@/engine/roomSync';
 import { useCanvasStore } from '@/store/useCanvasStore';
 
@@ -42,11 +42,20 @@ export function RoomSession() {
   const [status, setStatus] = useState<RoomStatus>('idle');
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [cursors, setCursors] = useState<RemoteCursor[]>([]);
+  const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [posReady, setPosReady] = useState(false);
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const destroyedRef = useRef(false);
   const awarenessRef = useRef<any>(null);
 
   useEffect(() => {
     setConfig(loadRoomConfig());
+    // Park the panel below the floating toolbar so it never overlaps the
+    // canvas menu bar; the user can drag it anywhere afterwards.
+    if (typeof window !== 'undefined') {
+      setPos({ x: Math.max(12, window.innerWidth - 340), y: 76 });
+      setPosReady(true);
+    }
     return () => {
       destroyedRef.current = true;
     };
@@ -250,8 +259,42 @@ export function RoomSession() {
           ))}
         </div>
       )}
-      <div className="pointer-events-none absolute right-3 top-3 z-30">
-      <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950/95 px-2.5 py-1.5 shadow-2xl backdrop-blur">
+      <div
+        className="pointer-events-auto absolute z-40 flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950/95 px-2.5 py-1.5 shadow-2xl backdrop-blur"
+        style={posReady ? { left: pos.x, top: pos.y } : { right: 12, top: 76 }}
+      >
+        <button
+          type="button"
+          aria-label="Drag room panel"
+          className="flex h-5 w-4 cursor-grab items-center justify-center rounded text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200 active:cursor-grabbing"
+          onPointerDown={(e) => {
+            dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y };
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            if (!dragRef.current) return;
+            const { startX, startY, origX, origY } = dragRef.current;
+            setPos({ x: origX + (e.clientX - startX), y: origY + (e.clientY - startY) });
+          }}
+          onPointerUp={(e) => {
+            dragRef.current = null;
+            try {
+              (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+            } catch {
+              /* ignore */
+            }
+          }}
+          onPointerCancel={(e) => {
+            dragRef.current = null;
+            try {
+              (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+            } catch {
+              /* ignore */
+            }
+          }}
+        >
+          <Menu size={12} />
+        </button>
         <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-zinc-200">
           <Users size={13} className="text-sky-400" />
           Room {config.code}
@@ -303,7 +346,6 @@ export function RoomSession() {
           <X size={12} />
         </button>
       </div>
-    </div>
     </>
   );
 }
