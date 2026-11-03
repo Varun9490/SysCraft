@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2 } from "@/components/ui/icons";
 import { LessonBlogViewer } from "@/components/path/LessonBlogViewer";
+import { GlossaryText } from "@/components/wiki/GlossaryText";
 import { getLessonBlog } from "@/data/lessonBlogs";
 import { getAdjacentLessons, type LessonRoute } from "@/lib/lessonRoutes";
 
@@ -85,7 +86,9 @@ export function LessonPageContent({ route }: { route: LessonRoute }) {
       </div>
 
       <h1 className="mt-2 text-2xl font-semibold tracking-tight text-content sm:text-3xl">{route.title}</h1>
-      <p className="mt-2 text-[14px] leading-relaxed text-content-secondary">{blog.whatYouWillLearn[0]}</p>
+      <p className="mt-2 text-[14px] leading-relaxed text-content-secondary">
+        <GlossaryText text={blog.whatYouWillLearn[0]} />
+      </p>
 
       <div className="mt-6">
         <LessonBlogViewer

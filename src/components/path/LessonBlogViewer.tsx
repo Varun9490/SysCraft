@@ -16,7 +16,7 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from "@/components/ui/icons";
-import { Markdown } from "@/components/Markdown";
+import { GlossaryText } from "@/components/wiki/GlossaryText";
 import { getBlueprint } from "@/data/blueprints";
 import { canvasHrefWithAdd } from "@/store/canvasDeepLink";
 import { flushPendingCanvasWrite } from "@/store/canvasPersistence";
@@ -220,7 +220,9 @@ export function LessonBlogViewer({
             30-second analogy
           </p>
         </div>
-        <p className="mt-2 text-[14px] leading-relaxed text-content">{blog.rookieAnalogy}</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-content">
+          <GlossaryText text={blog.rookieAnalogy} />
+        </p>
         <div className="mt-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">
             What you will learn
@@ -232,7 +234,7 @@ export function LessonBlogViewer({
                 className="inline-flex items-center gap-1.5 rounded-full border border-line bg-app/60 px-3 py-1 text-[12px] text-content-secondary"
               >
                 <CheckCircle2 size={11} className="text-brass" />
-                {item}
+                <GlossaryText text={item} />
               </span>
             ))}
           </div>
@@ -309,9 +311,11 @@ export function LessonBlogViewer({
                       active ? "text-content" : "text-content-secondary"
                     }`}
                   >
-                    {step.label}
+                    <GlossaryText text={step.label} />
                   </span>
-                  <span className="text-[10px] leading-tight text-content-tertiary">{step.subtitle}</span>
+                  <span className="text-[10px] leading-tight text-content-tertiary">
+                    <GlossaryText text={step.subtitle} />
+                  </span>
                 </button>
               );
             })}
@@ -328,9 +332,15 @@ export function LessonBlogViewer({
             transition={{ duration: 0.2 }}
             className={`mt-5 rounded-xl border p-4 ${TONE_RING[flow[activeStep]?.tone ?? "sky"]}`}
           >
-            <p className="text-[13px] font-semibold">{flow[activeStep]?.label}</p>
-            <p className="mt-1 text-[12px] opacity-90">{flow[activeStep]?.subtitle}</p>
-            <p className="mt-2 text-[13px] leading-relaxed">{flow[activeStep]?.detail}</p>
+            <p className="text-[13px] font-semibold">
+              <GlossaryText text={flow[activeStep]?.label ?? ""} />
+            </p>
+            <p className="mt-1 text-[12px] opacity-90">
+              <GlossaryText text={flow[activeStep]?.subtitle ?? ""} />
+            </p>
+            <p className="mt-2 text-[13px] leading-relaxed">
+              <GlossaryText text={flow[activeStep]?.detail ?? ""} />
+            </p>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -372,14 +382,14 @@ export function LessonBlogViewer({
               {blog.steps[stageIndex].heading}
             </h4>
             <p className="mt-2 text-[13px] leading-relaxed text-content-secondary">
-              {blog.steps[stageIndex].body}
+              <GlossaryText text={blog.steps[stageIndex].body} />
             </p>
             <div className="mt-3 rounded-lg border border-brass/30 bg-brass/5 px-3 py-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brass">
                 Takeaway
               </p>
               <p className="mt-1 text-[12.5px] leading-relaxed text-content">
-                {blog.steps[stageIndex].takeaway}
+                <GlossaryText text={blog.steps[stageIndex].takeaway} />
               </p>
             </div>
           </motion.div>
@@ -400,7 +410,7 @@ export function LessonBlogViewer({
           <SlidersHorizontal size={16} className="text-content-tertiary" />
         </div>
         <p className="mt-2 text-[13px] leading-relaxed text-content-secondary">
-          {blog.sandbox.prompt}
+          <GlossaryText text={blog.sandbox.prompt} />
         </p>
 
         <div className="mt-4 rounded-xl border border-line bg-app/60 p-4">
@@ -456,7 +466,7 @@ export function LessonBlogViewer({
             {metric.status}
           </span>
           <p className="text-[12.5px] leading-relaxed text-content-secondary">
-            {metric.explanation}
+            <GlossaryText text={metric.explanation} />
           </p>
         </div>
 
@@ -479,14 +489,14 @@ export function LessonBlogViewer({
           {blog.realWorldCaseStudy.company}
         </h3>
         <p className="mt-2 text-[13px] leading-relaxed text-content-secondary">
-          {blog.realWorldCaseStudy.story}
+          <GlossaryText text={blog.realWorldCaseStudy.story} />
         </p>
         <div className="mt-3 rounded-lg border border-line bg-app/60 px-3 py-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brass">
             Key metric
           </p>
           <p className="mt-1 text-[12.5px] text-content">
-            {blog.realWorldCaseStudy.keyMetric}
+            <GlossaryText text={blog.realWorldCaseStudy.keyMetric} />
           </p>
         </div>
       </div>
@@ -497,7 +507,7 @@ export function LessonBlogViewer({
           Quick check
         </p>
         <h3 className="mt-1 text-[14px] font-semibold text-content">
-          {blog.quiz.question}
+          <GlossaryText text={blog.quiz.question} />
         </h3>
         <div className="mt-3 flex flex-col gap-2">
           {blog.quiz.options.map((opt, idx) => {
@@ -526,7 +536,9 @@ export function LessonBlogViewer({
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-current text-[10px] font-bold tabular-nums">
                   {String.fromCharCode(65 + idx)}
                 </span>
-                <span className="flex-1">{opt}</span>
+                <span className="flex-1">
+                  <GlossaryText text={opt} />
+                </span>
                 {quizRevealed && correct && <CheckCircle2 size={15} className="shrink-0 text-emerald-300" />}
               </button>
             );
@@ -544,7 +556,9 @@ export function LessonBlogViewer({
             <p className="font-semibold">
               {quizCorrect ? "Correct!" : "Not quite — here's why:"}
             </p>
-            <p className="mt-1">{blog.quiz.explanation}</p>
+            <p className="mt-1">
+              <GlossaryText text={blog.quiz.explanation} />
+            </p>
             {!quizCorrect && (
               <button
                 type="button"

@@ -192,7 +192,7 @@ function countWords(parts: string[]): number {
 /* MODULE 0 — how-to-approach-design (How to approach any design)      */
 /* ------------------------------------------------------------------ */
 
-addLesson("how-to-approach-design", 0, "How to approach any design", "Requirements first: functional, non-functional, and out of scope", {
+addLesson("how-to-approach-design", 2, "How to approach any design", "Requirements first: functional, non-functional, and out of scope", {
   a: "Planning a birthday party: who is coming and what they need is the functional part, how smooth the evening should feel is the non-functional part, and deciding you will NOT hire a clown is the out-of-scope part. Skip any of those three lists and the party surprises you in the worst way. Systems are exactly the same, only with fewer balloons.",
   learn: [
     "Sort every wish into functional, non-functional, or out-of-scope within the first five minutes of a design.",
@@ -224,7 +224,7 @@ addLesson("how-to-approach-design", 0, "How to approach any design", "Requiremen
   },
 });
 
-addLesson("how-to-approach-design", 0, "How to approach any design", "Estimation only when it changes the design", {
+addLesson("how-to-approach-design", 2, "How to approach any design", "Estimation only when it changes the design", {
   a: "A food-truck chef doesn't count grains of rice; she asks 'will Saturday sell 200 or 2,000 bowls?' because that answer changes whether one griddle or four. Estimation is guessing sized to change your decision. Anything more precise is theatre.",
   learn: [
     "Estimate just enough: reads/sec, writes/sec, storage per year, and peak-to-average traffic ratio.",
@@ -256,7 +256,7 @@ addLesson("how-to-approach-design", 0, "How to approach any design", "Estimation
   },
 });
 
-addLesson("how-to-approach-design", 0, "How to approach any design", "Core entities and access patterns", {
+addLesson("how-to-approach-design", 2, "How to approach any design", "Core entities and access patterns", {
   a: "A library's card catalogue wasn't built by staring at books; it was built by asking 'how will people look things up?'. Author search needs one drawer, title search another, subject search a third. Model your entities the same way: from how they'll be read.",
   learn: [
     "Name the entities (User, Post, Order…) and list every access pattern as a verb: 'read latest posts by author'.",
@@ -288,7 +288,7 @@ addLesson("how-to-approach-design", 0, "How to approach any design", "Core entit
   },
 });
 
-addLesson("how-to-approach-design", 0, "How to approach any design", "API contracts: verbs, idempotency, pagination, identity", {
+addLesson("how-to-approach-design", 2, "How to approach any design", "API contracts: verbs, idempotency, pagination, identity", {
   a: "A post office that lets two workers hand the same parcel to two lorries because 'the request sheet looked familiar' goes bankrupt from paying double freight bills. Every API face-to-face needs a tracking number and a rules book. Good contracts make accidents rare and legible.",
   learn: [
     "Correct REST verbs and status codes (201 + Location for creates, 409 for conflicts, 429 for throttling).",
@@ -320,7 +320,7 @@ addLesson("how-to-approach-design", 0, "How to approach any design", "API contra
   },
 });
 
-addLesson("how-to-approach-design", 0, "How to approach any design", "High-level design, endpoint by endpoint", {
+addLesson("how-to-approach-design", 2, "How to approach any design", "High-level design, endpoint by endpoint", {
   a: "Before driving across a new city you open a subway map, not a street-by-street atlas: stations first, routes second, walking shortcuts later. High-level design is that subway map — every endpoint gets a trunk line through your boxes before you argue about bus shelters.",
   learn: [
     "Sketch boxes and arrows at the 'stations and lines' level before any deep dive.",
@@ -352,7 +352,7 @@ addLesson("how-to-approach-design", 0, "How to approach any design", "High-level
   },
 });
 
-addLesson("how-to-approach-design", 0, "How to approach any design", "Deep dives and timeboxing: leading the design", {
+addLesson("how-to-approach-design", 2, "How to approach any design", "Deep dives and timeboxing: leading the design", {
   a: "A museum tour guide doesn't let the group spend all afternoon on one painting; she checkpoints times ('ten more minutes here') and moves the group on. Leading a design interview or review is the same skill: timebox each deep dive, park the rest, and leave with a decision.",
   learn: [
     "How to timebox: give each deep dive a budget and a parking lot for later.",
@@ -388,7 +388,7 @@ addLesson("how-to-approach-design", 0, "How to approach any design", "Deep dives
 /* MODULE 1 — what-is-system-design                                    */
 /* ------------------------------------------------------------------ */
 
-addLesson("what-is-system-design", 1, "What is system design?", "Functional vs non-functional requirements", {
+addLesson("what-is-system-design", 3, "What is system design?", "Functional vs non-functional requirements", {
   a: "A restaurant's menu is functional requirements: dishes that exist. The promise of 'your food in 15 minutes' is non-functional: a quality the kitchen must hold even at Saturday rush. One is a list, the other is a spending plan that decides the kitchen's size.",
   learn: [
     "Spot non-functional requirements hiding inside plain sentences ('it should feel fast').",
@@ -420,7 +420,7 @@ addLesson("what-is-system-design", 1, "What is system design?", "Functional vs n
   },
 });
 
-addLesson("what-is-system-design", 1, "What is system design?", "Simple is a design too: one server is often enough", {
+addLesson("what-is-system-design", 3, "What is system design?", "Simple is a design too: one server is often enough", {
   a: "A lemonade stand doesn't need a supply chain, franchise software, and a fleet policy — it needs one kid, a table, and stock. For a new product, one server and one database is that table. Adding a cluster before the queue exists is buying a truck before the first customer.",
   learn: [
     "Why one well-chosen server out-performs a misshapen distributed design for most v1 products.",
@@ -452,7 +452,7 @@ addLesson("what-is-system-design", 1, "What is system design?", "Simple is a des
   },
 });
 
-addLesson("what-is-system-design", 1, "What is system design?", "Latency, throughput, and availability numbers", {
+addLesson("what-is-system-design", 3, "What is system design?", "Latency, throughput, and availability numbers", {
   a: "A highway's questions are: how long does the trip take, how many cars can pass the toll gate per minute, and is the road open right now? Systems answer the same trio with latency, throughput, and availability. Memorize the toll-booth scale, not just the words.",
   learn: [
     "Latency percentiles — why p99 matters and averages lie.",
@@ -484,7 +484,7 @@ addLesson("what-is-system-design", 1, "What is system design?", "Latency, throug
   },
 });
 
-addLesson("what-is-system-design", 1, "What is system design?", "Back-of-the-envelope estimation", {
+addLesson("what-is-system-design", 3, "What is system design?", "Back-of-the-envelope estimation", {
   a: "A cook decides 'how many eggs do I need?' without a scale: family dinner = a dozen, buffet = 15 dozen. Back-of-the-envelope estimation is that instinct with powers-of-ten discipline: numbers rough enough for a napkin, accurate enough to choose a size of kitchen.",
   learn: [
     "Handy constants: 2^10 ≈ 10^3, one million seconds ≈ 11.5 days, one billion seconds ≈ 32 years.",
@@ -516,7 +516,7 @@ addLesson("what-is-system-design", 1, "What is system design?", "Back-of-the-env
   },
 });
 
-addLesson("what-is-system-design", 1, "What is system design?", "How to read a system design problem", {
+addLesson("what-is-system-design", 3, "What is system design?", "How to read a system design problem", {
   a: "A client tells a tailor 'I need a suit' — the tailor asks 'for what, in what color, by when, for how much?'. Reading a design problem is exactly that: extract the functions, the quality bar, the scale, and the deadline before drawing anything.",
   learn: [
     "The four-question scan: who uses it, what does it do, at what scale, with what consistency?",
@@ -552,7 +552,7 @@ addLesson("what-is-system-design", 1, "What is system design?", "How to read a s
 /* MODULE 2 — simple-system                                            */
 /* ------------------------------------------------------------------ */
 
-addLesson("simple-system", 2, "Start with a simple system", "One server, one database", {
+addLesson("simple-system", 4, "Start with a simple system", "One server, one database", {
   a: "A family-run bakery: one kitchen, one recipe book, everything within arm's reach. You don't need a franchise software stack to sell bread — you need one room that works. One server and one database is that kitchen, and it can feed a surprisingly big crowd.",
   learn: [
     "The canonical starting shape: one app process, one Postgres instance, DNS in front.",
@@ -584,7 +584,7 @@ addLesson("simple-system", 2, "Start with a simple system", "One server, one dat
   },
 });
 
-addLesson("simple-system", 2, "Start with a simple system", "Request lifecycle end to end", {
+addLesson("simple-system", 4, "Start with a simple system", "Request lifecycle end to end", {
   a: "Drop a letter in a mailbox and it travels a surprising journey: local box → sorting center → plane → another sorting center → your friend's door. An HTTP request takes its own tour through DNS, TCP, TLS, the load balancer, the app, and the database. Knowing the whole postal route is the marksman test of a system designer.",
   learn: [
     "The eleven steps of one request: DNS → TCP → TLS → LB → app → DB → serialize → compress → return.",
@@ -616,7 +616,7 @@ addLesson("simple-system", 2, "Start with a simple system", "Request lifecycle e
   },
 });
 
-addLesson("simple-system", 2, "Start with a simple system", "API design: REST verbs, status codes, and pagination", {
+addLesson("simple-system", 4, "Start with a simple system", "API design: REST verbs, status codes, and pagination", {
   a: "A library has one borrowing card per book and clear instructions: this card means 'request it', that one means 'take it home', a third means 'return it'. REST verbs are the same: GET reads, POST creates, PUT replaces, DELETE removes, and status codes are the polite 'here's what happened' notes on each card.",
   learn: [
     "Semantic verbs and status codes (200/201/204, 400/401/403/404/409/429/500) and which pairs clients expect.",
@@ -648,7 +648,7 @@ addLesson("simple-system", 2, "Start with a simple system", "API design: REST ve
   },
 });
 
-addLesson("simple-system", 2, "Start with a simple system", "Data modeling: entities, access patterns, and indexes", {
+addLesson("simple-system", 4, "Start with a simple system", "Data modeling: entities, access patterns, and indexes", {
   a: "A well-organized pantry stores what you cook most at eye level. Data modeling is that same act: objects with labels (tables), ways to grab them quickly (indexes), and a rule for what lives where (normalization). Pretend every store is for a recipe you actually cook.",
   learn: [
     "Entities, attributes, and primary/foreign keys in plain language.",
@@ -680,7 +680,7 @@ addLesson("simple-system", 2, "Start with a simple system", "Data modeling: enti
   },
 });
 
-addLesson("simple-system", 2, "Start with a simple system", "Database indexing: B-trees and why lookups stay fast", {
+addLesson("simple-system", 4, "Start with a simple system", "Database indexing: B-trees and why lookups stay fast", {
   a: "A book's index at the back: you don't read the whole book to find 'quorum', you check the sorted list and jump to a page. A B-tree is that list, but a tree: sorted in nodes (pages of the index) so lookups touch only a few pages regardless of how big the book grows.",
   learn: [
     "What a B-tree is, and why a lookup costs O(log N) disk reads, not O(N).",
@@ -712,7 +712,7 @@ addLesson("simple-system", 2, "Start with a simple system", "Database indexing: 
   },
 });
 
-addLesson("simple-system", 2, "Start with a simple system", "DNS, TCP, and TLS in ten minutes", {
+addLesson("simple-system", 4, "Start with a simple system", "DNS, TCP, and TLS in ten minutes", {
   a: "Sending mail to a friend: you need their street address (DNS), you establish a phone call (TCP), and you agree on a secret code so nobody overhears (TLS). Forty seconds of explanation, a lifetime of production value.",
   learn: [
     "DNS hierarchy: resolver cache → root → TLD → authoritative, and typical TTL behavior.",
@@ -744,7 +744,7 @@ addLesson("simple-system", 2, "Start with a simple system", "DNS, TCP, and TLS i
   },
 });
 
-addLesson("simple-system", 2, "Start with a simple system", "Stateless vs stateful services", {
+addLesson("simple-system", 4, "Start with a simple system", "Stateless vs stateful services", {
   a: "A taxi driver who remembers your name and usual route is stateful and lovely, but if that one driver is sick you have no ride. A stateless bus with a shared ticket system means ANY bus can serve you. Stateless feels colder but survives failure beautifully.",
   learn: [
     "Stateless = every request carries what it needs; app servers can die and be replaced freely.",
@@ -776,7 +776,7 @@ addLesson("simple-system", 2, "Start with a simple system", "Stateless vs statef
   },
 });
 
-addLesson("simple-system", 2, "Start with a simple system", "Your first deployment topology", {
+addLesson("simple-system", 4, "Start with a simple system", "Your first deployment topology", {
   a: "Opening a food truck: one truck, one menu, one cook, a line that forms in front. Your first deployment is that truck: DNS in front, one server, one database, maybe a CDN for the static buns. Everything else you'll ever learn is about adding trucks wisely.",
   learn: [
     "The minimal production shape: DNS → TLS/CDN → one app server → one DB (+ backups!).",
@@ -812,7 +812,7 @@ addLesson("simple-system", 2, "Start with a simple system", "Your first deployme
 /* MODULE 3 — caching                                                  */
 /* ------------------------------------------------------------------ */
 
-addLesson("caching", 3, "Caching", "Why caches work: the 80/20 rule", {
+addLesson("caching", 5, "Caching", "Why caches work: the 80/20 rule", {
   a: "A barista keeps the three most-ordered drinks on the counter and walks to the back storeroom only for the odd requests. If 80% of the day is cappuccino, americano, latte, the bar never starves. A cache is that front counter: small, close, and stocked by popularity.",
   learn: [
     "Why access follows a power law: a small share of keys takes most of the reads.",
@@ -844,7 +844,7 @@ addLesson("caching", 3, "Caching", "Why caches work: the 80/20 rule", {
   },
 });
 
-addLesson("caching", 3, "Caching", "Where to cache: browser, CDN, in-process, networked", {
+addLesson("caching", 5, "Caching", "Where to cache: browser, CDN, in-process, networked", {
   a: "A well-run bakery caches in layers: the customer's own tote bag (browser), the shelf at the front of the shop (CDN), the baker's flour bin within arm's reach (in-process), and a walk-in fridge in the basement (networked Redis). Each holds a different slice, and each fails differently.",
   learn: [
     "The four cache tiers — browser, CDN/edge, per-instance (in-proc), networked (Redis/memcached) — and what each serves well.",
@@ -876,7 +876,7 @@ addLesson("caching", 3, "Caching", "Where to cache: browser, CDN, in-process, ne
   },
 });
 
-addLesson("caching", 3, "Caching", "Cache-aside, read-through, write-through, write-back", {
+addLesson("caching", 5, "Caching", "Cache-aside, read-through, write-through, write-back", {
   a: "Four ways to run a corner shop's counter: ask the storeroom every time and keep a note (cache-aside), have the clerk auto-refill from the storeroom (read-through), buy two of everything when you stock one (write-through), or pocket money and restock at closing (write-back). Each has its own risk of stale bread.",
   learn: [
     "Cache-aside: the app manages the cache explicitly — simple, common, slightly lazy on first read.",
@@ -908,7 +908,7 @@ addLesson("caching", 3, "Caching", "Cache-aside, read-through, write-through, wr
   },
 });
 
-addLesson("caching", 3, "Caching", "Eviction: LRU, LFU, and TTLs", {
+addLesson("caching", 5, "Caching", "Eviction: LRU, LFU, and TTLs", {
   a: "Your fridge is finite: when you buy new milk, something comes out. LRU throws out what you touched longest ago, LFU throws out what you use least, and a TTL is the expiry date printed on the yogurt. Pick wrong and you end up throwing out the milk you actually drink.",
   learn: [
     "LRU (least recently used), LFU (least frequently used), and FIFO — their shapes and failure modes.",
@@ -940,7 +940,7 @@ addLesson("caching", 3, "Caching", "Eviction: LRU, LFU, and TTLs", {
   },
 });
 
-addLesson("caching", 3, "Caching", "Cache invalidation strategies", {
+addLesson("caching", 5, "Caching", "Cache invalidation strategies", {
   a: "You change your phone number and tell your friends — but one of them still calls the old number for a week because nobody invalidated them. Invalidation is announcing 'that fact is old now'. Doing it well is famous in computing as one of the two hard problems, which in practice means 'do it boringly and measure it'.",
   learn: [
     "TTL expiry as the default invalidation; explicit purge events for content you must fix quickly.",
@@ -972,7 +972,7 @@ addLesson("caching", 3, "Caching", "Cache invalidation strategies", {
   },
 });
 
-addLesson("caching", 3, "Caching", "Hot keys and cache stampedes", {
+addLesson("caching", 5, "Caching", "Hot keys and cache stampedes", {
   a: "A concert: everyone wants entry through door A while doors B and C are empty. Inside, the one bouncer at A is crushed; nobody checked the general availability. Hot keys are exactly that: one cache key that takes more load than the machine can serve, and stampedes are the crowd surge when the bouncer briefly steps away.",
   learn: [
     "What a hot key is: one item exceeding a single node's share of reads (Per-key traffic caps and shard-level load).",
@@ -1004,7 +1004,7 @@ addLesson("caching", 3, "Caching", "Hot keys and cache stampedes", {
   },
 });
 
-addLesson("caching", 3, "Caching", "Measuring hit ratio and its ROI", {
+addLesson("caching", 5, "Caching", "Measuring hit ratio and its ROI", {
   a: "A corner-shop owner doesn't guess whether the counter helps — she counts: 'out of 100 customers, 85 got served from the front shelf, 15 walked to the basement'. That's the hit ratio, and its ROI is simply: the basement work you no longer do. Count, divide, act.",
   learn: [
     "Formula: hits / (hits + misses), and why it approximates origin load saved.",
@@ -1040,7 +1040,7 @@ addLesson("caching", 3, "Caching", "Measuring hit ratio and its ROI", {
 /* MODULE 4 — one-server-not-enough                                    */
 /* ------------------------------------------------------------------ */
 
-addLesson("one-server-not-enough", 4, "When one server isn't enough", "Horizontal scaling and statelessness", {
+addLesson("one-server-not-enough", 6, "When one server isn't enough", "Horizontal scaling and statelessness", {
   a: "A burger stand that can't keep up has two options: buy an enormous machine (vertical) or open a second identical burger stand across the street (horizontal). The second stand only works if every cook follows the same recipe and no customer is 'assigned' to a particular stand. That recipe-following rule is statelessness.",
   learn: [
     "Horizontal scaling = more identical instances; requires statelessness to be trivially correct.",
@@ -1072,7 +1072,7 @@ addLesson("one-server-not-enough", 4, "When one server isn't enough", "Horizonta
   },
 });
 
-addLesson("one-server-not-enough", 4, "When one server isn't enough", "Layer 4 vs layer 7 load balancing", {
+addLesson("one-server-not-enough", 6, "When one server isn't enough", "Layer 4 vs layer 7 load balancing", {
   a: "A coat check (Layer 4) just takes your request and hands it to the next open hanger with no idea what coat is going where. A maître d' (Layer 7) actually reads the reservation card and sends you to the right table. L4 is fast and dumb; L7 is slower and smart. You pick per problem.",
   learn: [
     "L4: routes on ports/protocol (TCP/UDP) — faster (no HTTP parsing) but no header-based routing.",
@@ -1104,7 +1104,7 @@ addLesson("one-server-not-enough", 4, "When one server isn't enough", "Layer 4 v
   },
 });
 
-addLesson("one-server-not-enough", 4, "When one server isn't enough", "Health checks and connection draining", {
+addLesson("one-server-not-enough", 6, "When one server isn't enough", "Health checks and connection draining", {
   a: "A smart restaurant: the head waiter checks each cook's station before seating anyone (health check), and when a cook leaves for the day they finish their in-progress dishes instead of abandoning them mid-sizzle (connection draining). Both are about not serving disaster quietly.",
   learn: [
     "Health checks (passive vs active, deep vs shallow) failing over without a human page.",
@@ -1136,7 +1136,7 @@ addLesson("one-server-not-enough", 4, "When one server isn't enough", "Health ch
   },
 });
 
-addLesson("one-server-not-enough", 4, "When one server isn't enough", "Session state: sticky vs shared", {
+addLesson("one-server-not-enough", 6, "When one server isn't enough", "Session state: sticky vs shared", {
   a: "Your personal trainer remembers your progress — sticky. A gym membership with a shared computer means any trainer can look you up — shared. Sticky feels personal but binds you to one trainer's shifts; shared costs a database but works when trainers rotate.",
   learn: [
     "Sticky sessions: LB pins a user to one node by cookie/IP — cheap state, fragile scale.",
@@ -1168,7 +1168,7 @@ addLesson("one-server-not-enough", 4, "When one server isn't enough", "Session s
   },
 });
 
-addLesson("one-server-not-enough", 4, "When one server isn't enough", "Autoscaling policies", {
+addLesson("one-server-not-enough", 6, "When one server isn't enough", "Autoscaling policies", {
   a: "A coffee shop with a manager watching the line: 'five customers? one barista. line out the door? two more baristas, but they need ten minutes to put on aprons.' Autoscaling is that manager with fixed rules — and the ten-minute apron problem (boot time) is what trips people up.",
   learn: [
     "Target tracking (CPU, request count), step scaling, and predictive scaling — the AWS/K8s menu.",
@@ -1200,7 +1200,7 @@ addLesson("one-server-not-enough", 4, "When one server isn't enough", "Autoscali
   },
 });
 
-addLesson("one-server-not-enough", 4, "When one server isn't enough", "Queueing theory: why p99 explodes", {
+addLesson("one-server-not-enough", 6, "When one server isn't enough", "Queueing theory: why p99 explodes", {
   a: "A highway toll booth: one booth serving 20 cars per minute handles 15 cars per minute fine — but feed it 19 and the queue doesn't just grow 4×, it stretches seemingly forever. That nonlinearity (the closer you get to capacity, the faster the line grows) is why p99 explodes before p50 does.",
   learn: [
     "M/M/1 utilization math: wait time grows like ρ/(1-ρ); 50% vs 80% vs 95% utilization is the actual cliff.",
@@ -1232,7 +1232,7 @@ addLesson("one-server-not-enough", 4, "When one server isn't enough", "Queueing 
   },
 });
 
-addLesson("one-server-not-enough", 4, "When one server isn't enough", "Capacity planning with Little's Law", {
+addLesson("one-server-not-enough", 6, "When one server isn't enough", "Capacity planning with Little's Law", {
   a: "A barbershop's math: if 2 people walk in per minute and each haircut takes 15 minutes, there are 30 people in the shop at once (2 × 15). Little's Law: people in the shop = arrival rate × time in the shop. Three numbers, one algebra, and capacity planning becomes arithmetic.",
   learn: [
     "L = λ × W: concurrency = arrival rate × latency — and every one of the three tells you about the other two.",
@@ -1268,7 +1268,7 @@ addLesson("one-server-not-enough", 4, "When one server isn't enough", "Capacity 
 /* MODULE 5 — one-database-not-enough                                  */
 /* ------------------------------------------------------------------ */
 
-addLesson("one-database-not-enough", 5, "When one database isn't enough", "Read replicas and replication lag", {
+addLesson("one-database-not-enough", 7, "When one database isn't enough", "Read replicas and replication lag", {
   a: "A teacher writes on the main blackboard, and two students copy it onto side boards for the rest of the class to read. Students can't read faster than they copy — a half-second delay is the 'replication lag'. Read replicas move read traffic off the teacher's board; lag is the trade you accept.",
   learn: [
     "Primary handles writes; replicas mirror and serve reads — scales read throughput cheaply.",
@@ -1300,7 +1300,7 @@ addLesson("one-database-not-enough", 5, "When one database isn't enough", "Read 
   },
 });
 
-addLesson("one-database-not-enough", 5, "When one database isn't enough", "Primary failover and split brain", {
+addLesson("one-database-not-enough", 7, "When one database isn't enough", "Primary failover and split brain", {
   a: "Two captains both believe they're flying the plane. Primary failover is promoting a new captain when the old one is unreachable — the danger is that the old captain wakes up and both think they're in charge. That's split brain, and the cure is a hard rule: only one of us can fly.",
   learn: [
     "Failover flow: detect primary failure, promote a replica, re-point clients — and the order matters.",
@@ -1332,7 +1332,7 @@ addLesson("one-database-not-enough", 5, "When one database isn't enough", "Prima
   },
 });
 
-addLesson("one-database-not-enough", 5, "When one database isn't enough", "Indexing and query plans", {
+addLesson("one-database-not-enough", 7, "When one database isn't enough", "Indexing and query plans", {
   a: "Before driving into a mall, you check the map: which entrance, which floor, which aisle. A database does the same with a query plan: it lists entrances (scans vs seeks) before executing. The plan (EXPLAIN output) tells you whether it's walking in circles or going straight to the shelf.",
   learn: [
     "Read EXPLAIN: seq scan on a big table is the smell; index scan + rows estimate wrong = bad stats.",
@@ -1364,7 +1364,7 @@ addLesson("one-database-not-enough", 5, "When one database isn't enough", "Index
   },
 });
 
-addLesson("one-database-not-enough", 5, "When one database isn't enough", "Sharding keys and hotspots", {
+addLesson("one-database-not-enough", 7, "When one database isn't enough", "Sharding keys and hotspots", {
   a: "Splitting a library across buildings: by author letter, by genre, by city. The split rule (the sharding key) decides everything, and a bad rule turns one building into a mosh pit while others stay quiet. Hotspots are the mosh pits.",
   learn: [
     "Sharding = splitting rows across physical nodes by a key; each node owns a slice.",
@@ -1396,7 +1396,7 @@ addLesson("one-database-not-enough", 5, "When one database isn't enough", "Shard
   },
 });
 
-addLesson("one-database-not-enough", 5, "When one database isn't enough", "Sharding keys vs range partitions", {
+addLesson("one-database-not-enough", 7, "When one database isn't enough", "Sharding keys vs range partitions", {
   a: "Two ways to file a library of books: by author's last name alphabetically (range: A's here, B's there) or by a computed nickname (hash: robin goes to building 3). Range makes browsing friendly but leans on history; hash spreads evenly but laughs at range scans. Pick by access pattern.",
   learn: [
     "Range partitioning: data grouped by contiguous key ranges — great for time-scans, risky for hot ends.",
@@ -1428,7 +1428,7 @@ addLesson("one-database-not-enough", 5, "When one database isn't enough", "Shard
   },
 });
 
-addLesson("one-database-not-enough", 5, "When one database isn't enough", "CQRS and read models", {
+addLesson("one-database-not-enough", 7, "When one database isn't enough", "CQRS and read models", {
   a: "A bank writes every transaction in a ledger (the write model), then publishes a summary statement (the read model). The statement isn't the ledger — it's derived, friendlier, and rebuilt any time. CQRS keeps the ledger and the statement as separate shapes optimized for their jobs.",
   learn: [
     "Command side enforces invariants; Query side is a denormalized read model built for the UI.",
@@ -1460,7 +1460,7 @@ addLesson("one-database-not-enough", 5, "When one database isn't enough", "CQRS 
   },
 });
 
-addLesson("one-database-not-enough", 5, "When one database isn't enough", "Choosing SQL vs NoSQL", {
+addLesson("one-database-not-enough", 7, "When one database isn't enough", "Choosing SQL vs NoSQL", {
   a: "SQL and NoSQL aren't rivals like Pepsi and Coke; they're like a pickup vs a semi-truck. SQL (Postgres, MySQL) guarantees shape: transactions, joins, indexes. NoSQL (DynamoDB, Cassandra) trades shape for scale and availability: massive key-value lookups, flexible data, but you write the access patterns by hand.",
   learn: [
     "SQL strengths: ACID transactions, joins, rich query, mature tooling; limits around horizontal writes at extreme scale.",
@@ -1492,7 +1492,7 @@ addLesson("one-database-not-enough", 5, "When one database isn't enough", "Choos
   },
 });
 
-addLesson("one-database-not-enough", 5, "When one database isn't enough", "Schema migrations without downtime", {
+addLesson("one-database-not-enough", 7, "When one database isn't enough", "Schema migrations without downtime", {
   a: "Re-paving a highway while cars still drive on it: you can't close the road, so you open a new lane, shift cars over gradually, and close the old lane only when everyone is on the new one. Schema migration is the same choreography: expand, migrate, contract.",
   learn: [
     "Expand-migrate-contract: additive change first, dual-write/backfill, then remove the old path.",
@@ -1528,7 +1528,7 @@ addLesson("one-database-not-enough", 5, "When one database isn't enough", "Schem
 /* MODULE 6 — live-updates                                             */
 /* ------------------------------------------------------------------ */
 
-addLesson("live-updates", 6, "Live updates", "Polling, long polling, SSE, WebSockets", {
+addLesson("live-updates", 8, "Live updates", "Polling, long polling, SSE, WebSockets", {
   a: "Four ways to check the mailbox: walk to the door every minute (polling), stand at the door holding it open and waiting (long polling), ask the postman to shout whenever a letter arrives and never expect a reply (SSE), or install two-way intercoms so both sides can speak whenever (WebSockets).",
   learn: [
     "Polling vs long polling vs SSE vs WebSockets: costs and shapes of each.",
@@ -1560,7 +1560,7 @@ addLesson("live-updates", 6, "Live updates", "Polling, long polling, SSE, WebSoc
   },
 });
 
-addLesson("live-updates", 6, "Live updates", "Connection management at scale", {
+addLesson("live-updates", 8, "Live updates", "Connection management at scale", {
   a: "A phone switchboard with two operators can serve a dozen lines; one with a thousand lines needs a very different building. Live connections (WebSockets, SSE) are the same scaling problem: millions of open connections are cheap to hold but expensive to route, authenticate, and survive failover.",
   learn: [
     "Connection counts vs open sockets: one GB of memory can hold hundreds of thousands of idle sockets; the real costs are fan-out and GC pressure.",
@@ -1592,7 +1592,7 @@ addLesson("live-updates", 6, "Live updates", "Connection management at scale", {
   },
 });
 
-addLesson("live-updates", 6, "Live updates", "Presence and typing indicators", {
+addLesson("live-updates", 8, "Live updates", "Presence and typing indicators", {
   a: "A peek through a friend's window: 'are you there?' and 'you started typing' are the two quiet signals of messaging apps. They feel instant and casual, but at scale they're a big cost: thousands of users × every keystroke = streams that need batching, debouncing, and honest trade-offs.",
   learn: [
     "Presence = online/offline/away; typing = transient streaming. Different shapes, different costs.",
@@ -1624,7 +1624,7 @@ addLesson("live-updates", 6, "Live updates", "Presence and typing indicators", {
   },
 });
 
-addLesson("live-updates", 6, "Live updates", "Fan-out for group messaging", {
+addLesson("live-updates", 8, "Live updates", "Fan-out for group messaging", {
   a: "Announcing to a stadium: do you run the message past every seat individually (push/fan-out on write), or post it once on the scoreboard and let people look up (pull/fan-out on read)? Each costs time or a colossal amount of coordination — and the right answer depends on how many people care.",
   learn: [
     "Fan-out on write vs fan-out on read: the Twitter-style write amplification vs the lookup-on-read trade-off.",
@@ -1656,7 +1656,7 @@ addLesson("live-updates", 6, "Live updates", "Fan-out for group messaging", {
   },
 });
 
-addLesson("live-updates", 6, "Live updates", "Backpressure on live streams", {
+addLesson("live-updates", 8, "Live updates", "Backpressure on live streams", {
   a: "A barber shop with a booming Saturday: the waiting bench fills, then chairs fill, and if you keep walking people in, the whole shop stops moving. Backpressure is the polite 'no, not yet' signal that keeps a live system flowing by making producers slow down when consumers can't keep up.",
   learn: [
     "Backpressure = consumer tells producer to slow down (error, credit-based flow control, or queue bounds).",
@@ -1688,7 +1688,7 @@ addLesson("live-updates", 6, "Live updates", "Backpressure on live streams", {
   },
 });
 
-addLesson("live-updates", 6, "Live updates", "Delivery guarantees and receipts", {
+addLesson("live-updates", 8, "Live updates", "Delivery guarantees and receipts", {
   a: "A courier can promise three levels: 'I'll try' (at-most-once), 'I'll keep knocking until you answer' (at-least-once), or 'exactly once, signed for' (exactly-once). What you guarantee decides how much you pay in retries, dedupe, and ceremony. Almost nobody can honestly sell the third without infrastructure help.",
   learn: [
     "At-most-once vs at-least-once vs exactly-once, and what each costs in duplicates and retries.",
@@ -1724,7 +1724,7 @@ addLesson("live-updates", 6, "Live updates", "Delivery guarantees and receipts",
 /* MODULE 7 — background-jobs                                          */
 /* ------------------------------------------------------------------ */
 
-addLesson("background-jobs", 7, "Background jobs", "Why async: decouple to survive", {
+addLesson("background-jobs", 9, "Background jobs", "Why async: decouple to survive", {
   a: "A restaurant where the waiter must stand at the kitchen until the chef finishes your soufflé serves nobody else all evening. Async design: the waiter takes the order, drops the ticket on the rail, and serves other tables; the kitchen shouts when it's ready. The system stays alive even when one part is slow.",
   learn: [
     "Synchronous requests tie user experience to slowest component; async decouples them.",
@@ -1756,7 +1756,7 @@ addLesson("background-jobs", 7, "Background jobs", "Why async: decouple to survi
   },
 });
 
-addLesson("background-jobs", 7, "Background jobs", "Job queues and worker pools", {
+addLesson("background-jobs", 9, "Background jobs", "Job queues and worker pools", {
   a: "A car wash with a ticket dispenser: cars line up in the order they arrive, and multiple washing bays pull cars from the queue. Job queues and worker pools are that arrangement software-ized, with fencing against crashing cars, and priority lanes for emergencies.",
   learn: [
     "FIFO vs priority queues, and per-queue scaling workers.",
@@ -1788,7 +1788,7 @@ addLesson("background-jobs", 7, "Background jobs", "Job queues and worker pools"
   },
 });
 
-addLesson("background-jobs", 7, "Background jobs", "Retries, backoff, and dead-letter queues", {
+addLesson("background-jobs", 9, "Background jobs", "Retries, backoff, and dead-letter queues", {
   a: "A neighbor keeps ringing your doorbell: if they ring every minute, you'll never finish a call; if they wait 2, 4, 8 minutes with some randomness, you can breathe and eventually answer. Retries with exponential backoff plus one honest escape route (the DLQ) is how real systems handle the unanswered knock.",
   learn: [
     "Exponential backoff with jitter: doubling intervals plus randomness so clients don't stampede the server.",
@@ -1820,7 +1820,7 @@ addLesson("background-jobs", 7, "Background jobs", "Retries, backoff, and dead-l
   },
 });
 
-addLesson("background-jobs", 7, "Background jobs", "Idempotency keys", {
+addLesson("background-jobs", 9, "Background jobs", "Idempotency keys", {
   a: "A coffee shop that remembers your order number won't make your latte twice even if you shout 'my latte!' five times in a panic. An idempotency key is that order number: the server sees the same key twice and replays the first result instead of doing the work again.",
   learn: [
     "Idempotency key semantics: client generates a unique key per logical operation; server stores the result under it.",
@@ -1852,7 +1852,7 @@ addLesson("background-jobs", 7, "Background jobs", "Idempotency keys", {
   },
 });
 
-addLesson("background-jobs", 7, "Background jobs", "Scheduling and cron at scale", {
+addLesson("background-jobs", 9, "Background jobs", "Scheduling and cron at scale", {
   a: "A hospital with alarms' running every 15 minutes across hundreds of wards: a single wall clock can't hear them all. Scheduling at scale is a fleet of synchronized alarm clocks, with a leader (who fires the schedule), a lock (so it doesn't double-fire), and honest catch-up rules when a clock was asleep.",
   learn: [
     "Single-host cron fails silently when that host is down; distributed schedulers need a leader or a lock.",
@@ -1884,7 +1884,7 @@ addLesson("background-jobs", 7, "Background jobs", "Scheduling and cron at scale
   },
 });
 
-addLesson("background-jobs", 7, "Background jobs", "Exactly-once vs at-least-once processing", {
+addLesson("background-jobs", 9, "Background jobs", "Exactly-once vs at-least-once processing", {
   a: "A barista can promise 'I'll serve your latte eventually' (at-least-once) or 'exactly one latte, never two, never zero' (exactly-once). The second requires instrumentation: a receipt ledger, a check by the cashier, and a lock at the register. In software, exactly-once effects are built from at-least-once delivery plus idempotent processing.",
   learn: [
     "Delivery-level vs effect-level guarantees: the network delivers at-least-once; the application makes effects exactly-once.",
@@ -1920,7 +1920,7 @@ addLesson("background-jobs", 7, "Background jobs", "Exactly-once vs at-least-onc
 /* MODULE 8 — rate-limiting                                            */
 /* ------------------------------------------------------------------ */
 
-addLesson("rate-limiting", 8, "Rate limiting and overload", "Token bucket, leaky bucket, sliding window", {
+addLesson("rate-limiting", 10, "Rate limiting and overload", "Token bucket, leaky bucket, sliding window", {
   a: "An arcade hands out a fixed number of tokens per minute (token bucket) — spend them any time; or your sink drains at a fixed rate regardless of taps (leaky bucket); or you count the last 60 seconds' entries, not 'lines' (sliding window). Three metaphors, one goal: keep the taps polite.",
   learn: [
     "Token bucket: refill rate + burst capacity; the general-purpose limiter for APIs.",
@@ -1952,7 +1952,7 @@ addLesson("rate-limiting", 8, "Rate limiting and overload", "Token bucket, leaky
   },
 });
 
-addLesson("rate-limiting", 8, "Rate limiting and overload", "Distributed rate limiting with Redis", {
+addLesson("rate-limiting", 10, "Rate limiting and overload", "Distributed rate limiting with Redis", {
   a: "One bouncer can count the club's entries; a chain of clubs needs a shared guest list. Distributed rate limiting uses a shared counter (Redis) so every instance counts against the same bucket, with atomic scripts to avoid race conditions.",
   learn: [
     "Why local per-instance limits sum to more than the intended global limit.",
@@ -1984,7 +1984,7 @@ addLesson("rate-limiting", 8, "Rate limiting and overload", "Distributed rate li
   },
 });
 
-addLesson("rate-limiting", 8, "Rate limiting and overload", "Per-user, per-IP, per-key policies", {
+addLesson("rate-limiting", 10, "Rate limiting and overload", "Per-user, per-IP, per-key policies", {
   a: "A gym has different rules: per-member (user), per-household (IP), per-corporate-partner (key). The same service needs all three: the free-tier user gets a small bucket, a shared-office IP gets a modest one, and the partner API key gets a contracted one.",
   learn: [
     "Per-user (auth): the natural bucket, works even when IPs rotate (mobile users).",
@@ -2016,7 +2016,7 @@ addLesson("rate-limiting", 8, "Rate limiting and overload", "Per-user, per-IP, p
   },
 });
 
-addLesson("rate-limiting", 8, "Rate limiting and overload", "Fixed-window bursts and boundary effects", {
+addLesson("rate-limiting", 10, "Rate limiting and overload", "Fixed-window bursts and boundary effects", {
   a: "A bakery that refuses more than 10 customers per hour — but resets at 12:00. A customer can buy 10 loaves at 11:59:59 and 10 more at 12:00:01. Fixed windows create that double-price boundary problem; sliding windows close it.",
   learn: [
     "Fixed window mechanics: counter resets at a boundary — simple, cheap, but with double-burst edges.",
@@ -2048,7 +2048,7 @@ addLesson("rate-limiting", 8, "Rate limiting and overload", "Fixed-window bursts
   },
 });
 
-addLesson("rate-limiting", 8, "Rate limiting and overload", "Load shedding vs rate limiting", {
+addLesson("rate-limiting", 10, "Rate limiting and overload", "Load shedding vs rate limiting", {
   a: "A really overloaded restaurant: rate limiting says 'you can only have 20 tables' all day (a steady-state policy); load shedding says 'today we're beyond capacity, we'll serve only the highest-priority tables and politely refuse the rest, temporarily'. One is a rule book, the other is an emergency valve.",
   learn: [
     "Rate limiting protects from normal abuse all the time; load shedding protects during overload only.",
@@ -2080,7 +2080,7 @@ addLesson("rate-limiting", 8, "Rate limiting and overload", "Load shedding vs ra
   },
 });
 
-addLesson("rate-limiting", 8, "Rate limiting and overload", "Fairness: weighted queues and priorities", {
+addLesson("rate-limiting", 10, "Rate limiting and overload", "Fairness: weighted queues and priorities", {
   a: "A hospital ER doesn't seat the loudest patient; triage assigns severity classes. Weighted, priority-based queuing makes fairness explicit: high-priority tickets get more slots, but low-priority work still gets some — so no starved tenant calls in a year asking why their job never ran.",
   learn: [
     "Weighted fair queuing: per-tenant weights share bandwidth fairly (not equally — proportionally).",
@@ -2116,7 +2116,7 @@ addLesson("rate-limiting", 8, "Rate limiting and overload", "Fairness: weighted 
 /* MODULE 9 — growing-big                                              */
 /* ------------------------------------------------------------------ */
 
-addLesson("growing-big", 9, "Growing big", "Service decomposition signals", {
+addLesson("growing-big", 11, "Growing big", "Service decomposition signals", {
   a: "A growing household eventually splits into separate apartments: cooking, studying, and gaming at all hours stop working in one room. Nobody splits for fun — you split when there are real frictions: different schedules, different guests, and one person's mess blocking everyone. Services split the same way.",
   learn: [
     "Real signals to split: independent deploy pressure, different scaling needs, team ownership conflicts, blast-radius isolation.",
@@ -2148,7 +2148,7 @@ addLesson("growing-big", 9, "Growing big", "Service decomposition signals", {
   },
 });
 
-addLesson("growing-big", 9, "Growing big", "API versioning and contracts", {
+addLesson("growing-big", 11, "Growing big", "API versioning and contracts", {
   a: "Public roads repaving: you can't just close the bridge, so you build the new one alongside, add signage, and give drivers months notice before the old one closes. API versioning is the same: keep the old contract working while clients migrate, be explicit about when it ends, and announce changes in advance.",
   learn: [
     "Version-in-URL vs version-in-header; additive vs breaking changes and how to spot each.",
@@ -2180,7 +2180,7 @@ addLesson("growing-big", 9, "Growing big", "API versioning and contracts", {
   },
 });
 
-addLesson("growing-big", 9, "Growing big", "Multi-region basics", {
+addLesson("growing-big", 11, "Growing big", "Multi-region basics", {
   a: "A bakery expands: one oven in one city works fine, until a power cut there stops the bread everywhere. A second bakery in another city is the fix — but then the recipe book (data) has to live in both places, and you decide whether both bake (active-active) or one waits (active-passive).",
   learn: [
     "Failover semantics: active-passive has a warm standby; active-active serves from multiple regions simultaneously.",
@@ -2212,7 +2212,7 @@ addLesson("growing-big", 9, "Growing big", "Multi-region basics", {
   },
 });
 
-addLesson("growing-big", 9, "Growing big", "Cost-aware architecture", {
+addLesson("growing-big", 11, "Growing big", "Cost-aware architecture", {
   a: "A household buys groceries affordably but still nutritious; a rich family can order caviar every day, but eventually sees the bill. Cost-aware architecture means knowing your unit economics — the cost per user, request, or feature — and optimizing the expensive paths without sacrificing product quality entirely.",
   learn: [
     "Unit economics: cost per request, per user, per feature — the arithmetic that keeps a startup alive.",
@@ -2244,7 +2244,7 @@ addLesson("growing-big", 9, "Growing big", "Cost-aware architecture", {
   },
 });
 
-addLesson("growing-big", 9, "Growing big", "Observability: metrics, logs, traces", {
+addLesson("growing-big", 11, "Growing big", "Observability: metrics, logs, traces", {
   a: "A doctor diagnoses using vital signs (metrics), the patient's story (logs), and a full-body scan with clear contrast (traces). You need all three; a patient who only gives vital signs without the story is a mystery, and a system with only logs is an archaeology project.",
   learn: [
     "Metrics = aggregations (rate, latency, error rate); cheap and alertable. Logs = individual events, searchable, expensive. Traces = a request's path through services, with spans.",
@@ -2276,7 +2276,7 @@ addLesson("growing-big", 9, "Growing big", "Observability: metrics, logs, traces
   },
 });
 
-addLesson("growing-big", 9, "Growing big", "Incident response for builders", {
+addLesson("growing-big", 11, "Growing big", "Incident response for builders", {
   a: "A studio fire alarm drill: everyone knows their exit, who calls 911, and where to meet. Real fires break the drill a little, but the rehearsed part saves lives. Incident response is a fire drill for your services: roles, communication channels, and postmortems living in a ritual called incident response.",
   learn: [
     "Roles: Incident Commander, Comms Lead, Ops Lead — separate the fighting-fires from the telling-people.",
@@ -2312,7 +2312,7 @@ addLesson("growing-big", 9, "Growing big", "Incident response for builders", {
 /* MODULE 10 — putting-it-together                                     */
 /* ------------------------------------------------------------------ */
 
-addLesson("putting-it-together", 10, "Putting it together", "Design walkthrough: URL shortener", {
+addLesson("putting-it-together", 12, "Putting it together", "Design walkthrough: URL shortener", {
   a: "The URL shortener is the design interview's smallest complete dish: a tiny product (mapping a long URL to a short code) that still ends up teaching you storage, caching, key encoding, and analytics. Think of it as the 'soup course' of system design — if you can do this well, the bigger dishes get easier.",
   learn: [
     "The requirements: redirect fast (99%+ reads), short codes are unique, track clicks (optional), TTLs and custom aliases.",
@@ -2344,7 +2344,7 @@ addLesson("putting-it-together", 10, "Putting it together", "Design walkthrough:
   },
 });
 
-addLesson("putting-it-together", 10, "Putting it together", "Design walkthrough: chat at scale", {
+addLesson("putting-it-together", 12, "Putting it together", "Design walkthrough: chat at scale", {
   a: "Chat scales from 'user sends message' (trivial) to '10 M users in thousands of group chats' (where fan-out, ordering, delivery receipts, and presence all become a real system). The architecture shape: clients connect via WebSockets, a routing layer finds the recipient's node, and durable storage ensures history and offline delivery.",
   learn: [
     "Connection layer: sticky WebSocket ends, heartbeat, reconnects, per-node connection registry.",
@@ -2376,7 +2376,7 @@ addLesson("putting-it-together", 10, "Putting it together", "Design walkthrough:
   },
 });
 
-addLesson("putting-it-together", 10, "Putting it together", "Design walkthrough: news feed", {
+addLesson("putting-it-together", 12, "Putting it together", "Design walkthrough: news feed", {
   a: "A Facebook/Twitter-scale news feed: each user opens an app and gets a personally-tailored stream of friends' posts, ads, and recommendations. The clever design piece is that the feed is computed — either by precomputing every user's timeline at write time (fan-out on write) or lazily at read time — and each has real costs.",
   learn: [
     "The data model: post → author; feed → a per-user list of post IDs (with ranking metadata).",
@@ -2408,7 +2408,7 @@ addLesson("putting-it-together", 10, "Putting it together", "Design walkthrough:
   },
 });
 
-addLesson("putting-it-together", 10, "Putting it together", "Design walkthrough: payments", {
+addLesson("putting-it-together", 12, "Putting it together", "Design walkthrough: payments", {
   a: "A payments system has one rule above all: money must be exactly right — not twice charged, not half refunded, never mis-counted. That single rule turns a cheap CRUD app into an architecture with ledgers, idempotency keys, and reconciliation sweeps.",
   learn: [
     "Ledger-first design: every money movement is an append-only ledger entry; balances are derived.",
@@ -2440,7 +2440,7 @@ addLesson("putting-it-together", 10, "Putting it together", "Design walkthrough:
   },
 });
 
-addLesson("putting-it-together", 10, "Putting it together", "Reviewing your own design", {
+addLesson("putting-it-together", 12, "Putting it together", "Reviewing your own design", {
   a: "A cook tastes their own soup before serving; you should too. Reviewing a design is a checklist practice, not a vibe: requirements coverage, failure modes, scaling headroom, security, and cost. The best reviewers ask 'what breaks first?' and 'what are we pretending isn't a problem?'",
   learn: [
     "The review checklist: requirements trace, failure modes, scaling ceilings, security, ops readiness.",
@@ -2472,7 +2472,7 @@ addLesson("putting-it-together", 10, "Putting it together", "Reviewing your own 
   },
 });
 
-addLesson("putting-it-together", 10, "Putting it together", "Presenting a design in interviews", {
+addLesson("putting-it-together", 12, "Putting it together", "Presenting a design in interviews", {
   a: "A vending machine presenting to investors: 'here's the machine, here's how it handles a jam, here's the monthly profit'. Interview presenting is the same: state assumptions, walk the happy path, then walk a failure, then costs. Structure beats brilliance.",
   learn: [
     "Structure: requirements (3 min), high-level (10 min), deep dive (15 min), trade-offs (5 min).",
@@ -2508,7 +2508,7 @@ addLesson("putting-it-together", 10, "Putting it together", "Presenting a design
 /* MODULE 11 — microservices                                           */
 /* ------------------------------------------------------------------ */
 
-addLesson("microservices", 11, "Microservices", "Monolith first: when to split (and when not to)", {
+addLesson("microservices", 13, "Microservices", "Monolith first: when to split (and when not to)", {
   a: "Two cooks, one kitchen: one recipe sheet works fine until each cook wants their own schedule. Monolith-first is that: start as one deployable, split only when real forces (team autonomy, divergent scaling, different failure domains) demand it — and resist splitting for fashion.",
   learn: [
     "Monolith's real advantages: simple deploys, no network hops, atomic transactions, one debug session.",
@@ -2540,7 +2540,7 @@ addLesson("microservices", 11, "Microservices", "Monolith first: when to split (
   },
 });
 
-addLesson("microservices", 11, "Microservices", "Service boundaries and domains", {
+addLesson("microservices", 13, "Microservices", "Service boundaries and domains", {
   a: "A bakery's job roles: the baker doesn't serve customers, so the counter staff can work at speed while the baker preps. Service boundaries are like job roles with ownership and a clean interface: 'I make the bread; you ask me for bread' — but roles are fuzzy when one person handles both the ovens and the till.",
   learn: [
     "Bounded contexts (DDD): each service owns a domain boundary where a single meaning of words holds.",
@@ -2572,7 +2572,7 @@ addLesson("microservices", 11, "Microservices", "Service boundaries and domains"
   },
 });
 
-addLesson("microservices", 11, "Microservices", "Sync vs async service calls", {
+addLesson("microservices", 13, "Microservices", "Sync vs async service calls", {
   a: "Ordering a meal: the waiter brings the answer synchronously ('your dish is ready' or a sorry); a post office works asynchronously (a letter arrives eventually, and the waiter moves on). Both exist inside real systems; the design question is which door each interaction needs.",
   learn: [
     "Synchronous calls (HTTP/gRPC): simple mental model, and you own latency-chain and timeouts.",
@@ -2604,7 +2604,7 @@ addLesson("microservices", 11, "Microservices", "Sync vs async service calls", {
   },
 });
 
-addLesson("microservices", 11, "Microservices", "Service discovery", {
+addLesson("microservices", 13, "Microservices", "Service discovery", {
   a: "A hotel's reception desk knows which rooms are occupied and which are clean and available. Service discovery is the reception: 'I need the payments service — which healthy instance should I call right now?' Instances come and go; the reception always knows.",
   learn: [
     "Client-side vs server-side discovery: who looks up the address — the consumer or a router.",
@@ -2636,7 +2636,7 @@ addLesson("microservices", 11, "Microservices", "Service discovery", {
   },
 });
 
-addLesson("microservices", 11, "Microservices", "API gateways and BFFs", {
+addLesson("microservices", 13, "Microservices", "API gateways and BFFs", {
   a: "A fine restaurant's maître d': takes reservations, seats guests, coordinates with the kitchen, and remembers what the regulars want. An API Gateway is the maître d' for machine clients: one front door that handles auth, rate limits, routing, and observability so the kitchen (your services) can focus on food.",
   learn: [
     "The gateway's real jobs: auth, rate limiting, routing, observability, TLS termination, and a stable public surface.",
@@ -2668,7 +2668,7 @@ addLesson("microservices", 11, "Microservices", "API gateways and BFFs", {
   },
 });
 
-addLesson("microservices", 11, "Microservices", "Sharing data between services", {
+addLesson("microservices", 13, "Microservices", "Sharing data between services", {
   a: "Two roommates who both cook: they could share one fridge (direct DB access) or each keep their own pantry and swap ingredients through a note. Shared-fridge works until one roommate eats the other's leftovers. Honest services share data by hand-offs, not by sneaking into each other's cupboards.",
   learn: [
     "Direct database sharing is the anti-pattern: coupling plus inconsistent transactions plus nobody owns the schema.",
@@ -2700,7 +2700,7 @@ addLesson("microservices", 11, "Microservices", "Sharing data between services",
   },
 });
 
-addLesson("microservices", 11, "Microservices", "Testing and deploying independently", {
+addLesson("microservices", 13, "Microservices", "Testing and deploying independently", {
   a: "A theater troupe: one big ensemble needs everyone present for the show; a jazz combo improvises independently. Microservices were supposed to make teams self-sufficient — but if deploys happen only on Tuesdays and every deploy needs 'the whole gang', you have a distributed monolith, not a jazz combo.",
   learn: [
     "Independent deploy: each service ships on its own cadence, with its own canary/progressive delivery policy.",
@@ -2736,7 +2736,7 @@ addLesson("microservices", 11, "Microservices", "Testing and deploying independe
 /* MODULE 12 — distributed-problems                                    */
 /* ------------------------------------------------------------------ */
 
-addLesson("distributed-problems", 12, "Problems in distributed systems", "Partial failure and timeouts", {
+addLesson("distributed-problems", 14, "Problems in distributed systems", "Partial failure and timeouts", {
   a: "A delivery driver is late. Is he crashed (never coming) or just stuck in traffic (coming soon)? On the network you can't tell the difference quickly — the delivery just isn't arriving *yet*. Partial failure and timeouts are how distributed systems live with that painful ambiguity.",
   learn: [
     "Partial failure: one component fails while others work; classic distributed-systems pain (unlike a single process crashing).",
@@ -2768,7 +2768,7 @@ addLesson("distributed-problems", 12, "Problems in distributed systems", "Partia
   },
 });
 
-addLesson("distributed-problems", 12, "Problems in distributed systems", "Retries and retry storms", {
+addLesson("distributed-problems", 14, "Problems in distributed systems", "Retries and retry storms", {
   a: "A neighbor keeps ringing your doorbell every 10 seconds, then two more neighbors join, and suddenly the door is being knocked a hundred times a minute. Retries are appropriate; retry storms are a distributed system's self-inflicted DDoS — often triggered by the system itself as it tries to recover.",
   learn: [
     "Retry with exponential backoff + jitter as the base pattern; retry budgets to avoid amplification.",
@@ -2800,7 +2800,7 @@ addLesson("distributed-problems", 12, "Problems in distributed systems", "Retrie
   },
 });
 
-addLesson("distributed-problems", 12, "Problems in distributed systems", "Circuit breakers and bulkheads", {
+addLesson("distributed-problems", 14, "Problems in distributed systems", "Circuit breakers and bulkheads", {
   a: "A fuse box: if too much current flows, the fuse trips and the room goes dark, protecting the house. A circuit breaker for services is that: repeated failures trip it, giving the failing dependency breathing room (and giving the user a fast failure instead of a slow hang). A bulkhead is the water-tight compartment: A burns, B stays afloat.",
   learn: [
     "Circuit breakers: tripping the path when failures exceed a threshold, with an open → half-open → closed lifecycle.",
@@ -2832,7 +2832,7 @@ addLesson("distributed-problems", 12, "Problems in distributed systems", "Circui
   },
 });
 
-addLesson("distributed-problems", 12, "Problems in distributed systems", "CAP and PACELC: the partition trade-off", {
+addLesson("distributed-problems", 14, "Problems in distributed systems", "CAP and PACELC: the partition trade-off", {
   a: "Three promises — Consistency, Availability, Partition tolerance — and the network betrays at least one. CAP says: during a partition, you must choose consistency or availability. PACELC adds: even without a partition, you trade latency for consistency. It's not a theory quiz; it's a per-product decision you make monthly.",
   learn: [
     "Decide in concrete terms: for a payments ledger, consistency wins (CP). For a 'like' counter, availability wins (AP).",
@@ -2864,7 +2864,7 @@ addLesson("distributed-problems", 12, "Problems in distributed systems", "CAP an
   },
 });
 
-addLesson("distributed-problems", 12, "Problems in distributed systems", "Clock skew and ordering", {
+addLesson("distributed-problems", 14, "Problems in distributed systems", "Clock skew and ordering", {
   a: "Two friends with slightly different watch times argue about who arrived first. Server clocks drift by milliseconds, sometimes seconds — and 'who happened first' becomes probabilistic. Ordering events correctly in a distributed system needs more than wall-clock time.",
   learn: [
     "Clock skew is real: NTP syncs within a few ms but never perfect; leap seconds and hardware drift make it worse.",
@@ -2896,7 +2896,7 @@ addLesson("distributed-problems", 12, "Problems in distributed systems", "Clock 
   },
 });
 
-addLesson("distributed-problems", 12, "Problems in distributed systems", "Cascading failures", {
+addLesson("distributed-problems", 14, "Problems in distributed systems", "Cascading failures", {
   a: "One lane closing on a highway causes a pileup behind it: cars slow, more pile up, and soon a whole stretch stops. A cascading failure in distributed systems is the same — one overloaded dependency slows its callers, who slow theirs, and the slowdown spreads until the whole system groans.",
   learn: [
     "Cascades form when load + partial failure + no admission control combine.",
@@ -2928,7 +2928,7 @@ addLesson("distributed-problems", 12, "Problems in distributed systems", "Cascad
   },
 });
 
-addLesson("distributed-problems", 12, "Problems in distributed systems", "Designing for failure", {
+addLesson("distributed-problems", 14, "Problems in distributed systems", "Designing for failure", {
   a: "Seatbelts and airbags: we didn't add them because crashes are fashionable; we added them because crashes happen. Designing for failure isn't pessimism — it's the engineering habit of assuming things will break and choosing, in advance, what that means for users.",
   learn: [
     "Assume failure at two levels: components (disk, node, region) and humans (fat fingers, bad config).",
@@ -2964,7 +2964,7 @@ addLesson("distributed-problems", 12, "Problems in distributed systems", "Design
 /* MODULE 13 — replication-depth                                       */
 /* ------------------------------------------------------------------ */
 
-addLesson("replication-depth", 13, "Replication in depth", "Single-leader replication", {
+addLesson("replication-depth", 15, "Replication in depth", "Single-leader replication", {
   a: "One teacher writes on the main board; students copy it onto side boards. Every write goes through the teacher (the leader); the side boards are read-only descendants. It's simple, orders everything, and its pain is the leader being a single point — and read-your-writes lag on the copies.",
   learn: [
     "Leader-side writes: global ordering, simple consistency, and the honest single-point-of-failure.",
@@ -2996,7 +2996,7 @@ addLesson("replication-depth", 13, "Replication in depth", "Single-leader replic
   },
 });
 
-addLesson("replication-depth", 13, "Replication in depth", "Multi-leader and leaderless", {
+addLesson("replication-depth", 15, "Replication in depth", "Multi-leader and leaderless", {
   a: "A company with three branch offices, each keeping its own copy of the ledger: branch leaders write locally and sync with each other later (multi-leader), or every employee can write and the group agrees how to merge (leaderless). Both trade conflicts for availability — and the interesting question is how you reconcile two people who both charged the same card.",
   learn: [
     "Multi-leader: each region/cluster has its own write-capable leader; cross-leader conflicts become a real problem.",
@@ -3028,7 +3028,7 @@ addLesson("replication-depth", 13, "Replication in depth", "Multi-leader and lea
   },
 });
 
-addLesson("replication-depth", 13, "Replication in depth", "Quorums: R + W > N, and what happens when replicas fail", {
+addLesson("replication-depth", 15, "Replication in depth", "Quorums: R + W > N, and what happens when replicas fail", {
   a: "A club with five members makes decisions by majority: three yes votes pass a motion. If three members are absent (N=5, only 2 alive), no quorum exists — no motion passes, no writes happen, no data loss. Quorum math is that simple contract: overlapping read and write sets guarantee you've seen the latest.",
   learn: [
     "Quorum arithmetic: R + W > N guarantees any read set intersects the latest write set (no stale reads).",
@@ -3060,7 +3060,7 @@ addLesson("replication-depth", 13, "Replication in depth", "Quorums: R + W > N, 
   },
 });
 
-addLesson("replication-depth", 13, "Replication in depth", "Consistency models: linearizability to eventual", {
+addLesson("replication-depth", 15, "Replication in depth", "Consistency models: linearizability to eventual", {
   a: "A post office with five tellers: linearizability is 'any teller's answer always reflects everyone's latest form' (strong); eventual consistency is 'eventually all tellers agree — a stamp's worth of delay may show an old form first'. Every consistency model is a point on that spectrum, and products pick per feature.",
   learn: [
     "The ladder: linearizability → sequential → causal → read-your-writes → eventual — with cost trade-offs at each rung.",
@@ -3092,7 +3092,7 @@ addLesson("replication-depth", 13, "Replication in depth", "Consistency models: 
   },
 });
 
-addLesson("replication-depth", 13, "Replication in depth", "Read-your-writes consistency", {
+addLesson("replication-depth", 15, "Replication in depth", "Read-your-writes consistency", {
   a: "You donate a book to a library and walk in five minutes later to check — the librarian says 'sorry, we haven't processed it yet'. That's the read-your-writes bug: your own write isn't visible to you because you read from a lagging replica. Fix routing, not vibes.",
   learn: [
     "The cause: writes go to the primary, reads go to lagging replicas; your own write isn't reflected.",
@@ -3124,7 +3124,7 @@ addLesson("replication-depth", 13, "Replication in depth", "Read-your-writes con
   },
 });
 
-addLesson("replication-depth", 13, "Replication in depth", "Follower reads and monotonicity", {
+addLesson("replication-depth", 15, "Replication in depth", "Follower reads and monotonicity", {
   a: "Three newspapers in the same town: one published today, one printed yesterday, one from last week. You could read all three and see different worlds (follower reads). 'Monotonic reads' is the honest promise: once you've seen today's paper, you'll never be handed last week's as 'newer'.",
   learn: [
     "Follower reads: serve reads from replicas to scale reads, accepting some staleness.",
@@ -3156,7 +3156,7 @@ addLesson("replication-depth", 13, "Replication in depth", "Follower reads and m
   },
 });
 
-addLesson("replication-depth", 13, "Replication in depth", "Consensus: Paxos and Raft intuition", {
+addLesson("replication-depth", 15, "Replication in depth", "Consensus: Paxos and Raft intuition", {
   a: "Five committee members vote on a motion: a majority (three) must agree, and the motion is only adopted once majority-approved. If the chair (leader) is unreachable, the committee elects a new chair from a majority — never two chairs at once. That's consensus: agreement despite failures, with one chair at a time.",
   learn: [
     "Consensus goal: N replicas agree on one value (or a sequence of values) despite failures and partitions.",
@@ -3192,7 +3192,7 @@ addLesson("replication-depth", 13, "Replication in depth", "Consensus: Paxos and
 /* MODULE 14 — partitioning-depth                                      */
 /* ------------------------------------------------------------------ */
 
-addLesson("partitioning-depth", 14, "Partitioning in depth", "Range vs hash partitioning", {
+addLesson("partitioning-depth", 16, "Partitioning in depth", "Range vs hash partitioning", {
   a: "File a library either by shelf-letter ranges (A–F on this shelf, G–K there — easy to browse, but the B shelf overflows when you buy lots of B books) or by a nickname hash (spread everywhere evenly, but you can't browse). Range wins for scanning, hash wins for spreading.",
   learn: [
     "Range partitioning: contiguous key ranges per partition — great for range scans and TTL drops; risky at hot boundaries.",
@@ -3224,7 +3224,7 @@ addLesson("partitioning-depth", 14, "Partitioning in depth", "Range vs hash part
   },
 });
 
-addLesson("partitioning-depth", 14, "Partitioning in depth", "Consistent hashing and virtual nodes", {
+addLesson("partitioning-depth", 16, "Partitioning in depth", "Consistent hashing and virtual nodes", {
   a: "A pizza shop assigns deliveries by ring: imagine customers on a circle, delivery bikes positioned on the same circle. If you hire a bike, it inherits only the 'arc' between it and the next bike — not everyone's orders. Consistent hashing is that circle; virtual nodes are giving each bike several (smaller) segments so the load spreads better.",
   learn: [
     "The problem with naive hash % N: adding/removing a node moves almost every key (full reshuffle).",
@@ -3256,7 +3256,7 @@ addLesson("partitioning-depth", 14, "Partitioning in depth", "Consistent hashing
   },
 });
 
-addLesson("partitioning-depth", 14, "Partitioning in depth", "Rebalancing without downtime", {
+addLesson("partitioning-depth", 16, "Partitioning in depth", "Rebalancing without downtime", {
   a: "Moving an apartment with all your stuff INSIDE while the phone still rings and the mail still arrives. Rebalancing partitions is that operation: data moves between nodes while the system serves traffic. The honest answers all share one property: move a little at a time, double-write or dual-read, then switch.",
   learn: [
     "Rebalancing strategies: consistent-hash gradual moves, dual-read/dual-write windows, and shadow reads.",
@@ -3288,7 +3288,7 @@ addLesson("partitioning-depth", 14, "Partitioning in depth", "Rebalancing withou
   },
 });
 
-addLesson("partitioning-depth", 14, "Partitioning in depth", "Hot partitions and mitigation", {
+addLesson("partitioning-depth", 16, "Partitioning in depth", "Hot partitions and mitigation", {
   a: "One bar in the city is famous and packed; the rest are quiet but nobody goes there. A hot partition is exactly that: one slice (one partition/shard) serving way more traffic than the others, which starves the cluster's capacity. Mitigation is the art of spreading heat.",
   learn: [
     "Hot partition causes: celebrity keys, status-based keys, current-date range partitions, big tenants.",
@@ -3320,7 +3320,7 @@ addLesson("partitioning-depth", 14, "Partitioning in depth", "Hot partitions and
   },
 });
 
-addLesson("partitioning-depth", 14, "Partitioning in depth", "Secondary indexes across partitions", {
+addLesson("partitioning-depth", 16, "Partitioning in depth", "Secondary indexes across partitions", {
   a: "A library has two index drawers: by author and by title. When the library splits into branches, each branch has only its own books, but readers still want 'find every book by author X across all branches'. Secondary indexes across partitions is the design of keeping multiple drawers honest when the shelves are distributed.",
   learn: [
     "Local (per-partition) indexes are trivial but only serve 'query by this partition's key'.",
@@ -3352,7 +3352,7 @@ addLesson("partitioning-depth", 14, "Partitioning in depth", "Secondary indexes 
   },
 });
 
-addLesson("partitioning-depth", 14, "Partitioning in depth", "Cross-partition queries", {
+addLesson("partitioning-depth", 16, "Partitioning in depth", "Cross-partition queries", {
   a: "'Find me every good coffee shop with good reviews' — across all cities. If data is split by city, this answer requires asking every city and merging. That's a cross-partition query: necessary sometimes, expensive always, and often a signal your partition key chose poorly for this access pattern.",
   learn: [
     "Why cross-partition queries are expensive: fan-out to all partitions, merge at the coordinator, and amplification on failure.",
@@ -3384,7 +3384,7 @@ addLesson("partitioning-depth", 14, "Partitioning in depth", "Cross-partition qu
   },
 });
 
-addLesson("partitioning-depth", 14, "Partitioning in depth", "Rebalancing case studies", {
+addLesson("partitioning-depth", 16, "Partitioning in depth", "Rebalancing case studies", {
   a: "Famous companies' rebalance stories: Instagram's shard migration, Twitter's timeline fan-out changes, Facebook's Messenger migration. Each is a real-world 'move the apartment with the phone on' case — with the honest lesson that migrations are planned like projects, not rename operations.",
   learn: [
     "The common choreography: new keys computed → double-write/backfill → dual-read with validation → traffic switch → old retired.",
@@ -3420,7 +3420,7 @@ addLesson("partitioning-depth", 14, "Partitioning in depth", "Rebalancing case s
 /* MODULE 15 — messaging-kafka                                         */
 /* ------------------------------------------------------------------ */
 
-addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Logs as the source of truth", {
+addLesson("messaging-kafka", 17, "Messaging: Kafka and pub/sub", "Logs as the source of truth", {
   a: "A barista journal: write every order to the book in order, never erase. The cafe's truth is that book — station changes can re-derive their prep lists, the dashboards read a projection, and the book itself never lies. An event log works the same: append everything, derive everything else.",
   learn: [
     "The log-abstraction principle: an append-only ordered log can be the single source of truth; state is derived from it.",
@@ -3452,7 +3452,7 @@ addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Logs as the so
   },
 });
 
-addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Topics, partitions, offsets", {
+addLesson("messaging-kafka", 17, "Messaging: Kafka and pub/sub", "Topics, partitions, offsets", {
   a: "A conference with different rooms (topics), each room has rows (partitions), and every seat has a number (offset). A speaker (producer) hands messages to a room; an audience member (consumer) says 'I've heard through seat 412 in room B'. That's topics, partitions, offsets in one sentence.",
   learn: [
     "Topic = a named stream; partitions = parallel units of ordering and scaling within a topic.",
@@ -3484,7 +3484,7 @@ addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Topics, partit
   },
 });
 
-addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Consumer groups and rebalancing", {
+addLesson("messaging-kafka", 17, "Messaging: Kafka and pub/sub", "Consumer groups and rebalancing", {
   a: "A team radio shifts: five listening posts (consumers) share 20 subs (partitions); one posts go down and its subs are redistributed to the others (rebalance). Consumer groups spread a topic's partitions across members, and rebalancing keeps distribution sane as membership changes.",
   learn: [
     "Consumer group semantics: one group consumes the whole topic cooperatively; several groups are independent subscribers.",
@@ -3516,7 +3516,7 @@ addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Consumer group
   },
 });
 
-addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Delivery semantics in practice", {
+addLesson("messaging-kafka", 17, "Messaging: Kafka and pub/sub", "Delivery semantics in practice", {
   a: "A bus driver can drop one passenger (at-most-once), redeliver until everyone makes it (at-least-once), or count everyone boarding and alighting exactly once (exactly-once). Kafka makes all three possible with configuration and discipline, and the honest choice is per use case.",
   learn: [
     "At-most-once (no redelivery; simplest), at-least-once (retry until ack; duplicates possible), exactly-once (Kafka transactions + idempotent producers + dedupe consumers).",
@@ -3548,7 +3548,7 @@ addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Delivery seman
   },
 });
 
-addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Ordering guarantees", {
+addLesson("messaging-kafka", 17, "Messaging: Kafka and pub/sub", "Ordering guarantees", {
   a: "A queue where tickets are numbered per window: within one window, your order is exact; across windows, ticket 7 may come before ticket 5 even if you showed up earlier — cross-window order isn't promised. Kafka's ordering is per-partition, and partition-key choice is how you keep your business's orderings true.",
   learn: [
     "Ordering: per-partition only; a global total order requires one partition or an external mechanism.",
@@ -3580,7 +3580,7 @@ addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Ordering guara
   },
 });
 
-addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Log compaction and retention", {
+addLesson("messaging-kafka", 17, "Messaging: Kafka and pub/sub", "Log compaction and retention", {
   a: "A restaurant's receipt box: for tax purposes keep every receipt for seven years (retention), but for the ingredient master list keep only the latest version per ingredient (compaction). Kafka offers both: time/size retention for history, log compaction for 'latest value per key'.",
   learn: [
     "Time/size retention: delete segments older than X; the classic retention for event history.",
@@ -3612,7 +3612,7 @@ addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Log compaction
   },
 });
 
-addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Backpressure and consumer lag", {
+addLesson("messaging-kafka", 17, "Messaging: Kafka and pub/sub", "Backpressure and consumer lag", {
   a: "A barber shop's waiting room with a signboard: number of people waiting = consumer lag. If the number grows all afternoon, either the consumers are too slow or producers are too fast; backpressure is the honest solution — slow down production or scale consumption before the room overflows.",
   learn: [
     "Consumer lag = topic's latest offset − consumer's current offset; it's THE health metric of a streaming pipeline.",
@@ -3648,7 +3648,7 @@ addLesson("messaging-kafka", 15, "Messaging: Kafka and pub/sub", "Backpressure a
 /* MODULE 16 — cross-service-transactions                              */
 /* ------------------------------------------------------------------ */
 
-addLesson("cross-service-transactions", 16, "Transactions across services", "Why 2PC stalls", {
+addLesson("cross-service-transactions", 18, "Transactions across services", "Why 2PC stalls", {
   a: "Two parents must both say yes for a family purchase. The coordinator asks each parent to 'prepare' (promise to commit), then asks everyone to actually commit — and everyone waits until every parent answers. One parent on vacation means the whole family stands frozen in the store. That's two-phase commit: safe but heartbreakingly blocking.",
   learn: [
     "2PC's two phases: prepare (vote/lock) and commit; its fatal flaw — blocking waits when a participant stalls.",
@@ -3680,7 +3680,7 @@ addLesson("cross-service-transactions", 16, "Transactions across services", "Why
   },
 });
 
-addLesson("cross-service-transactions", 16, "Transactions across services", "Sagas: orchestration vs choreography", {
+addLesson("cross-service-transactions", 18, "Transactions across services", "Sagas: orchestration vs choreography", {
   a: "A road trip itinerary: ONE person leads the route and calls each stop (orchestration), or each driver just follows the highway signs and reacts freely (choreography). Both 'get there'; one is easier to reason about, one is easier to extend. A saga is a choreographed or orchestrated sequence of local commits with undo steps.",
   learn: [
     "A saga = a sequence of local transactions; each failure triggers compensating actions for completed steps.",
@@ -3712,7 +3712,7 @@ addLesson("cross-service-transactions", 16, "Transactions across services", "Sag
   },
 });
 
-addLesson("cross-service-transactions", 16, "Transactions across services", "Compensating transactions", {
+addLesson("cross-service-transactions", 18, "Transactions across services", "Compensating transactions", {
   a: "A hotel reservation you cancel gets the room back; the pre-authorize on your card is released. Compensation is 'undo, business-style' — the money was moved, the undo is documented, and the final state ends up coherent even though the intermediate steps were NOT atomic.",
   learn: [
     "Compensations replace rollback: each committed step carries an explicit undo operation.",
@@ -3744,7 +3744,7 @@ addLesson("cross-service-transactions", 16, "Transactions across services", "Com
   },
 });
 
-addLesson("cross-service-transactions", 16, "Transactions across services", "The outbox pattern", {
+addLesson("cross-service-transactions", 18, "Transactions across services", "The outbox pattern", {
   a: "A nurse writes the medication into the patient's chart and leaves a duplicate slip for the pharmacy; she can trust the slip because it's the same pen, same paper, same moment. The outbox pattern: write the business data AND the event to publish in one transaction — the relay reads the outbox and publishes reliably.",
   learn: [
     "The dual-write problem: writing to the DB (business fact) and publishing to a queue are two systems, and one can commit while the other doesn't.",
@@ -3776,7 +3776,7 @@ addLesson("cross-service-transactions", 16, "Transactions across services", "The
   },
 });
 
-addLesson("cross-service-transactions", 16, "Transactions across services", "Idempotent consumers", {
+addLesson("cross-service-transactions", 18, "Transactions across services", "Idempotent consumers", {
   a: "A barber who never cuts the same head twice: they check 'have I serviced ticket #7?' before each customer. Since message delivery in the real world is at-least-once, the consumer MUST be able to handle the same message twice without damage — the dedupe table is that memory.",
   learn: [
     "At-least-once delivery means duplicates are normal; idempotency is consumer equipment, not a nice-to-have.",
@@ -3808,7 +3808,7 @@ addLesson("cross-service-transactions", 16, "Transactions across services", "Ide
   },
 });
 
-addLesson("cross-service-transactions", 16, "Transactions across services", "Eventual consistency UX", {
+addLesson("cross-service-transactions", 18, "Transactions across services", "Eventual consistency UX", {
   a: "You shave and immediately look in the mirror: if the mirror is 'eventually consistent' it shows a 10-second-old you. Users hate that. Eventually consistent UX is the discipline of making async systems not feel async: optimistic UI, honest indicators, and states a human can act on.",
   learn: [
     "Why eventual consistency is convenient and user-jarring: 'I did it' but 'it's not there' moments.",
@@ -3840,7 +3840,7 @@ addLesson("cross-service-transactions", 16, "Transactions across services", "Eve
   },
 });
 
-addLesson("cross-service-transactions", 16, "Transactions across services", "Choosing your consistency model", {
+addLesson("cross-service-transactions", 18, "Transactions across services", "Choosing your consistency model", {
   a: "Picking a store's consistency per feature is like choosing which documents in a filing cabinet must be signed (strict) and which are just notes (loose). Write down per flow: 'this ledger must be exactly right', 'this analytics cache can be minutes stale', 'this chat sends eventually'. Most consistency bugs come from mixing them accidentally.",
   learn: [
     "Per-feature consistency: separate strict flows (payments, inventory) from loose flows (likes, analytics) and document them.",
@@ -3876,7 +3876,7 @@ addLesson("cross-service-transactions", 16, "Transactions across services", "Cho
 /* MODULE 17 — events-streams                                          */
 /* ------------------------------------------------------------------ */
 
-addLesson("events-streams", 17, "Events and streams", "Event sourcing fundamentals", {
+addLesson("events-streams", 19, "Events and streams", "Event sourcing fundamentals", {
   a: "A court transcript: the trial is the transcript, not the final verdict. Every event is recorded; the 'state' is derived from replaying the transcript. Event sourcing is the same: facts in, state out, and you can revisit any point in history.",
   learn: [
     "Event sourcing: state is derived from an immutable, ordered event stream (not from direct UPDATE statements).",
@@ -3908,7 +3908,7 @@ addLesson("events-streams", 17, "Events and streams", "Event sourcing fundamenta
   },
 });
 
-addLesson("events-streams", 17, "Events and streams", "Projections and read models", {
+addLesson("events-streams", 19, "Events and streams", "Projections and read models", {
   a: "A coder's own workbench: the event stream is the shelf of tools, and the actual project table (per task: current tool, position, progress) is the projection that makes it usable. Event sourcing builds those project tables on demand and can rebuild them — that's the practical payoff.",
   learn: [
     "Projections are read models derived from event streams: 'my recent orders', 'merchant dashboards', 'search indexes'.",
@@ -3940,7 +3940,7 @@ addLesson("events-streams", 17, "Events and streams", "Projections and read mode
   },
 });
 
-addLesson("events-streams", 17, "Events and streams", "Stream processing with Flink", {
+addLesson("events-streams", 19, "Events and streams", "Stream processing with Flink", {
   a: "A river with sensors: raw water levels (events) flow downstream; a station at mid-river (the processor) watches, measures per window, and pushes summary stats. Flink is that mid-river processor: stateful computations over continuous streams with honest event-time semantics.",
   learn: [
     "Flink's model: continuous operators over unbounded streams with keyed state and event-time windows.",
@@ -3972,7 +3972,7 @@ addLesson("events-streams", 17, "Events and streams", "Stream processing with Fl
   },
 });
 
-addLesson("events-streams", 17, "Events and streams", "Windowing and watermarks", {
+addLesson("events-streams", 19, "Events and streams", "Windowing and watermarks", {
   a: "A baker counts cookies per 5-minute window — but late-comers complicate things: a cookie made at 12:04 arrives at 12:06. Watermarks are the baker's honest statement: 'by 12:05 I consider the 12:00–12:05 window complete, and late cookies after that go to a separate late bucket.'",
   learn: [
     "Window types: tumbling (fixed non-overlapping), sliding (overlapping), session (activity-bounded).",
@@ -4004,7 +4004,7 @@ addLesson("events-streams", 17, "Events and streams", "Windowing and watermarks"
   },
 });
 
-addLesson("events-streams", 17, "Events and streams", "Exactly-once stream processing", {
+addLesson("events-streams", 19, "Events and streams", "Exactly-once stream processing", {
   a: "A cashier rings up every item once and only once; the register re-checks and cancels duplicates. Exactly-once stream processing means every event contributes to the result precisely once — even with retries, restarts, and checkpoints. Kafka transactions + idempotent producers + checkpointed state is the canonical machinery.",
   learn: [
     "Exactly-once semantics: sources re-read from the last checkpoint; sinks commit with offsets atomically; dedupe at the effect level.",
@@ -4036,7 +4036,7 @@ addLesson("events-streams", 17, "Events and streams", "Exactly-once stream proce
   },
 });
 
-addLesson("events-streams", 17, "Events and streams", "Event schema evolution", {
+addLesson("events-streams", 19, "Events and streams", "Event schema evolution", {
   a: "A recipe book that adds steps over time: new kitchen must read old recipes gracefully — 'optional sugar' means the old baker's version still works. Schema evolution is that discipline: producers add/change event fields, and old consumers keep running without data loss.",
   learn: [
     "Compatibility levels: backward (new consumers read old), forward (old consumers read new), full (both).",
@@ -4068,7 +4068,7 @@ addLesson("events-streams", 17, "Events and streams", "Event schema evolution", 
   },
 });
 
-addLesson("events-streams", 17, "Events and streams", "When not to event source", {
+addLesson("events-streams", 19, "Events and streams", "When not to event source", {
   a: "Some problems are a filing cabinet, not a court transcript. Event sourcing is a serious tool for audit-heavy, re-derivable state; for ordinary CRUD products, it's a heavy hammer with a replay bill. Not adopting it is often the honest call.",
   learn: [
     "When it fits: ledgers, audit trails, collaborative state, temporal workflows, complex read-projection needs.",
@@ -4104,7 +4104,7 @@ addLesson("events-streams", 17, "Events and streams", "When not to event source"
 /* MODULE 18 — availability-global                                     */
 /* ------------------------------------------------------------------ */
 
-addLesson("availability-global", 18, "Availability and going global", "Availability math and error budgets", {
+addLesson("availability-global", 20, "Availability and going global", "Availability math and error budgets", {
   a: "A snow day: the school can be closed up to X days per year before kids complain. Availability math: 99.9% = 43 minutes of downtime per month; 99.99% = 4.3 minutes. An error budget is the honest quota: you may spend exactly that much downtime, and when you overspend, launches freeze.",
   learn: [
     "Availability nines in real numbers: 99.9% = 43 min/month, 99.99% = 4.3 min/month, 99.999% = 26 s/month.",
@@ -4136,7 +4136,7 @@ addLesson("availability-global", 18, "Availability and going global", "Availabil
   },
 });
 
-addLesson("availability-global", 18, "Availability and going global", "Multi-region active-passive", {
+addLesson("availability-global", 20, "Availability and going global", "Multi-region active-passive", {
   a: "A bakery with one main oven and a second oven fired only during emergencies: everyday work uses the primary; the standby sits warm but unused. Active-passive multi-region is exactly that — one serving normally, another waiting warm, with a rehearsed failover drill.",
   learn: [
     "Topology: primary region serves all reads and writes; secondary region stays warm via replication.",
@@ -4168,7 +4168,7 @@ addLesson("availability-global", 18, "Availability and going global", "Multi-reg
   },
 });
 
-addLesson("availability-global", 18, "Availability and going global", "Multi-region active-active", {
+addLesson("availability-global", 20, "Availability and going global", "Multi-region active-active", {
   a: "Several bakeries open simultaneously in different cities, all serving customers at once: no single outage stops the bread. The honest complexity: data must replicate both directions, conflicts are possible, and the wallet (regional user affinity) has to choose who writes where.",
   learn: [
     "Active-active: all regions serve reads and writes; locality wins latency but conflict resolution becomes a real job.",
@@ -4200,7 +4200,7 @@ addLesson("availability-global", 18, "Availability and going global", "Multi-reg
   },
 });
 
-addLesson("availability-global", 18, "Availability and going global", "Global load balancing and DNS", {
+addLesson("availability-global", 20, "Availability and going global", "Global load balancing and DNS", {
   a: "Airport routing by destination: passengers land at whichever hub is closest and healthy. Global load balancing does that for requests: DNS or Anycast steers users to the nearest healthy region — from round trips under 15 ms at the edge to the full multi-region latency ladder.",
   learn: [
     "DNS-based steering (geo-DNS, weighted policies, health-checked failover) with TTLs to manage slowness of changes.",
@@ -4232,7 +4232,7 @@ addLesson("availability-global", 18, "Availability and going global", "Global lo
   },
 });
 
-addLesson("availability-global", 18, "Availability and going global", "Data residency and compliance", {
+addLesson("availability-global", 20, "Availability and going global", "Data residency and compliance", {
   a: "A compost law says: food scraps from Bauernhof must be composted in Bauernhof county. Data residency is that for user data: some jurisdictions require EU data to be stored/processed in the EU. The design cost: geo-partitioning, region-specific stores, and per-region access rules.",
   learn: [
     "Why it exists: GDPR (EU), data-localization laws (China/Russia/Brazil), and industry rules (HIPAA/PCI).",
@@ -4264,7 +4264,7 @@ addLesson("availability-global", 18, "Availability and going global", "Data resi
   },
 });
 
-addLesson("availability-global", 18, "Availability and going global", "Failover drills and game days", {
+addLesson("availability-global", 20, "Availability and going global", "Failover drills and game days", {
   a: "Fire drills exist because somebody (sensibly) decided that people need to practice rather than read a manual. Failover drills and game days rehearse your multi-region, multi-service failure story with real traffic, real dashboards, and a scoreboard — before the real disaster does it for free.",
   learn: [
     "The drill loop: declare a scenario (a region dies, a cache dies, a third-party dies), rehearse, measure RTO/RPO/write-a-runbook.",
@@ -4296,7 +4296,7 @@ addLesson("availability-global", 18, "Availability and going global", "Failover 
   },
 });
 
-addLesson("availability-global", 18, "Availability and going global", "Graceful degradation patterns", {
+addLesson("availability-global", 20, "Availability and going global", "Graceful degradation patterns", {
   a: "When a restaurant runs out of a key ingredient, the good kitchen swaps a substitution, keeps the menu alive, and tells the customer honestly; the bad kitchen closes for the night. Graceful degradation is the design of what stays alive when a dependency dies.",
   learn: [
     "Degradation design: which features become stale, simplified, or read-only during a dependency's outage.",
@@ -4332,7 +4332,7 @@ addLesson("availability-global", 18, "Availability and going global", "Graceful 
 /* MODULE 19 — hashing-and-sketches                                    */
 /* ------------------------------------------------------------------ */
 
-addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Consistent hashing from scratch", {
+addLesson("hashing-and-sketches", 21, "Hashing and probabilistic sketches", "Consistent hashing from scratch", {
   a: "Imagine a hash ring used as an office seating chart: every employee, and every desk, gets a name-hashed spot on the circle. When a new desk is added, only the seats that were assigned to the closest-next-desk segment move; everyone else sits put. That's consistent hashing, explained with office chairs.",
   learn: [
     "Why naive hash % N causes a full reshuffle while consistent hashing moves only ~1/N of keys.",
@@ -4364,7 +4364,7 @@ addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Con
   },
 });
 
-addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Bloom filters and false positives", {
+addLesson("hashing-and-sketches", 21, "Hashing and probabilistic sketches", "Bloom filters and false positives", {
   a: "A school bouncer with a guest list he's fuzzy about: he can definitely say 'you're NOT on the list', and sometimes wrongly says 'you might be on it'. That's a bloom filter: fast, small, allows false positives, never false negatives. Millisecond-level 'not present' checks over huge datasets.",
   learn: [
     "What a bloom filter is: a bit array + multiple hash functions; 'maybe present' or 'definitely absent'.",
@@ -4396,7 +4396,7 @@ addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Blo
   },
 });
 
-addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "HyperLogLog cardinality estimation", {
+addLesson("hashing-and-sketches", 21, "Hashing and probabilistic sketches", "HyperLogLog cardinality estimation", {
   a: "Counting a stadium's visitors without counting every person: walk the crowd, look at how deeply each person's ticket number is hashed (leading zeros), and infer 'if we saw a hash with 20 zeros, we probably saw 2^20 people'. HyperLogLog is the trick to estimate huge distinct counts in a few KB.",
   learn: [
     "What it counts: distinct items (unique visitors, unique queries, unique IPs) at identical memory cost regardless of cardinality.",
@@ -4428,7 +4428,7 @@ addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Hyp
   },
 });
 
-addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Count-min sketch heavy hitters", {
+addLesson("hashing-and-sketches", 21, "Hashing and probabilistic sketches", "Count-min sketch heavy hitters", {
   a: "A bartender who counts drink orders per hour and remembers roughly how many gin-and-tonics vs lout singles came in, using a few handwriting-on-napkin tricks. Count-min sketch is that: small, approximate frequency counters that can spot the 'heavy hitters' (the most frequent items) in a firehose.",
   learn: [
     "What it counts: approximate frequency of each item in a huge stream with bounded memory.",
@@ -4460,7 +4460,7 @@ addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Cou
   },
 });
 
-addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Merkle trees for file sync", {
+addLesson("hashing-and-sketches", 21, "Hashing and probabilistic sketches", "Merkle trees for file sync", {
   a: "A publisher checks which manuscript pages changed by comparing the table of contents, then the chapter index, then page-level diffs — never the whole book. A Merkle tree does that for data: hash tree structures let two sides identify exactly which blocks differ, without transferring everything.",
   learn: [
     "Merkle tree: leaves are block hashes; parents are hashes of children; the root identifies the whole dataset.",
@@ -4492,7 +4492,7 @@ addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Mer
   },
 });
 
-addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Geohashing, quadtrees, and spatial indexes", {
+addLesson("hashing-and-sketches", 21, "Hashing and probabilistic sketches", "Geohashing, quadtrees, and spatial indexes", {
   a: "How do you store a billion pinned places and find 'cafes near me' fast? A map is just a set of points. Geohashes divide the world into letter-coded squares; quadtrees subdivide by density. Both turn coordinates into keys, so 'near me' becomes a small neighborhood lookup.",
   learn: [
     "Geohash: map coordinates to an interleaved binary string; adjacent points share prefixes (mostly).",
@@ -4528,7 +4528,7 @@ addLesson("hashing-and-sketches", 19, "Hashing and probabilistic sketches", "Geo
 /* MODULE 20 — storage-engines                                         */
 /* ------------------------------------------------------------------ */
 
-addLesson("storage-engines", 20, "Storage engines", "LSM trees and compaction", {
+addLesson("storage-engines", 22, "Storage engines", "LSM trees and compaction", {
   a: "A cashier first scribbles orders on slips (fast, messy), and later a clerk rewrites them into the neat binder (sorted, slow but final). An LSM tree does exactly that: writes land in a fast journal, background compaction merges sorted runs into fewer, bigger files. Writes fly; reads pay a merge tax.",
   learn: [
     "LSM = memtable + immutable sorted runs (SSTables) + background compaction: write-optimized.",
@@ -4560,7 +4560,7 @@ addLesson("storage-engines", 20, "Storage engines", "LSM trees and compaction", 
   },
 });
 
-addLesson("storage-engines", 20, "Storage engines", "B-trees and page splits", {
+addLesson("storage-engines", 22, "Storage engines", "B-trees and page splits", {
   a: "A filing cabinet with shelves: when a shelf overflows, you split it into two shelves in a balanced way, keeping lookups fast. A B-tree keeps the tree short (few levels), and each 'page' is a full shelf of sorted keys — reads sequential, page splits automatic.",
   learn: [
     "B-tree read path: O(log N) but with depth 3-5 for billions of rows, since each node holds many keys.",
@@ -4592,7 +4592,7 @@ addLesson("storage-engines", 20, "Storage engines", "B-trees and page splits", {
   },
 });
 
-addLesson("storage-engines", 20, "Storage engines", "Write-ahead logs", {
+addLesson("storage-engines", 22, "Storage engines", "Write-ahead logs", {
   a: "A legal document rule: file the deed BEFORE the transaction completes. A WAL writes the change ahead of applying it, so a crash mid-flight leaves an honest record — the database replays the WAL to recover all committed state. It's why real DBs can commit transactions correctly even with power failures.",
   learn: [
     "WAL: append the change record to the log first, then apply it to the actual pages.",
@@ -4624,7 +4624,7 @@ addLesson("storage-engines", 20, "Storage engines", "Write-ahead logs", {
   },
 });
 
-addLesson("storage-engines", 20, "Storage engines", "Skip lists: the probabilistic index", {
+addLesson("storage-engines", 22, "Storage engines", "Skip lists: the probabilistic index", {
   a: "A subway system with express lines on top of local stops: a long line lets you skip most stops (the top express layers), and a local line handles fine detail. A skip list is a linked list layered with express levels — randomly added, average O(log N) search, without the strict balancing that B-trees need.",
   learn: [
     "Skip list: multi-level linked list; each node appears in successive levels with probability p (1/2 typical) — a fair randomized hierarchy.",
@@ -4660,7 +4660,7 @@ addLesson("storage-engines", 20, "Storage engines", "Skip lists: the probabilist
 /* MODULE 21 — coordination-and-time                                   */
 /* ------------------------------------------------------------------ */
 
-addLesson("coordination-and-time", 21, "Coordination and time", "Raft leader election walkthrough", {
+addLesson("coordination-and-time", 23, "Coordination and time", "Raft leader election walkthrough", {
   a: "A club president is absent: whoever wants to lead raises their hand, and a majority (say three of five members) must vote YES. If two factions both claim the majority, neither wins — you must re-vote. That's Raft leader election: a majority, terms, and one-leader-at-a-time.",
   learn: [
     "Raft election: candidates request votes for a term; a majority elects the leader; heartbeats stay leadership; timeout = new election.",
@@ -4692,7 +4692,7 @@ addLesson("coordination-and-time", 21, "Coordination and time", "Raft leader ele
   },
 });
 
-addLesson("coordination-and-time", 21, "Coordination and time", "Gossip and epidemic protocols", {
+addLesson("coordination-and-time", 23, "Coordination and time", "Gossip and epidemic protocols", {
   a: "Rumor spreads in a hall: each participant tells a couple of neighbors, and eventually everyone knows. Gossip protocols share state that way — resilient, eventually consistent, with no central broadcaster. It scales horizontally: membership, failure detection, and load info spread without a coordinator.",
   learn: [
     "Gossip = periodic, random peer exchanges of small state; eventual convergence with O(log N) rounds.",
@@ -4724,7 +4724,7 @@ addLesson("coordination-and-time", 21, "Coordination and time", "Gossip and epid
   },
 });
 
-addLesson("coordination-and-time", 21, "Coordination and time", "CRDTs hands-on", {
+addLesson("coordination-and-time", 23, "Coordination and time", "CRDTs hands-on", {
   a: "A group essay written on a shared canvas where two friends type at opposite ends: both versions are kept, then merged so no one loses text. CRDTs (Conflict-free Replicated Data Types) design data types that merge concurrent edits WITHOUT conflict resolution logic — different sites converge mathematically.",
   learn: [
     "CRDTs: data types designed to merge concurrent state updates without conflicts (counters, sets, documents).",
@@ -4756,7 +4756,7 @@ addLesson("coordination-and-time", 21, "Coordination and time", "CRDTs hands-on"
   },
 });
 
-addLesson("coordination-and-time", 21, "Coordination and time", "Vector clocks and causality", {
+addLesson("coordination-and-time", 23, "Coordination and time", "Vector clocks and causality", {
   a: "A chat app with two friends who couldn't see each other's messages while offline: when they're back, whose message happened first? Vector clocks track by who saw what when — like an audit trail of who knew what — making causal order provable rather than guessed.",
   learn: [
     "Vector clocks: arrays of per-node counters; comparing them identifies happened-before vs concurrent.",
@@ -4788,7 +4788,7 @@ addLesson("coordination-and-time", 21, "Coordination and time", "Vector clocks a
   },
 });
 
-addLesson("coordination-and-time", 21, "Coordination and time", "Min-heaps and fair scheduling", {
+addLesson("coordination-and-time", 23, "Coordination and time", "Min-heaps and fair scheduling", {
   a: "A dentist's office with hundreds of patients: triage by urgency (ER cases first), then fairness (nobody waits forever). A min-heap keeps the top-priority item at the top in O(log N) updates — the workhorse data structure behind priority queues and fair schedulers.",
   learn: [
     "Min-heap: a binary heap with the smallest key at the root; insert/poll O(log N) — the standard priority queue.",
@@ -4820,7 +4820,7 @@ addLesson("coordination-and-time", 21, "Coordination and time", "Min-heaps and f
   },
 });
 
-addLesson("coordination-and-time", 21, "Coordination and time", "MapReduce intuition", {
+addLesson("coordination-and-time", 23, "Coordination and time", "MapReduce intuition", {
   a: "A chef organizing a huge banquet: split the work into stations (map), each producing half-prepared dishes, then the head chef merges (reduce). MapReduce is that pattern at data-scale: process chunks in parallel, then combine results. It taught an industry how to think about scaling data processing.",
   learn: [
     "Map: process each data chunk independently in parallel; Reduce: combine per-key results.",
@@ -4856,7 +4856,7 @@ addLesson("coordination-and-time", 21, "Coordination and time", "MapReduce intui
 /* MODULE 22 — embeddings-retrieval                                    */
 /* ------------------------------------------------------------------ */
 
-addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Byte-pair encoding from scratch", {
+addLesson("embeddings-retrieval", 24, "Embeddings and retrieval", "Byte-pair encoding from scratch", {
   a: "Learning to read: first you memorize whole words, then common letter pairs ('th', 'er', 'in'), and build up vocabulary from frequent pairs. BPE is exactly that learned-from-data approach — the tokenizer behind modern LLMs.",
   learn: [
     "BPE iteratively merges the most frequent adjacent pairs until a target vocabulary size is reached.",
@@ -4888,7 +4888,7 @@ addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Byte-pair enc
   },
 });
 
-addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Subword encoding trade-offs", {
+addLesson("embeddings-retrieval", 24, "Embeddings and retrieval", "Subword encoding trade-offs", {
   a: "Dictionary design: cover many words in fewer pages. Two schools: Byte-Pair Encoding (learn frequent pairs first, generative merging) and Unigram/SentencePiece (start big, prune). Both balance vocabulary size, token cost, and coverage.",
   learn: [
     "BPE vs Unigram/SentencePiece vs WordPiece: formation strategies and their lineage (GPT vs Google lineage).",
@@ -4920,7 +4920,7 @@ addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Subword encod
   },
 });
 
-addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Embedding space and cosine similarity", {
+addLesson("embeddings-retrieval", 24, "Embeddings and retrieval", "Embedding space and cosine similarity", {
   a: "A library where similar books sit near each other on shelves: 'amateur astronomy' and 'telescopes' are close, while 'amateur astronomy' and 'bank fraud' are far apart. Cosine similarity measures 'how close in meaning' two vectors point — the engine of semantic search.",
   learn: [
     "An embedding = a fixed-size vector where geometric closeness ≈ semantic closeness.",
@@ -4952,7 +4952,7 @@ addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Embedding spa
   },
 });
 
-addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Vector DB index design (HNSW vs IVF)", {
+addLesson("embeddings-retrieval", 24, "Embeddings and retrieval", "Vector DB index design (HNSW vs IVF)", {
   a: "Finding the nearest café in a giant city two ways: (1) a smart layered graph where each node knows close neighbors — walk downhill (HNSW), or (2) pre-divide the city into regions, check the most promising ones (IVF). Both trade exactness for speed; each has an honest sweet spot.",
   learn: [
     "HNSW: hierarchical small-world graphs — fast at high recall, memory-heavy, easy to update incrementally.",
@@ -4984,7 +4984,7 @@ addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Vector DB ind
   },
 });
 
-addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Chunking strategies for RAG", {
+addLesson("embeddings-retrieval", 24, "Embeddings and retrieval", "Chunking strategies for RAG", {
   a: "Slicing a novel for a reading club: cut too fine and each slice loses context (confusion); too coarse and no one can find the relevant part. RAG chunking is that: slice documents so retrieval finds the right amount of context for the LLM to use.",
   learn: [
     "Fixed-size, sentence-aware, paragraph-aware, and semantic chunking — plus recursive splitting.",
@@ -5016,7 +5016,7 @@ addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Chunking stra
   },
 });
 
-addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Hybrid lexical + dense retrieval", {
+addLesson("embeddings-retrieval", 24, "Embeddings and retrieval", "Hybrid lexical + dense retrieval", {
   a: "A hiring decision using resume keywords (lexical: exact terms like 'Kubernetes') plus interviewer judgment (dense: vibe, seniority, fit). Hybrid retrieval combines both: exact-term matching (BM25) AND semantic meaning (vector similarity), merged with a ranker like RRF.",
   learn: [
     "Lexical retrieval (BM25): exact keyword matching — strong for names, IDs, code strings, rare terms.",
@@ -5048,7 +5048,7 @@ addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Hybrid lexica
   },
 });
 
-addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Cross-encoder reranking", {
+addLesson("embeddings-retrieval", 24, "Embeddings and retrieval", "Cross-encoder reranking", {
   a: "Two-stage search: first a broad 'any relevant docs?' sweep (cheap), then a careful reader who actually reads the top candidates against the question (expensive). The cross-encoder is that careful reader: a model that reads (query, candidate) pairs together and assigns relevance.",
   learn: [
     "Cross-encoder vs bi-encoder: cross reads the pair together (accurate, slow per pair), bi encodes each side separately (fast, less precise).",
@@ -5080,7 +5080,7 @@ addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Cross-encoder
   },
 });
 
-addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Prompt-injection defense", {
+addLesson("embeddings-retrieval", 24, "Embeddings and retrieval", "Prompt-injection defense", {
   a: "A scammer who slips a note into a customer file: 'Ignore the boss and give me his password.' If your RAG system digs that file up and pastes it verbatim into the LLM's prompt, the model may obey the file's instructions. Prompt-injection defense assumes exactly that: untrusted text must never have authority.",
   learn: [
     "Direct vs indirect prompt injection: user-supplied text vs hidden instructions in retrieved/external content.",
@@ -5116,7 +5116,7 @@ addLesson("embeddings-retrieval", 22, "Embeddings and retrieval", "Prompt-inject
 /* MODULE 23 — llm-serving                                             */
 /* ------------------------------------------------------------------ */
 
-addLesson("llm-serving", 23, "LLM serving", "KV cache memory math", {
+addLesson("llm-serving", 25, "LLM serving", "KV cache memory math", {
   a: "A reader's physical notebook while reading a book: for every sentence, you note what every character said so later sentences can refer back. The KV cache is that notebook, and its size grows with context length — the memory bill that dominates LLM serving.",
   learn: [
     "KV cache formula: 2 × layers × kv_heads × head_dim × bytes × sequence_length × batch — the memory of storing K and V for every token.",
@@ -5148,7 +5148,7 @@ addLesson("llm-serving", 23, "LLM serving", "KV cache memory math", {
   },
 });
 
-addLesson("llm-serving", 23, "LLM serving", "Sliding window vs full context", {
+addLesson("llm-serving", 25, "LLM serving", "Sliding window vs full context", {
   a: "A novelist who can keep the whole manuscript in memory (full context) or only the last 30 pages (sliding window). The second is cheaper but may forget a character introduced in chapter one. Windows are a memory trade; caching and retrieval bring the forgotten bits back.",
   learn: [
     "Sliding window attention: attend only to the last W tokens — quadratic cost becomes linear in memory and near-linear in compute.",
@@ -5180,7 +5180,7 @@ addLesson("llm-serving", 23, "LLM serving", "Sliding window vs full context", {
   },
 });
 
-addLesson("llm-serving", 23, "LLM serving", "Paged attention design", {
+addLesson("llm-serving", 25, "LLM serving", "Paged attention design", {
   a: "A hotel allocates rooms in blocks, not floors: a request takes a few room-blocks, and when a guest leaves mid-stay, another request reuses the unused half-block. Paged attention applies that OS-page style bookkeeping to KV cache — the reason vLLM serves far more concurrent users per GPU.",
   learn: [
     "KV memory waste in naive serving: pre-allocated per-request blocks leave big unused gaps (internal fragmentation).",
@@ -5212,7 +5212,7 @@ addLesson("llm-serving", 23, "LLM serving", "Paged attention design", {
   },
 });
 
-addLesson("llm-serving", 23, "LLM serving", "Continuous batching", {
+addLesson("llm-serving", 25, "LLM serving", "Continuous batching", {
   a: "A bus that departs when it arrives at the depot, not at fixed schedule: passengers board whenever ready, and the bus leaves when there's room. Continuous batching is that for LLM inference: new sequences join a live batch as older ones finish, instead of waiting for the entire batch to complete first.",
   learn: [
     "Static batching: wait for all sequences in a batch to finish (the slowest one limits everyone).",
@@ -5244,7 +5244,7 @@ addLesson("llm-serving", 23, "LLM serving", "Continuous batching", {
   },
 });
 
-addLesson("llm-serving", 23, "LLM serving", "Batch scheduling with variable sequence lengths", {
+addLesson("llm-serving", 25, "LLM serving", "Batch scheduling with variable sequence lengths", {
   a: "A bus where some passengers ride one block and others ride to the far suburbs: you size the seating by the route, not the passenger. Variable sequence lengths mean a batch's memory and compute budget is the sum of each sequence's actual length — and a smart scheduler packs accordingly.",
   learn: [
     "Sequence-length-aware scheduling: budget per batch is a compute/memory plan (with paged attention it's memory pages, with continuous batching it's the stepped schedule).",
@@ -5280,7 +5280,7 @@ addLesson("llm-serving", 23, "LLM serving", "Batch scheduling with variable sequ
 /* MODULE 24 — aws-architecture-scratch-to-prod                        */
 /* ------------------------------------------------------------------ */
 
-addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to production", "VPC fundamentals: public, private, and isolated subnets across AZs", {
+addLesson("aws-architecture-scratch-to-prod", 26, "AWS architecture: scratch to production", "VPC fundamentals: public, private, and isolated subnets across AZs", {
   a: "A gated community: public street (internet-facing entrances), private streets (only residents), and a locked utility yard (isolated). AWS's VPC is that neighborhood: subnets are streets, AZs are city blocks, security groups are house rules.",
   learn: [
     "Subnet classes: public (auto-assign public IP), private (no public IP), isolated (no NAT/internet at all) — the honest three.",
@@ -5312,7 +5312,7 @@ addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to 
   },
 });
 
-addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to production", "NAT Gateways vs Gateway VPC Endpoints (S3 & DynamoDB PrivateLink)", {
+addLesson("aws-architecture-scratch-to-prod", 26, "AWS architecture: scratch to production", "NAT Gateways vs Gateway VPC Endpoints (S3 & DynamoDB PrivateLink)", {
   a: "A private neighborhood's residents can order online via a courier's front desk (NAT Gateway: paid, metered, generic) or have a dedicated parcel tunnel with the town's storage depot (Gateway Endpoint: free, metered by use, only for specific services). The endpoint is the cheaper route for S3/DynamoDB.",
   learn: [
     "NAT Gateway: generic internet egress for private subnets, paid hourly + data-processing fee.",
@@ -5344,7 +5344,7 @@ addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to 
   },
 });
 
-addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to production", "Ingress choices: Route 53, CloudFront OAC, ALB (L7) vs NLB (L4)", {
+addLesson("aws-architecture-scratch-to-prod", 26, "AWS architecture: scratch to production", "Ingress choices: Route 53, CloudFront OAC, ALB (L7) vs NLB (L4)", {
   a: "A house's front-door choices: the postal address (Route 53), the covered porch (CloudFront), the mailroom with a smart clerk (ALB, L7), or a fast dumb door-opener (NLB, L4). Four ingress layers, each with its own cost model.",
   learn: [
     "Route 53: DNS-based routing (geo, latency, failover) — first decision before any traffic hits.",
@@ -5376,7 +5376,7 @@ addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to 
   },
 });
 
-addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to production", "Compute trade-offs: EC2 vs ECS Fargate vs EKS vs Lambda", {
+addLesson("aws-architecture-scratch-to-prod", 26, "AWS architecture: scratch to production", "Compute trade-offs: EC2 vs ECS Fargate vs EKS vs Lambda", {
   a: "Getting to work: buy a car (EC2 maintenance), take a bus with fixed stops (ECS Fargate), a train with strict schedules (EKS), or a taxi door-to-door (Lambda). Each has a different ops burden and cost shape per unit of work.",
   learn: [
     "EC2: full control (OS, tuning) at per-second cost; you manage the fleet.",
@@ -5409,7 +5409,7 @@ addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to 
   },
 });
 
-addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to production", "Amazon Aurora storage engine: 6-way replication and 4/6 write quorum", {
+addLesson("aws-architecture-scratch-to-prod", 26, "AWS architecture: scratch to production", "Amazon Aurora storage engine: 6-way replication and 4/6 write quorum", {
   a: "A bank vault with six locks spread across different buildings: the manager needs four of six to agree a write is stored. Grabbing only three (the read quorum) is enough to read safely. Aurora's storage engine is that: replicated across 6 storage nodes in 3 AZs, with a write quorum of 4 and read quorum of 3.",
   learn: [
     "Aurora's storage: six replicated copies of the log across three AZs; write quorum 4/6, read quorum 3/6.",
@@ -5441,7 +5441,7 @@ addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to 
   },
 });
 
-addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to production", "DynamoDB partition physics: 1k WCU, 3k RCU, GSI backpressure, and DAX", {
+addLesson("aws-architecture-scratch-to-prod", 26, "AWS architecture: scratch to production", "DynamoDB partition physics: 1k WCU, 3k RCU, GSI backpressure, and DAX", {
   a: "A post office sorts mail by street (partition key), with each street's bags having fixed capacity (RCU/WCU). If everyone on one street mails heavy parcels (hot partition), that bag overflows. DynamoDB's partition physics: capacity, request units, hot partitions and secondary-index bottlenecks.",
   learn: [
     "Per-partition hard caps: about 3,000 RCUs and 1,000 WCUs; table capacity is the sum over partitions (auto-split as it grows).",
@@ -5473,7 +5473,7 @@ addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to 
   },
 });
 
-addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to production", "Async decoupling on AWS: SQS FIFO, SNS fan-out, and EventBridge", {
+addLesson("aws-architecture-scratch-to-prod", 26, "AWS architecture: scratch to production", "Async decoupling on AWS: SQS FIFO, SNS fan-out, and EventBridge", {
   a: "Three post offices: one delivers a single letter exactly once in order (SQS FIFO), one broadcasts the same letter to many subscribers (SNS), and one routes letters by an intelligent address book where the routes are rule-based (EventBridge). Each async pattern fits a different shape of work.",
   learn: [
     "SQS: queuing between two parties; FIFO variant for ordered, exactly-once-effect queues with dedupe keys.",
@@ -5505,7 +5505,7 @@ addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to 
   },
 });
 
-addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to production", "IAM STS short-lived roles (IRSA) and KMS envelope encryption", {
+addLesson("aws-architecture-scratch-to-prod", 26, "AWS architecture: scratch to production", "IAM STS short-lived roles (IRSA) and KMS envelope encryption", {
   a: "A hotel: your room key card (short-lived role) grants access for a few hours; the master key (KMS) seals treasures in safes so staff never touch the raw ones. IAM roles with STS (temporary credentials) plus KMS envelope encryption is the bedrock of least-privilege access on AWS.",
   learn: [
     "IAM STS: services assume an IAM role and receive time-limited credentials (no long-lived static keys).",
@@ -5542,7 +5542,7 @@ addLesson("aws-architecture-scratch-to-prod", 24, "AWS architecture: scratch to 
 /* MODULE 25 — cloudflare-edge-and-workers                             */
 /* ------------------------------------------------------------------ */
 
-addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Trust", "Anycast BGP routing: how one IP terminates TLS within 15ms globally", {
+addLesson("cloudflare-edge-and-workers", 27, "Cloudflare edge, Workers & Zero Trust", "Anycast BGP routing: how one IP terminates TLS within 15ms globally", {
   a: "One library address posted in hundreds of cities: when you visit, you go to the nearest branch, and the same street address works everywhere. Anycast BGP advertises one IP from hundreds of cities so packets route to the nearest one, and TLS terminates locally.",
   learn: [
     "Anycast: same IP announced from 300+ cities; BGP routes to the nearest announcing point by network distance.",
@@ -5574,7 +5574,7 @@ addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Tr
   },
 });
 
-addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Trust", "Tiered Cache, Origin Shield, and single-flight request coalescing", {
+addLesson("cloudflare-edge-and-workers", 27, "Cloudflare edge, Workers & Zero Trust", "Tiered Cache, Origin Shield, and single-flight request coalescing", {
   a: "A pharmacy with branch outlets that each carry popular items, backed by one regional warehouse. When ninety branches all need the same new medicine, the warehouse sends one shipment, not ninety. That's tiered cache: branch cache misses route to a regional parent, and then only one fetch hits the origin.",
   learn: [
     "Tiered Cache: a per-region parent cache sits above each PoP; misses climb a level before hitting the origin.",
@@ -5606,7 +5606,7 @@ addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Tr
   },
 });
 
-addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Trust", "Cloudflare Workers: V8 Isolates vs containers and microVM cold starts", {
+addLesson("cloudflare-edge-and-workers", 27, "Cloudflare edge, Workers & Zero Trust", "Cloudflare Workers: V8 Isolates vs containers and microVM cold starts", {
   a: "A chef with a fully loaded kitchen (container) versus a chef with a small single-dish station that spins up instantly (V8 isolate): the station booms into service in milliseconds, restricted from doing anything beyond its dish. Isolates are V8 contexts, not machines — that's how edge compute stays fast.",
   learn: [
     "Containers/microVMs (Fargate/ECS/Firecracker): process isolation, image sizes, minutes-to-seconds cold starts.",
@@ -5638,7 +5638,7 @@ addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Tr
   },
 });
 
-addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Trust", "Edge state spectrum: Workers KV (eventual) vs D1 vs R2 zero-egress storage", {
+addLesson("cloudflare-edge-and-workers", 27, "Cloudflare edge, Workers & Zero Trust", "Edge state spectrum: Workers KV (eventual) vs D1 vs R2 zero-egress storage", {
   a: "Three ways to keep things at the edge: a faster-distributed whiteboard that everyone sees late (KV eventual), a regional filing cabinet serving structured data (D1), and a massive basement archive with no toll for taking things out (R2 zero egress). Each answers a different edge storage question.",
   learn: [
     "Workers KV: globally distributed, eventually consistent key-value store with sub-millisecond reads at the edge.",
@@ -5670,7 +5670,7 @@ addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Tr
   },
 });
 
-addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Trust", "Durable Objects: single-threaded global actors for strong consistency", {
+addLesson("cloudflare-edge-and-workers", 27, "Cloudflare edge, Workers & Zero Trust", "Durable Objects: single-threaded global actors for strong consistency", {
   a: "One ticket office for a specific concert: everyone queues at the same window, and decisions are made one at a time, so a ticket count can never go negative. Durable Objects give that actor-style single-window behavior for global coordination at the edge.",
   learn: [
     "Durable Objects: globally named, single-threaded actor instances with strong ordering and transactional memory.",
@@ -5702,7 +5702,7 @@ addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Tr
   },
 });
 
-addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Trust", "Edge WAF, L7 DDoS mitigation, Bot Management, and Turnstile", {
+addLesson("cloudflare-edge-and-workers", 27, "Cloudflare edge, Workers & Zero Trust", "Edge WAF, L7 DDoS mitigation, Bot Management, and Turnstile", {
   a: "A nightclub's bouncer stack: WAF checks IDs (a rate-limited bar), DDoS protection handles stampedes, bot management spot-checks like a human (headphones: Turnstile is the invisible chit), and behavioral rules flag suspicious regulars. Edge security is stacked layers, not one wall.",
   learn: [
     "WAF at the edge: managed ruleset that filters SQLi/XSS etc before origin — deviations logged.",
@@ -5734,7 +5734,7 @@ addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Tr
   },
 });
 
-addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Trust", "Zero Trust networking: outbound-only cloudflared Tunnels with zero open ports", {
+addLesson("cloudflare-edge-and-workers", 27, "Cloudflare edge, Workers & Zero Trust", "Zero Trust networking: outbound-only cloudflared Tunnels with zero open ports", {
   a: "A spy who only phones home: no one can visit him, but he can call out for instructions. A cloudflared tunnel flips inbound exposure: your origin never opens a port; it calls to Cloudflare, and Cloudflare relays requests through that call.",
   learn: [
     "Cloudflare Tunnel (cloudflared): an outbound daemon on your origin makes a connection outwards; Cloudflare relays HTTPS requests down it.",
@@ -5770,7 +5770,7 @@ addLesson("cloudflare-edge-and-workers", 25, "Cloudflare edge, Workers & Zero Tr
 /* MODULE 26 — kubernetes-control-and-data-plane                       */
 /* ------------------------------------------------------------------ */
 
-addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to service mesh", "Control plane anatomy: kube-apiserver, admission webhooks, and watch cache", {
+addLesson("kubernetes-control-and-data-plane", 28, "Kubernetes: control plane to service mesh", "Control plane anatomy: kube-apiserver, admission webhooks, and watch cache", {
   a: "A city hall with rules: requests enter at the counter (apiserver), get vetted by multiple clerks (admission webhooks), and citizens subscribe for updates (watch). The watch-cache is the city's bulletin board keeping everyone informed without overloading the clerks.",
   learn: [
     "kube-apiserver: the single REST entry for all reads/writes; etcd is the state store, watches are the observers.",
@@ -5802,7 +5802,7 @@ addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to
   },
 });
 
-addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to service mesh", "etcd under the hood: Raft quorum math, WAL fsync latency, and compaction", {
+addLesson("kubernetes-control-and-data-plane", 28, "Kubernetes: control plane to service mesh", "etcd under the hood: Raft quorum math, WAL fsync latency, and compaction", {
   a: "The city's record room: three clerks keep identical ledgers (Raft quorum), every update is written to an archive log first (WAL fsync), and occasionally old pages get archived off (compaction). Latency of that fsync is the record room's heartbeat.",
   learn: [
     "etcd is a Raft-based distributed KV: consistent reads/writes require a majority quorum.",
@@ -5834,7 +5834,7 @@ addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to
   },
 });
 
-addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to service mesh", "kube-scheduler pipeline: filtering predicates, scoring priorities, and preemption", {
+addLesson("kubernetes-control-and-data-plane", 28, "Kubernetes: control plane to service mesh", "kube-scheduler pipeline: filtering predicates, scoring priorities, and preemption", {
   a: "A wedding planner assigns guests to tables: first rule out tables that won't fit (filter/predicates), then score the remaining tables by preference (affinity, spread), and if a VIP needs a seat, politely unseat someone lower priority (preemption). That's the scheduler pipeline.",
   learn: [
     "Filter (predicates): remove nodes that can't fit (resource requests, taints, node selectors).",
@@ -5866,7 +5866,7 @@ addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to
   },
 });
 
-addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to service mesh", "Level-triggered reconciliation: controllers, Informers, and workqueues", {
+addLesson("kubernetes-control-and-data-plane", 28, "Kubernetes: control plane to service mesh", "Level-triggered reconciliation: controllers, Informers, and workqueues", {
   a: "A thermostat: it doesn't remember corrections; it reads the temperature continuously and adjusts toward the target. Reconciliation controllers do that: observe real-world state, compare to spec, act to close the gap — level-triggered, not edge-triggered.",
   learn: [
     "Level-triggered vs edge-triggered: controllers reconcile on observed state (level) rather than reacting to event deltas (edge).",
@@ -5898,7 +5898,7 @@ addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to
   },
 });
 
-addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to service mesh", "Data plane networking: Pod-to-Pod CNI, iptables O(N) vs Cilium eBPF O(1)", {
+addLesson("kubernetes-control-and-data-plane", 28, "Kubernetes: control plane to service mesh", "Data plane networking: Pod-to-Pod CNI, iptables O(N) vs Cilium eBPF O(1)", {
   a: "A mail sorting room: the old way, a secretary checks a growing book of rules (iptables rules per service); the new way, a machine reads each envelope directly (eBPF) and forwards. The difference is why Cilium can route thousands of pods with tiny overhead versus iptables linear scan.",
   learn: [
     "CNI plugins set up pod networking: kube-router/calico/flannel/cilium; pods route per node.",
@@ -5930,7 +5930,7 @@ addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to
   },
 });
 
-addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to service mesh", "North-South vs East-West: Gateway API, Ingress, and Envoy mTLS sidecar/ambient mesh", {
+addLesson("kubernetes-control-and-data-plane", 28, "Kubernetes: control plane to service mesh", "North-South vs East-West: Gateway API, Ingress, and Envoy mTLS sidecar/ambient mesh", {
   a: "A walled city: the gate facing the highway (north-south ingress) serves visitors and the alley routes between buildings (east-west mesh). In modern k8s: Gateway API/Ingress for north-south traffic, and Envoy's service mesh for east-west with mTLS between services.",
   learn: [
     "North-south: traffic enters the cluster (ingress/gateway API) — public-edge shape.",
@@ -5962,7 +5962,7 @@ addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to
   },
 });
 
-addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to service mesh", "Elastic scaling & GitOps: HPA, KEDA event autoscaling, Karpenter, and Argo CD", {
+addLesson("kubernetes-control-and-data-plane", 28, "Kubernetes: control plane to service mesh", "Elastic scaling & GitOps: HPA, KEDA event autoscaling, Karpenter, and Argo CD", {
   a: "A smart event hall: staff add more chairs as people arrive (HPA), call extra staff when a line forms (KEDA), order more chairs on demand via a supplier (Karpenter), and the chair-count signposted on a wall that everyone can read and request changes to (Argo CD / GitOps).",
   learn: [
     "HPA: resource-metric-based horizontal pod autoscaling (CPU/memory or custom metrics).",
@@ -5998,7 +5998,7 @@ addLesson("kubernetes-control-and-data-plane", 26, "Kubernetes: control plane to
 /* MODULE 27 — extensible-plugins-and-operators                        */
 /* ------------------------------------------------------------------ */
 
-addLesson("extensible-plugins-and-operators", 27, "Plugin architectures, WASM filters & K8s operators", "Four plugin patterns: in-process hooks, WASM sandboxes, RPC webhooks, and CRDs", {
+addLesson("extensible-plugins-and-operators", 29, "Plugin architectures, WASM filters & K8s operators", "Four plugin patterns: in-process hooks, WASM sandboxes, RPC webhooks, and CRDs", {
   a: "Four ways to extend a phone: rewrite its operating system (in-process), install a sandboxed app (WASM), hire a remote consultant the phone calls for advice (webhook RPC), or issue it a job posting board it follows (CRDs/operators). Each has a different trust, latency, and maintainability profile.",
   learn: [
     "In-process hooks: fastest, tightest coupling, biggest blast radius (a bad plugin crashes the host).",
@@ -6031,7 +6031,7 @@ addLesson("extensible-plugins-and-operators", 27, "Plugin architectures, WASM fi
   },
 });
 
-addLesson("extensible-plugins-and-operators", 27, "Plugin architectures, WASM filters & K8s operators", "Envoy Proxy-Wasm: running sub-millisecond Rust/Go L7 filters in worker threads", {
+addLesson("extensible-plugins-and-operators", 29, "Plugin architectures, WASM filters & K8s operators", "Envoy Proxy-Wasm: running sub-millisecond Rust/Go L7 filters in worker threads", {
   a: "A customs officer in a subway tunnel: each train (request) passes the customs point in-thread; the officer (filter) checks and stamps without stopping the train. Envoy's proxy-wasm runs small Rust/Go filters per HTTP stream within the worker thread — sub-millisecond extension at the L7 layer.",
   learn: [
     "Proxy-Wasm ABI: a standard interface so Rust/Go/AssemblyScript filters can run in Envoy-compatible data planes.",
@@ -6063,7 +6063,7 @@ addLesson("extensible-plugins-and-operators", 27, "Plugin architectures, WASM fi
   },
 });
 
-addLesson("extensible-plugins-and-operators", 27, "Plugin architectures, WASM filters & K8s operators", "Kubernetes CustomResourceDefinitions (CRDs) and the Operator pattern", {
+addLesson("extensible-plugins-and-operators", 29, "Plugin architectures, WASM filters & K8s operators", "Kubernetes CustomResourceDefinitions (CRDs) and the Operator pattern", {
   a: "A new machine type in a factory: instead of installing new machinery, one writes a job description card that the factory's existing robots understand and act on. CRD is the card; the operator is the robot behavior that reads it and reconciles the real world to match.",
   learn: [
     "CRD: a new 'resource type' (Database, Certificate, Workflow) that the k8s API stores and watches like built-in ones.",
@@ -6095,7 +6095,7 @@ addLesson("extensible-plugins-and-operators", 27, "Plugin architectures, WASM fi
   },
 });
 
-addLesson("extensible-plugins-and-operators", 27, "Plugin architectures, WASM filters & K8s operators", "Admission webhooks: fail-open vs fail-closed and avoiding self-deadlock", {
+addLesson("extensible-plugins-and-operators", 29, "Plugin architectures, WASM filters & K8s operators", "Admission webhooks: fail-open vs fail-closed and avoiding self-deadlock", {
   a: "A security guard who either waves everyone through when their walkie-talkie is down (fail-open) or blocks the door until the system recovers (fail-closed). The honest engineering choice is per-policy: permissive policies fail open; critical security policies fail closed. And a special trap: never let a webhook depend on the pods it gates.",
   learn: [
     "Mutating vs validating webhooks: transform then verify; failurespolicyPolicy failureMode (fail open/closed).",
@@ -6127,7 +6127,7 @@ addLesson("extensible-plugins-and-operators", 27, "Plugin architectures, WASM fi
   },
 });
 
-addLesson("extensible-plugins-and-operators", 27, "Plugin architectures, WASM filters & K8s operators", "Designing safe tenant plugin SDKs: CPU fuel limits, memory caps, and capabilities", {
+addLesson("extensible-plugins-and-operators", 29, "Plugin architectures, WASM filters & K8s operators", "Designing safe tenant plugin SDKs: CPU fuel limits, memory caps, and capabilities", {
   a: "A gym locker room scale: each tenant gets a locker with size caps, a timer (CPU fuel), and permission to use only certain equipment (capabilities). A safe plugin SDK gives every third-party extension a bounded, auditable sandbox — not the keys to the building.",
   learn: [
     "Fuel/CPU limits (wasm-time budgets, container CPU shares) burst cap so a runaway plugin times out, not meltdown.",
@@ -6163,7 +6163,7 @@ addLesson("extensible-plugins-and-operators", 27, "Plugin architectures, WASM fi
 /* MODULE 28 — security-zero-trust-and-cve-defense                     */
 /* ------------------------------------------------------------------ */
 
-addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zero Trust & CVE defense", "Beyond castle-and-moat: Zero-Trust architecture from edge to database", {
+addLesson("security-zero-trust-and-cve-defense", 30, "Security architecture, Zero Trust & CVE defense", "Beyond castle-and-moat: Zero-Trust architecture from edge to database", {
   a: "Old model: a moat and one drawbridge — anyone inside is trusted. Zero Trust: every door needs a badge (identity), every request is verified, least privilege everywhere. A castle that trusts nobody, even its own inhabitants.",
   learn: [
     "Core: verify explicitly (identity, device posture), least privilege, assume breach.",
@@ -6195,7 +6195,7 @@ addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zer
   },
 });
 
-addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zero Trust & CVE defense", "STRIDE threat modeling mapped directly to system design components", {
+addLesson("security-zero-trust-and-cve-defense", 30, "Security architecture, Zero Trust & CVE defense", "STRIDE threat modeling mapped directly to system design components", {
   a: "A heist-movie threat checklist: what do they want (data), where's the weak door (API), who could pose as staff (identity), could they delete evidence (repudiation), change a shipment en route (tampering), and stall the kitchen (DoS). STRIDE gives system designers a six-question threat checklist per component.",
   learn: [
     "STRIDE: Spoofing, Tampering, Repudiation, Information disclosure, Denial of service, Elevation of privilege.",
@@ -6227,7 +6227,7 @@ addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zer
   },
 });
 
-addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zero Trust & CVE defense", "Identity architecture: OIDC/OAuth2 PKCE, short-lived JWTs, and edge JWKS", {
+addLesson("security-zero-trust-and-cve-defense", 30, "Security architecture, Zero Trust & CVE defense", "Identity architecture: OIDC/OAuth2 PKCE, short-lived JWTs, and edge JWKS", {
   a: "An event's wristband system: you show a ticket once (login), get a wristband that expires annually (JWT access token), and bouncers verify the wristband's hologram against a public stamp (JWKS). OAuth2/OIDC with short-lived tokens turns identity into bearer instruments the whole fleet can verify offline.",
   learn: [
     "OAuth2/OIDC flows: authorization-code with PKCE (the modern one for public clients), client-credentials for service-to-service.",
@@ -6259,7 +6259,7 @@ addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zer
   },
 });
 
-addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zero Trust & CVE defense", "East-West workload identity: SPIFFE/SPIRE X.509 mTLS and L7 authorization", {
+addLesson("security-zero-trust-and-cve-defense", 30, "Security architecture, Zero Trust & CVE defense", "East-West workload identity: SPIFFE/SPIRE X.509 mTLS and L7 authorization", {
   a: "An employee badge system: each service gets a badge with its own identity; scanning it at each internal door (mTLS) is mandatory, and badge privileges are role-limited. SPIFFE/SPIRE is that badge issuance system for service mesh.",
   learn: [
     "SPIFFE/SPIRE: workload identities (SVID - X.509 certs) issued per workload, rotated automatically.",
@@ -6291,7 +6291,7 @@ addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zer
   },
 });
 
-addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zero Trust & CVE defense", "Secrets management, dynamic DB leases, and KMS envelope encryption", {
+addLesson("security-zero-trust-and-cve-defense", 30, "Security architecture, Zero Trust & CVE defense", "Secrets management, dynamic DB leases, and KMS envelope encryption", {
   a: "A hotel key system: you don't have a general master key; you get one room key that expires at checkout. Secrets management moderns are that: dynamic, short-lived, revocable credentials rather than static keys stored in config files.",
   learn: [
     "Static secrets (in config files, env vars) vs dynamic: Vault-style per-request credentials that expire and are audited.",
@@ -6323,7 +6323,7 @@ addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zer
   },
 });
 
-addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zero Trust & CVE defense", "Containing live CVEs: WAF virtual patching, CNI micro-segmentation, and egress blocks", {
+addLesson("security-zero-trust-and-cve-defense", 30, "Security architecture, Zero Trust & CVE defense", "Containing live CVEs: WAF virtual patching, CNI micro-segmentation, and egress blocks", {
   a: "A fire in one building of a complex: you don't rebuild the block; you quarantine that building, cut the fire's access to neighboring ones (micro-segmentation), cut the water/power (egress blocks), and put a sticker on the door telling scanners 'avoid this path' (virtual patching). CVE response is architectural containment.",
   learn: [
     "WAF virtual patching: edge rules that block the vulnerable path/parameter while you patch the app.",
@@ -6359,7 +6359,7 @@ addLesson("security-zero-trust-and-cve-defense", 28, "Security architecture, Zer
 /* MODULE 29 — principal-architect-and-finops                          */
 /* ------------------------------------------------------------------ */
 
-addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: ADRs, SLOs & FinOps", "Composite SLA arithmetic: why serial chains multiply failure and parallel paths heal it", {
+addLesson("principal-architect-and-finops", 33, "Principal architect toolkit: ADRs, SLOs & FinOps", "Composite SLA arithmetic: why serial chains multiply failure and parallel paths heal it", {
   a: "A chain and a net: a chain of four links each 99% reliable is ~96% overall; a net with two paths survives a cut. Composite SLA arithmetic is the honest math behind your system's actual uptime shape.",
   learn: [
     "Serial components multiply failure: 99.9% × 99.9% × 99.9% ≈ 99.7% overall.",
@@ -6391,7 +6391,7 @@ addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: AD
   },
 });
 
-addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: ADRs, SLOs & FinOps", "Error budgets, multi-window burn-rate alerts, and freeze policies", {
+addLesson("principal-architect-and-finops", 33, "Principal architect toolkit: ADRs, SLOs & FinOps", "Error budgets, multi-window burn-rate alerts, and freeze policies", {
   a: "A savings account you're allowed to spend (the error budget); multi-window burn alerts tell you how fast you're spending (like velocity alerts before overdraft). When the budget runs out, launches freeze — spending caps protect reliability.",
   learn: [
     "Error budgets convert SLOs into usable quotas: 99.9% leaves 43 min/month to spend.",
@@ -6423,7 +6423,7 @@ addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: AD
   },
 });
 
-addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: ADRs, SLOs & FinOps", "Writing high-leverage Architecture Decision Records (ADRs) and RFCs", {
+addLesson("principal-architect-and-finops", 33, "Principal architect toolkit: ADRs, SLOs & FinOps", "Writing high-leverage Architecture Decision Records (ADRs) and RFCs", {
   a: "A lab notebook: each entry starts with context ('why are we choosing X?'), alternatives considered, and consequences. Six months later a new engineer reads it and understands the shape of the system, rather than reverse-engineering the why. High-leverage ADRs are the honest connectors between design work and future work.",
   learn: [
     "ADR format: context, decision, alternatives, consequences — short, scannable, dated.",
@@ -6455,7 +6455,7 @@ addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: AD
   },
 });
 
-addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: ADRs, SLOs & FinOps", "Cloud FinOps hierarchy: architectural elimination, right-sizing, and Spot/Reserved mix", {
+addLesson("principal-architect-and-finops", 33, "Principal architect toolkit: ADRs, SLOs & FinOps", "Cloud FinOps hierarchy: architectural elimination, right-sizing, and Spot/Reserved mix", {
   a: "A home budget in order of increasing effort: stop wasting (architectural elimination), buy cheaper alternatives (right-sizing), and negotiate fixed-rate subscriptions (Reserved/Spot). FinOps is that order, from largest to smallest lever.",
   learn: [
     "Architectural elimination: remove a cost line entirely (use VPC endpoints instead of NAT, R2 instead of S3 egress, CDN caching instead of origin compute).",
@@ -6487,7 +6487,7 @@ addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: AD
   },
 });
 
-addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: ADRs, SLOs & FinOps", "Multi-cloud & hybrid TCO: comparing AWS, Cloudflare Edge, and Kubernetes", {
+addLesson("principal-architect-and-finops", 33, "Principal architect toolkit: ADRs, SLOs & FinOps", "Multi-cloud & hybrid TCO: comparing AWS, Cloudflare Edge, and Kubernetes", {
   a: "Three suppliers for a factory: one powerful but pricey (AWS), one lean and global (Cloudflare), one self-run workshop (K8s). TCO thinking combines capacity, ops burden, talent, and exit paths — not just sticker prices.",
   learn: [
     "Sticker price vs total cost: managed services cost more per unit but save ops headcount; self-managed K8s saves unit cost but hires a platform team.",
@@ -6519,7 +6519,7 @@ addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: AD
   },
 });
 
-addLesson("principal-architect-and-finops", 29, "Principal architect toolkit: ADRs, SLOs & FinOps", "Leading enterprise architecture reviews and L4–L7 competency rubrics", {
+addLesson("principal-architect-and-finops", 33, "Principal architect toolkit: ADRs, SLOs & FinOps", "Leading enterprise architecture reviews and L4–L7 competency rubrics", {
   a: "A head chef reviewing kitchen stations: at low levels you check whether a station can pass a dish; at senior levels you check whether the whole kitchen can serve a banquet, weather a fire, and train apprentices. L4-L7 rubrics are the chef's scale for engineering seniority levels — from individual contributor to enterprise architect.",
   learn: [
     "Competency rubrics: L4 (specific implementation) → L5 (system-level) → L6/L7 (cross-system, org-level) — scope grows, judgment replaces syntax.",
@@ -6918,7 +6918,7 @@ export function getAllLessonBlogsForModule(moduleId: string): LessonBlog[] {
 /* Module 30 — Search at scale                                         */
 /* ------------------------------------------------------------------ */
 
-addLesson("search-at-scale", 30, "Search at scale", "Inverted indexes: why search is not a WHERE clause", {
+addLesson("search-at-scale", 34, "Search at scale", "Inverted indexes: why search is not a WHERE clause", {
   a: "A library catalogue sorted by title helps only if you already know the title. A search box is the librarian who has read every book and can answer 'which books mention dragons and castles' in a second. The inverted index is that librarian's notebook: every word points to the documents that contain it.",
   learn: [
     "Why scanning a table with LIKE '%term%' cannot use a normal index.",
@@ -6950,7 +6950,7 @@ addLesson("search-at-scale", 30, "Search at scale", "Inverted indexes: why searc
   },
 });
 
-addLesson("search-at-scale", 30, "Search at scale", "Analyzers, tokenization, and the query you actually meant", {
+addLesson("search-at-scale", 34, "Search at scale", "Analyzers, tokenization, and the query you actually meant", {
   a: "Two people search for 'running shoes'. One types 'run shoe', another 'RUNNING Shoes!'. A good shop assistant hears the same intent. The analyzer is that assistant: it lowercases, splits, stems, and normalizes before anything is indexed.",
   learn: [
     "What an analyzer does at index time and at query time — and why they must match.",
@@ -6982,7 +6982,7 @@ addLesson("search-at-scale", 30, "Search at scale", "Analyzers, tokenization, an
   },
 });
 
-addLesson("search-at-scale", 30, "Search at scale", "Ranking: TF-IDF, BM25, and learning to rank", {
+addLesson("search-at-scale", 34, "Search at scale", "Ranking: TF-IDF, BM25, and learning to rank", {
   a: "A bookshop has 400 books mentioning 'dragon'. Which goes on the front table? The one where dragons are the subject, not a footnote, and the one readers actually finish. Ranking is that judgement, expressed as a number.",
   learn: [
     "Why matching is not ranking: the posting list gives candidates, not an order.",
@@ -7014,7 +7014,7 @@ addLesson("search-at-scale", 30, "Search at scale", "Ranking: TF-IDF, BM25, and 
   },
 });
 
-addLesson("search-at-scale", 30, "Search at scale", "Sharding and replicating a search cluster", {
+addLesson("search-at-scale", 34, "Search at scale", "Sharding and replicating a search cluster", {
   a: "One librarian cannot index a city. Split the shelves by subject across ten librarians, then hire a second shift on each desk so someone is always awake. Sharding is the split; replication is the second shift.",
   learn: [
     "How a search index shards by document, not by term, and why that matters for scoring.",
@@ -7046,7 +7046,7 @@ addLesson("search-at-scale", 30, "Search at scale", "Sharding and replicating a 
   },
 });
 
-addLesson("search-at-scale", 30, "Search at scale", "Keeping the index fresh: CDC and reindexing", {
+addLesson("search-at-scale", 34, "Search at scale", "Keeping the index fresh: CDC and reindexing", {
   a: "A newspaper archive is only useful if today's paper is in it. You can re-bind every volume each night (slow, expensive) or slot today's pages into the right place as they print (fast, but you must handle mistakes).",
   learn: [
     "Why the database is the source of truth and the index is a derived view.",
@@ -7078,7 +7078,7 @@ addLesson("search-at-scale", 30, "Search at scale", "Keeping the index fresh: CD
   },
 });
 
-addLesson("search-at-scale", 30, "Search at scale", "Autocomplete, typo tolerance, and query suggestions", {
+addLesson("search-at-scale", 34, "Search at scale", "Autocomplete, typo tolerance, and query suggestions", {
   a: "A good waiter finishes your sentence before you regret ordering. Autocomplete is that: it predicts the query from a few characters, forgives a typo, and never makes you wait for the prediction.",
   learn: [
     "Why prefix search needs a different index structure from full-text search.",
@@ -7114,7 +7114,7 @@ addLesson("search-at-scale", 30, "Search at scale", "Autocomplete, typo toleranc
 /* Module 31 — Analytics and recommendations                           */
 /* ------------------------------------------------------------------ */
 
-addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Columnar analytics: why OLAP is a different database", {
+addLesson("analytics-and-recommendations", 35, "Analytics and recommendations", "Columnar analytics: why OLAP is a different database", {
   a: "A row-store is a filing cabinet organized by person: everything about one person is in one folder. A column-store is organized by attribute: every birthday together, every city together. If you only need birthdays, the second cabinet is dramatically faster.",
   learn: [
     "Why row-oriented storage is right for transactions and wrong for scans.",
@@ -7146,7 +7146,7 @@ addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", 
   },
 });
 
-addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Batch vs stream: Lambda and Kappa in practice", {
+addLesson("analytics-and-recommendations", 35, "Analytics and recommendations", "Batch vs stream: Lambda and Kappa in practice", {
   a: "A daily newspaper and a live ticker both tell you what happened. The newspaper is cheaper and easier to check; the ticker is fresher and harder to keep correct. Most businesses need both, and the argument is about which one owns the truth.",
   learn: [
     "What batch and stream processing are each good at, in cost and latency terms.",
@@ -7178,7 +7178,7 @@ addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", 
   },
 });
 
-addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Data modeling for analytics: facts, dimensions, and grains", {
+addLesson("analytics-and-recommendations", 35, "Analytics and recommendations", "Data modeling for analytics: facts, dimensions, and grains", {
   a: "A sales report is a stack of receipts plus a directory of stores, products, and dates. The receipts are facts; the directory is dimensions. Confuse the two and every question becomes a join you cannot explain.",
   learn: [
     "What a fact table's grain is and why declaring it prevents double counting.",
@@ -7210,7 +7210,7 @@ addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", 
   },
 });
 
-addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Recommendations: collaborative filtering to embeddings", {
+addLesson("analytics-and-recommendations", 35, "Analytics and recommendations", "Recommendations: collaborative filtering to embeddings", {
   a: "Ask a friend with similar taste what to watch next. That is collaborative filtering: you are recommended what people like you liked. Ask a critic who understands genre and mood, and that is content-based. Modern systems blend both.",
   learn: [
     "User-item matrices, co-occurrence, and the cold-start problem.",
@@ -7242,7 +7242,7 @@ addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", 
   },
 });
 
-addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Ranking a feed: candidates, features, and reranking", {
+addLesson("analytics-and-recommendations", 35, "Analytics and recommendations", "Ranking a feed: candidates, features, and reranking", {
   a: "A newspaper editor does not print every story. They pick a shortlist, decide the front page, then check that the page is not all sport. A feed ranker does the same three jobs at millisecond speed.",
   learn: [
     "The three stages of a feed: candidate generation, scoring, and reranking.",
@@ -7274,7 +7274,7 @@ addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", 
   },
 });
 
-addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", "Measuring quality: offline metrics vs online experiments", {
+addLesson("analytics-and-recommendations", 35, "Analytics and recommendations", "Measuring quality: offline metrics vs online experiments", {
   a: "A restaurant can win a taste test in the kitchen and still fail on the street. Offline metrics are the taste test; an A/B test is the street. You need both, and they disagree for good reasons.",
   learn: [
     "Precision, recall, NDCG, and why one number never tells the whole story.",
@@ -7310,7 +7310,7 @@ addLesson("analytics-and-recommendations", 31, "Analytics and recommendations", 
 /* Module 32 - Networking fundamentals                                 */
 /* ------------------------------------------------------------------ */
 
-addLesson("networking-fundamentals", 32, "Networking fundamentals", "TCP vs UDP: reliability, ordering, and when to drop packets", {
+addLesson("networking-fundamentals", 0, "Networking fundamentals", "TCP vs UDP: reliability, ordering, and when to drop packets", {
   a: "TCP is a registered letter: it arrives, in order, or you are told it failed. UDP is a postcard: fast, cheap, and it may never arrive. Pick the postcard for voice and video; pick the letter for money and state.",
   learn: [
     "What TCP guarantees (delivery, ordering, congestion control) and what it costs.",
@@ -7339,7 +7339,7 @@ addLesson("networking-fundamentals", 32, "Networking fundamentals", "TCP vs UDP:
   sb: { t: "Loss vs staleness", p: "Raise packet loss and watch TCP's latency climb as it retransmits, while UDP keeps moving and drops frames.", slider: "Packet loss", unit: "%", min: 0, max: 15, step: 1, def: 2, prims: ["rest_service", "cdn_edge", "observability_stack"], kind: "latency" },
 });
 
-addLesson("networking-fundamentals", 32, "Networking fundamentals", "The TCP handshake, congestion control, and head-of-line blocking", {
+addLesson("networking-fundamentals", 0, "Networking fundamentals", "The TCP handshake, congestion control, and head-of-line blocking", {
   a: "Three handshakes to say hello, then a slow start while the road learns your speed. TCP is polite to a fault: it will not send faster than the network can carry, and it stops the whole line when one packet trips.",
   learn: [
     "The three-way handshake and why it costs one RTT before any data.",
@@ -7368,7 +7368,7 @@ addLesson("networking-fundamentals", 32, "Networking fundamentals", "The TCP han
   sb: { t: "Handshake cost", p: "Raise RTT and watch the time before first byte grow with three round trips.", slider: "Round-trip time", unit: "ms", min: 10, max: 200, step: 10, def: 50, prims: ["rest_service", "cdn_edge", "dns_load_balancer"], kind: "latency" },
 });
 
-addLesson("networking-fundamentals", 32, "Networking fundamentals", "TLS 1.3: the handshake, 0-RTT, and certificate chains", {
+addLesson("networking-fundamentals", 0, "Networking fundamentals", "TLS 1.3: the handshake, 0-RTT, and certificate chains", {
   a: "TLS is the lock on the envelope. TLS 1.3 makes the lock faster: one round trip instead of two, and sometimes zero, while still proving both sides are who they claim to be.",
   learn: [
     "What TLS protects (confidentiality, integrity, authenticity) and what it does not.",
@@ -7397,7 +7397,7 @@ addLesson("networking-fundamentals", 32, "Networking fundamentals", "TLS 1.3: th
   sb: { t: "Handshake round trips", p: "Compare TLS 1.2 (two RTTs) and TLS 1.3 (one RTT) as RTT grows.", slider: "Round-trip time", unit: "ms", min: 10, max: 200, step: 10, def: 60, prims: ["cdn_edge", "rest_service", "identity_provider"], kind: "latency" },
 });
 
-addLesson("networking-fundamentals", 32, "Networking fundamentals", "HTTP/2 multiplexing, HTTP/3 QUIC, and the end of head-of-line", {
+addLesson("networking-fundamentals", 0, "Networking fundamentals", "HTTP/2 multiplexing, HTTP/3 QUIC, and the end of head-of-line", {
   a: "HTTP/1.1 opens six lanes and hopes they do not collide. HTTP/2 puts everything on one lane with numbered parcels. HTTP/3 rebuilds the lane so one dropped parcel does not stop the others.",
   learn: [
     "Why HTTP/1.1's connection limit and head-of-line blocking hurt performance.",
@@ -7426,7 +7426,7 @@ addLesson("networking-fundamentals", 32, "Networking fundamentals", "HTTP/2 mult
   sb: { t: "Connection count", p: "Raise assets per page and watch HTTP/1.1's six-connection limit force queueing while HTTP/2 stays on one connection.", slider: "Assets per page", unit: "assets", min: 10, max: 200, step: 10, def: 60, prims: ["cdn_edge", "rest_service", "dns_load_balancer"], kind: "latency" },
 });
 
-addLesson("networking-fundamentals", 32, "Networking fundamentals", "DNS resolution, caching, TTLs, and the 5-second outage", {
+addLesson("networking-fundamentals", 0, "Networking fundamentals", "DNS resolution, caching, TTLs, and the 5-second outage", {
   a: "DNS is the phone book. When the phone book is wrong, every call fails, even though the phones work. A five-second TTL mistake can take a service down for hours.",
   learn: [
     "The DNS resolution chain from browser to authoritative server.",
@@ -7455,7 +7455,7 @@ addLesson("networking-fundamentals", 32, "Networking fundamentals", "DNS resolut
   sb: { t: "TTL propagation", p: "Raise the TTL and watch how long a stale record survives in caches after a change.", slider: "TTL", unit: "s", min: 30, max: 86400, step: 30, def: 300, prims: ["dns_load_balancer", "cdn_edge", "observability_stack"], kind: "latency" },
 });
 
-addLesson("networking-fundamentals", 32, "Networking fundamentals", "Connection pooling, keep-alive, and the cost of a new connection", {
+addLesson("networking-fundamentals", 0, "Networking fundamentals", "Connection pooling, keep-alive, and the cost of a new connection", {
   a: "Opening a connection is like a phone call: dial, ring, greet, then talk. Pooling keeps the line open between calls so you skip the greeting. The savings are enormous at scale.",
   learn: [
     "Why a new connection costs more than people expect.",
@@ -7484,7 +7484,7 @@ addLesson("networking-fundamentals", 32, "Networking fundamentals", "Connection 
   sb: { t: "Pool wait", p: "Raise concurrency against a fixed pool and watch wait time climb.", slider: "Concurrent requests", unit: "req", min: 10, max: 500, step: 10, def: 50, prims: ["rest_service", "postgres_db", "redis_cache"], kind: "queue" },
 });
 
-addLesson("networking-fundamentals", 32, "Networking fundamentals", "Latency budgets: where the milliseconds go in a request", {
+addLesson("networking-fundamentals", 0, "Networking fundamentals", "Latency budgets: where the milliseconds go in a request", {
   a: "A request's budget is a pie. DNS, TLS, queueing, service work, database, and network each take a slice. If you do not measure the slices, you optimise the wrong one.",
   learn: [
     "The components of end-to-end latency in a typical request.",
@@ -7517,7 +7517,7 @@ addLesson("networking-fundamentals", 32, "Networking fundamentals", "Latency bud
 /* Module 33 - Security vulnerabilities and attacks                     */
 /* ------------------------------------------------------------------ */
 
-addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "OWASP Top 10 in one page: the vulnerabilities that keep shipping", {
+addLesson("security-vulnerabilities-and-attacks", 31, "Security vulnerabilities and attacks", "OWASP Top 10 in one page: the vulnerabilities that keep shipping", {
   a: "The OWASP Top 10 is the same list every year with new names. The underlying mistakes - trusting input, forgetting authorisation, and shipping defaults - never change.",
   learn: [
     "The recurring vulnerability families and why they persist.",
@@ -7546,7 +7546,7 @@ addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities 
   sb: { t: "Attack surface", p: "Grow the number of public endpoints and watch the number of controls you must enforce per request.", slider: "Public endpoints", unit: "endpoints", min: 5, max: 200, step: 5, def: 30, prims: ["api_gateway", "web_application_firewall", "identity_provider"], kind: "capacity" },
 });
 
-addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "Cross-site request forgery: how a cookie becomes an attack", {
+addLesson("security-vulnerabilities-and-attacks", 31, "Security vulnerabilities and attacks", "Cross-site request forgery: how a cookie becomes an attack", {
   a: "Your browser carries your session cookie everywhere, including to sites you did not ask to visit. CSRF is an attacker making your browser spend that cookie on their behalf.",
   learn: [
     "How CSRF works: the victim's browser sends an authenticated request the user did not intend.",
@@ -7575,7 +7575,7 @@ addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities 
   sb: { t: "Cross-site requests", p: "Raise the share of requests from other origins and watch how SameSite blocks the unauthenticated ones.", slider: "Cross-origin requests", unit: "%", min: 0, max: 100, step: 5, def: 20, prims: ["web_application_firewall", "identity_provider", "api_gateway"], kind: "denied" },
 });
 
-addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "Cross-site scripting: stored, reflected, and DOM-based", {
+addLesson("security-vulnerabilities-and-attacks", 31, "Security vulnerabilities and attacks", "Cross-site scripting: stored, reflected, and DOM-based", {
   a: "XSS is letting someone else write code that runs in your users' browsers. Stored XSS is a poisoned comment; reflected is a poisoned link; DOM-based is a poisoned client script. All three end with attacker code in a trusted origin.",
   learn: [
     "The three XSS types and how each delivers attacker-controlled script.",
@@ -7604,7 +7604,7 @@ addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities 
   sb: { t: "Inline script risk", p: "Raise the share of user-controlled content rendered unencoded and watch the number of execution paths grow.", slider: "Unencoded user content", unit: "%", min: 0, max: 100, step: 5, def: 10, prims: ["web_application_firewall", "cdn_edge", "rest_service"], kind: "denied" },
 });
 
-addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "SQL injection and parameterised queries: why OR 1=1 still works", {
+addLesson("security-vulnerabilities-and-attacks", 31, "Security vulnerabilities and attacks", "SQL injection and parameterised queries: why OR 1=1 still works", {
   a: "SQL injection is asking the database a question that includes an answer. OR 1=1 is the classic: the attacker does not break in, they rewrite the question so every row qualifies.",
   learn: [
     "How string concatenation turns input into executable SQL.",
@@ -7633,7 +7633,7 @@ addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities 
   sb: { t: "Query construction", p: "Raise the share of queries built by concatenation and watch injection risk grow.", slider: "Concatenated queries", unit: "%", min: 0, max: 100, step: 5, def: 15, prims: ["postgres_db", "web_application_firewall", "rest_service"], kind: "denied" },
 });
 
-addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "Server-side request forgery: when your server attacks itself", {
+addLesson("security-vulnerabilities-and-attacks", 31, "Security vulnerabilities and attacks", "Server-side request forgery: when your server attacks itself", {
   a: "SSRF is tricking your server into making a request it should not. The attacker does not attack you directly; they make your own server attack your internal network or cloud metadata endpoint.",
   learn: [
     "How SSRF works and why internal endpoints are the real target.",
@@ -7662,7 +7662,7 @@ addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities 
   sb: { t: "Internal reachability", p: "Raise the number of internal endpoints reachable from the service and watch the blast radius grow.", slider: "Reachable internal endpoints", unit: "endpoints", min: 0, max: 50, step: 1, def: 5, prims: ["web_application_firewall", "api_gateway", "secrets_manager"], kind: "capacity" },
 });
 
-addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "Infrastructure attacks: SSRF to metadata, privilege escalation, and lateral movement", {
+addLesson("security-vulnerabilities-and-attacks", 31, "Security vulnerabilities and attacks", "Infrastructure attacks: SSRF to metadata, privilege escalation, and lateral movement", {
   a: "An infrastructure attack is a chain, not a single exploit. SSRF gets credentials, credentials get access, access gets lateral movement. Each link is a design decision you made months earlier.",
   learn: [
     "The typical cloud attack chain from initial access to data exfiltration.",
@@ -7691,7 +7691,7 @@ addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities 
   sb: { t: "Blast radius", p: "Raise the number of services reachable from a compromised pod and watch the potential damage grow.", slider: "Reachable services", unit: "services", min: 1, max: 50, step: 1, def: 10, prims: ["service_mesh", "k8s_cluster", "web_application_firewall"], kind: "capacity" },
 });
 
-addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities and attacks", "Defence in depth: CSP, CORS, SameSite, and security headers", {
+addLesson("security-vulnerabilities-and-attacks", 31, "Security vulnerabilities and attacks", "Defence in depth: CSP, CORS, SameSite, and security headers", {
   a: "One lock is a suggestion. Defence in depth is a lock, a camera, a guard, and a panic button. No single control is perfect; the goal is that an attacker must defeat several independent ones.",
   learn: [
     "What Content-Security-Policy, CORS, SameSite, and security headers each protect.",
@@ -7720,8 +7720,393 @@ addLesson("security-vulnerabilities-and-attacks", 33, "Security vulnerabilities 
   sb: { t: "Header coverage", p: "Raise the share of endpoints missing security headers and watch the attack surface grow.", slider: "Endpoints missing headers", unit: "%", min: 0, max: 100, step: 5, def: 20, prims: ["web_application_firewall", "cdn_edge", "api_gateway"], kind: "denied" },
 });
 
-/** 
- * Completeness proof at module load: every lesson in PATH_PARTS must have a 
+/* ------------------------------------------------------------------ */
+/* Module 1 - Web protocols and the edge                               */
+/* ------------------------------------------------------------------ */
+
+addLesson("web-protocols-and-edge", 1, "Web protocols and the edge", "HTTP methods, status codes, and headers: the contract of the web", {
+  a: "An HTTP request is an order slip: the method says what you want done, the path says which dish, the headers carry allergies and table number, and the status code is the waiter's answer. Learn the slip and every API becomes readable.",
+  learn: [
+    "What each HTTP method promises about safety and idempotency.",
+    "Which status code family to use and why 200 with an error body is a bug.",
+    "The headers that control caching, auth, content type, and tracing.",
+  ],
+  s: [
+    "The request line",
+    "GET reads, POST creates, PUT replaces, PATCH updates, DELETE removes. GET and HEAD are safe (no side effects) and idempotent; PUT and DELETE are idempotent but not safe; POST is neither. That promise is what lets clients retry safely.",
+    "Method semantics are a contract, not a suggestion. A GET that mutates state breaks retries, caches, and crawlers.",
+    "Status codes are the answer",
+    "2xx success, 3xx redirect, 4xx client mistake, 5xx server mistake. 200 with {error: ...} forces every client to parse the body to know if it worked. Use 201 for created, 204 for no content, 400 for bad input, 401 for unauthenticated, 403 for unauthorized, 404 for missing, 409 for conflict, 429 for rate limited.",
+    "Pick the precise code. The status line is the first thing every proxy, client, and dashboard reads.",
+    "Headers carry the context",
+    "Content-Type tells the parser what it received. Authorization carries the credential. Cache-Control and ETag control reuse. Idempotency-Key makes retries safe. Traceparent links the request to a distributed trace.",
+    "Headers are where cross-cutting concerns live. Put auth, caching, tracing, and idempotency there, not in the body.",
+  ],
+  d: [
+    ["Client", "Build the request", "Method, path, headers, optional body.", "emerald"],
+    ["Server", "Route and validate", "Match the path, parse the body, check auth.", "sky"],
+    ["Handler", "Do the work", "Read or mutate state, then choose a status code.", "violet"],
+    ["Client", "Read the response", "Status, headers, body. Retry only when safe.", "amber"],
+  ],
+  c: ["Stripe", "Stripe's API uses precise status codes, idempotency keys on writes, and consistent error objects, so clients can retry safely and handle failures without parsing prose.", "Predictable HTTP semantics are a developer-experience feature."],
+  q: ["Which method is safe and idempotent by definition?", ["POST", "GET", "PATCH", "CONNECT"], 1, "GET has no side effects and can be repeated safely, which is why browsers, caches, and crawlers are allowed to call it freely."],
+  sb: { t: "Status code mix", p: "Raise the share of requests returning 5xx and watch the error budget burn.", slider: "Server errors", unit: "%", min: 0, max: 20, step: 1, def: 2, prims: ["api_gateway", "rest_service", "observability_stack"], kind: "slo" },
+});
+
+addLesson("web-protocols-and-edge", 1, "Web protocols and the edge", "Cookies, sessions, and the stateless web", {
+  a: "HTTP has no memory. A cookie is a name tag the browser wears so the server can recognise it on the next request. A session is the server-side coat check for that name tag.",
+  learn: [
+    "How cookies, sessions, and tokens keep a stateless protocol feeling continuous.",
+    "The security attributes that decide whether a cookie is safe.",
+    "Why stateless JWT sessions and server-side sessions trade different things.",
+  ],
+  s: [
+    "The cookie",
+    "The server sends Set-Cookie; the browser stores it and attaches it to matching requests. A session id cookie points to server-side state. The cookie itself should be opaque, random, and short-lived.",
+    "Never put secrets or user data in a cookie the client can read. Treat the cookie as a pointer, not a database.",
+    "The security attributes",
+    "HttpOnly blocks JavaScript access. Secure sends it only over HTTPS. SameSite controls cross-site sending. Path and Domain scope it. A session cookie without these is an XSS or CSRF incident waiting to happen.",
+    "Set all four attributes on every session cookie. They are one line each and each closes a real attack.",
+    "Sessions vs tokens",
+    "Server-side sessions are easy to revoke and need a shared store at scale. JWTs are stateless and scale without a lookup, but revocation is hard and the token is only as safe as its storage. Use short-lived access tokens plus refresh tokens, and keep a revocation list for the rest.",
+    "Pick sessions when revocation matters; pick short-lived tokens when scale matters. Most systems need both.",
+  ],
+  d: [
+    ["Login", "Verify credentials", "Check the password hash and create a session.", "emerald"],
+    ["Cookie", "Store the pointer", "HttpOnly, Secure, SameSite, short expiry.", "sky"],
+    ["Request", "Attach the cookie", "The browser sends it automatically to the same origin.", "violet"],
+    ["Server", "Look up the session", "Validate, refresh, or revoke server-side.", "amber"],
+  ],
+  c: ["GitHub", "GitHub uses HttpOnly, Secure session cookies and short-lived tokens for API access, and it requires re-authentication for sensitive actions rather than trusting a long-lived session.", "Sensitive actions deserve a fresh check, not just a valid cookie."],
+  q: ["What does the HttpOnly cookie attribute prevent?", ["CSRF", "JavaScript from reading the cookie", "DNS rebinding", "SQL injection"], 1, "HttpOnly hides the cookie from document.cookie, so an XSS payload cannot steal the session token."],
+  sb: { t: "Session store load", p: "Raise active sessions and watch the shared session store become the bottleneck.", slider: "Active sessions", unit: "sessions", min: 1000, max: 10000000, step: 1000, def: 100000, prims: ["redis_cache", "identity_provider", "rest_service"], kind: "capacity" },
+});
+
+addLesson("web-protocols-and-edge", 1, "Web protocols and the edge", "L4 vs L7 load balancing: where the decision happens", {
+  a: "An L4 balancer reads the envelope and forwards the packet. An L7 balancer opens the letter, reads the URL and headers, and then decides. Reading more costs more, but it enables smarter routing.",
+  learn: [
+    "What L4 and L7 load balancers can and cannot see.",
+    "How each distributes traffic and where health checks fit.",
+    "When to use one, the other, or both together.",
+  ],
+  s: [
+    "L4: fast and blind",
+    "L4 balances TCP/UDP connections by IP and port. It cannot see the URL, so it cannot route by path or retry a failed request. It is extremely fast and protocol-agnostic, which makes it ideal at the edge.",
+    "L4 is the right default for raw throughput. Use it when you do not need to inspect the request.",
+    "L7: slow and smart",
+    "L7 terminates HTTP, reads the method, path, headers, and cookies, and can route, rewrite, rate limit, retry, and authenticate. It can also do TLS termination and sticky sessions. The cost is parsing and connection management.",
+    "L7 is where product routing lives. Put it behind an L4 edge when you need both speed and intelligence.",
+    "Health checks and draining",
+    "Both layers need health checks. A failed check removes a target; connection draining lets in-flight requests finish before removal. Without draining, every deploy drops requests.",
+    "Health checks without draining still cause deploy-time errors. Treat draining as part of the health contract.",
+  ],
+  d: [
+    ["Client", "Connects", "The edge accepts the TCP connection.", "emerald"],
+    ["L4", "Forwards packets", "Fast, protocol-agnostic, no URL awareness.", "sky"],
+    ["L7", "Reads the request", "Route by path, header, or cookie; apply policy.", "violet"],
+    ["Backend", "Serves", "Healthy targets receive traffic; draining removes them cleanly.", "amber"],
+  ],
+  c: ["Cloudflare", "Cloudflare's edge combines L4 DDoS scrubbing with L7 rules for routing, WAF, and rate limiting, because each layer sees a different part of the traffic.", "The best edge uses L4 for volume and L7 for policy."],
+  q: ["What can an L7 load balancer do that an L4 balancer cannot?", ["Forward TCP packets", "Route by URL path or HTTP header", "Terminate a cable", "Assign IP addresses"], 1, "L7 terminates HTTP and can read the request line and headers, enabling path-based routing and policy."],
+  sb: { t: "Connections per balancer", p: "Raise concurrent connections and watch an L7 balancer's parsing cost show up in p99.", slider: "Concurrent connections", unit: "conns", min: 1000, max: 1000000, step: 1000, def: 50000, prims: ["dns_load_balancer", "api_gateway", "service_mesh"], kind: "capacity" },
+});
+
+addLesson("web-protocols-and-edge", 1, "Web protocols and the edge", "CDN and cache headers: making the edge do the work", {
+  a: "A CDN is a copy of your shop on every street corner. Cache headers are the instructions on the box: how long the copy stays good, who may reuse it, and when to check back.",
+  learn: [
+    "How a CDN decides what to cache and for how long.",
+    "The difference between browser cache and edge cache.",
+    "Cache-Control, ETag, Vary, and stale-while-revalidate in practice.",
+  ],
+  s: [
+    "The first request",
+    "A user in Sydney requests an image. The edge has no copy, so it fetches from the origin in Virginia, caches it, and serves it. The next Sydney user gets the edge copy in milliseconds.",
+    "The first request pays the origin cost. Every later request is a cache hit. The goal is to maximise hits without serving stale data.",
+    "Cache-Control is the contract",
+    "max-age sets freshness in seconds. s-maxage applies to shared caches like CDNs. no-store forbids caching. private keeps it out of shared caches. stale-while-revalidate serves the old copy while refreshing in the background.",
+    "Set s-maxage for the CDN and max-age for the browser separately. They are different audiences.",
+    "Invalidation and Vary",
+    "ETag and If-None-Match let the client revalidate cheaply. Vary tells caches which request headers change the response (Accept-Encoding, Authorization). Purging is a last resort, not a strategy.",
+    "Design URLs so content changes when the URL changes (content hashing). Then you rarely need to purge.",
+  ],
+  d: [
+    ["User", "Requests content", "The nearest edge receives it.", "emerald"],
+    ["Edge", "Cache lookup", "Hit: serve immediately. Miss: fetch from origin.", "sky"],
+    ["Origin", "Serves and sets headers", "Cache-Control, ETag, and Vary define reuse.", "violet"],
+    ["Edge", "Stores and serves", "Future users get the cached copy until it expires.", "amber"],
+  ],
+  c: ["Netflix", "Netflix serves most video bytes from its own CDN and uses long-lived, immutable URLs for encoded segments, so caches rarely need invalidation and hit ratios stay very high.", "Content-addressed URLs turn cache invalidation into a non-problem."],
+  q: ["Which header tells a shared CDN cache how long to keep a response?", ["max-age", "s-maxage", "ETag", "Vary"], 1, "s-maxage applies to shared caches such as CDNs, while max-age applies to the browser's private cache."],
+  sb: { t: "Cache hit ratio", p: "Raise the cache hit ratio and watch origin load and p99 fall.", slider: "Edge cache hit ratio", unit: "%", min: 0, max: 99, step: 1, def: 80, prims: ["cdn_edge", "blob_storage", "rest_service"], kind: "hitRatio" },
+});
+
+addLesson("web-protocols-and-edge", 1, "Web protocols and the edge", "WebSockets, SSE, and long polling: realtime transports", {
+  a: "Polling is asking 'are we there yet?' every minute. Long polling is asking and waiting for the answer. SSE is a radio broadcast. WebSockets are a phone call that stays open both ways.",
+  learn: [
+    "How polling, long polling, SSE, and WebSockets differ.",
+    "Which one fits notifications, feeds, chat, and collaborative editing.",
+    "The connection-count and fan-out costs of each.",
+  ],
+  s: [
+    "Polling and long polling",
+    "Short polling repeats a request on a timer. Long polling holds the request open until there is data or a timeout. Both work through any proxy, but both waste requests and add latency.",
+    "Polling is fine for low-frequency updates. It becomes expensive when thousands of clients poll every second.",
+    "SSE: one-way streaming",
+    "Server-Sent Events keep one HTTP connection open and stream text events from server to client. Reconnection is automatic. It is perfect for notifications, live scores, and progress updates, but it is one-way.",
+    "SSE is underrated: simple, proxy-friendly, and enough for most realtime UI.",
+    "WebSockets: two-way",
+    "A WebSocket upgrades an HTTP connection to a persistent, bidirectional channel. It is ideal for chat, multiplayer, and collaborative editing, but it needs connection state, heartbeats, and a fan-out layer at scale.",
+    "WebSockets are powerful and expensive. Use them when you truly need bidirectional low-latency messages.",
+  ],
+  d: [
+    ["Client", "Chooses a transport", "Poll, stream, or open a socket.", "emerald"],
+    ["Connection", "Stays open", "SSE and WebSockets hold state per client.", "sky"],
+    ["Fan-out", "Routes messages", "Pub/sub or a gateway maps user to connection.", "violet"],
+    ["Client", "Receives updates", "Reconnect and resume from a cursor after drops.", "amber"],
+  ],
+  c: ["Slack", "Slack uses WebSockets for realtime messaging and a separate HTTP API for history and actions, because persistent sockets are good for push but poor for request/response.", "Use the right transport per interaction, not one transport for everything."],
+  q: ["Which transport is one-way from server to client and reconnects automatically?", ["WebSocket", "SSE", "Long polling", "gRPC streaming"], 1, "Server-Sent Events stream text over a single HTTP connection and the browser reconnects automatically."],
+  sb: { t: "Concurrent connections", p: "Raise concurrent realtime clients and watch memory and fan-out cost grow.", slider: "Concurrent clients", unit: "clients", min: 1000, max: 5000000, step: 1000, def: 100000, prims: ["api_gateway", "redis_cache", "kafka_stream"], kind: "capacity" },
+});
+
+addLesson("web-protocols-and-edge", 1, "Web protocols and the edge", "API styles: REST, gRPC, GraphQL, and when each fits", {
+  a: "REST is a menu of fixed dishes. gRPC is a pneumatic tube with a strict schema. GraphQL is a buffet where the client builds its own plate. Each solves a different hunger.",
+  learn: [
+    "The trade-offs between REST, gRPC, and GraphQL.",
+    "How schema, caching, and streaming differ across them.",
+    "A decision rule for public, internal, and client-driven APIs.",
+  ],
+  s: [
+    "REST: the default",
+    "REST models resources with HTTP verbs, uses standard status codes, and caches well through URLs and headers. It is simple, universal, and debuggable with curl. Its weakness is over- and under-fetching for complex clients.",
+    "Start with REST unless you have a specific reason not to. Boring and cacheable wins.",
+    "gRPC: internal speed",
+    "gRPC uses HTTP/2, protobuf schemas, and generated clients. It is compact, fast, strongly typed, and supports streaming. It is a poor fit for browsers without a proxy and harder to debug by hand.",
+    "Use gRPC for service-to-service calls where latency and schema discipline matter.",
+    "GraphQL: client-shaped queries",
+    "GraphQL exposes one endpoint and a typed schema; clients ask for exactly the fields they need. It solves over-fetching for diverse clients, but caching is harder and complex queries can be expensive. Persisted queries and depth limits are mandatory.",
+    "GraphQL shifts power to the client. Add cost limits and query allowlists before you ship it publicly.",
+  ],
+  d: [
+    ["Client", "Chooses a style", "Resources, RPC, or a query graph.", "emerald"],
+    ["Schema", "Defines the contract", "OpenAPI, protobuf, or GraphQL SDL.", "sky"],
+    ["Transport", "Moves the bytes", "HTTP/1.1, HTTP/2, or a single POST endpoint.", "violet"],
+    ["Cache", "Reuses answers", "REST caches by URL; gRPC and GraphQL need extra work.", "amber"],
+  ],
+  c: ["GitHub", "GitHub offers both REST and GraphQL: REST for simple resource access and broad compatibility, GraphQL for clients that need to fetch nested data in one round trip.", "Offer the style that matches the client, not the fashion."],
+  q: ["Which API style gives clients exactly the fields they request in one call?", ["REST", "gRPC", "GraphQL", "SOAP"], 2, "GraphQL lets the client specify the response shape, avoiding over-fetching at the cost of harder caching and query-cost control."],
+  sb: { t: "Round trips per screen", p: "Raise the number of resources a screen needs and watch REST round trips grow while GraphQL stays at one.", slider: "Resources per screen", unit: "resources", min: 1, max: 20, step: 1, def: 5, prims: ["api_gateway", "rest_service", "cdn_edge"], kind: "latency" },
+});
+
+/* ------------------------------------------------------------------ */
+/* Module 32 - Application security essentials                          */
+/* ------------------------------------------------------------------ */
+
+addLesson("application-security-essentials", 32, "Application security essentials", "Authentication vs authorization: sessions, JWT, and OAuth2/OIDC", {
+  a: "Authentication is the bouncer checking your ID. Authorization is the list that says which rooms your ID opens. Confusing the two is how a logged-in user reads someone else's data.",
+  learn: [
+    "The difference between proving identity and granting permission.",
+    "How sessions, JWTs, OAuth2, and OIDC fit together.",
+    "Why authorization must be checked on every request, not just at login.",
+  ],
+  s: [
+    "Authentication",
+    "Prove who you are: password, passkey, OTP, or an identity provider. A successful login yields a session or a token. Authentication answers 'who', never 'what may they do'.",
+    "Login is not authorization. A valid session says nothing about which records the user may read.",
+    "Authorization",
+    "Check permission per action and per resource: can this user read this invoice? Role-based access control (RBAC) groups permissions by role; attribute-based access control (ABAC) adds context like owner, tenant, or time.",
+    "Check authorization at the resource, not the route. Route-level checks miss object-level access control (BOLA).",
+    "OAuth2 and OIDC",
+    "OAuth2 delegates access with scopes and tokens. OIDC adds an identity layer on top with an ID token. Use authorization code flow with PKCE for web and mobile; never put client secrets in a browser.",
+    "OAuth2 is for delegated access; OIDC is for login. Use the right flow and never skip PKCE.",
+  ],
+  d: [
+    ["User", "Authenticates", "Password, passkey, or identity provider.", "emerald"],
+    ["Token", "Carries identity", "Session cookie or short-lived JWT with scopes.", "sky"],
+    ["Policy", "Checks permission", "Role, owner, tenant, and context per resource.", "violet"],
+    ["Resource", "Returns or denies", "403 when the policy says no, 404 when hiding existence.", "amber"],
+  ],
+  c: ["Okta", "Okta's guidance separates authentication (OIDC) from authorization (OAuth2 scopes and policies), because mixing them leads to over-broad tokens and confused-deputy attacks.", "Keep identity and permission as separate decisions."],
+  q: ["A logged-in user opens /invoices/123 and sees another customer's invoice. What failed?", ["Authentication", "Authorization", "Encryption", "DNS"], 1, "The user proved who they were, but the system did not check whether they owned invoice 123. That is broken object-level authorization."],
+  sb: { t: "Authorization checks", p: "Raise the share of endpoints missing object-level checks and watch the exposed surface grow.", slider: "Endpoints without object checks", unit: "%", min: 0, max: 100, step: 5, def: 20, prims: ["identity_provider", "api_gateway", "rest_service"], kind: "denied" },
+});
+
+addLesson("application-security-essentials", 32, "Application security essentials", "Password storage: hashing, salting, and Argon2", {
+  a: "Never store the password. Store a one-way fingerprint of it. A salt makes every fingerprint unique, and a slow hash makes guessing millions of them expensive.",
+  learn: [
+    "Why passwords must be hashed, not encrypted.",
+    "What a salt does and why Argon2/bcrypt beat SHA-256.",
+    "How to migrate hashes without locking users out.",
+  ],
+  s: [
+    "Hash, do not encrypt",
+    "Encryption is reversible; hashing is not. Store a salted, slow hash. If the database leaks, the attacker gets fingerprints, not passwords. MD5 and SHA-1 are fast and broken for this purpose.",
+    "Fast hashes are for integrity, slow hashes are for passwords. Use Argon2id, bcrypt, or scrypt.",
+    "Salt and cost",
+    "A unique random salt per user prevents rainbow tables and identical hashes. The cost factor makes each guess expensive. Argon2id also resists GPU and memory attacks. Tune the cost so one login takes about 100-250 ms on your hardware.",
+    "Salt defeats precomputation; cost defeats brute force. You need both.",
+    "Migration",
+    "Store the algorithm and parameters with the hash. On successful login, rehash with the new algorithm. For inactive users, rehash on next login or force a reset. Never compare hashes with ==; use a constant-time compare.",
+    "Plan the migration before you need it. Password hashes age like milk.",
+  ],
+  d: [
+    ["Password", "Never stored", "The plaintext exists only in the request.", "emerald"],
+    ["Salt", "Unique per user", "Random bytes mixed in before hashing.", "sky"],
+    ["Slow hash", "Argon2id / bcrypt", "Expensive to compute, expensive to guess.", "violet"],
+    ["Verify", "Constant-time compare", "Compare the derived hash without leaking timing.", "amber"],
+  ],
+  c: ["Dropbox", "Dropbox migrated from bcrypt to Argon2id and documented the rehash-on-login approach, so users kept working while the stored hashes were upgraded.", "Hash migrations can be invisible to users."],
+  q: ["Why is SHA-256 a poor choice for password storage?", ["It is too slow", "It is fast, so attackers can test billions of guesses per second", "It is reversible", "It has no salt"], 1, "General-purpose hashes are designed for speed. Password hashing needs deliberate slowness and memory hardness."],
+  sb: { t: "Hash cost vs login latency", p: "Raise the Argon2 cost and watch login latency and attacker cost rise together.", slider: "Hash cost (iterations)", unit: "iterations", min: 1, max: 10, step: 1, def: 3, prims: ["identity_provider", "rest_service", "observability_stack"], kind: "latency" },
+});
+
+addLesson("application-security-essentials", 32, "Application security essentials", "API security: BOLA, mass assignment, and rate limits", {
+  a: "An API is a set of doors. BOLA is trying the next door number. Mass assignment is handing the guard a form that adds 'admin: true'. Rate limits are the bouncer counting how often you knock.",
+  learn: [
+    "Broken object-level authorization (BOLA/IDOR) and how to test for it.",
+    "Mass assignment and why allowlists beat blocklists.",
+    "Rate limits, quotas, and abuse controls that actually protect the API.",
+  ],
+  s: [
+    "BOLA/IDOR",
+    "The API accepts an object id and returns it without checking ownership. Changing /orders/100 to /orders/101 leaks another customer's order. It is the most common API vulnerability because route-level auth passes.",
+    "Check ownership at the query, not the route. Every object read and write needs a tenant or user predicate.",
+    "Mass assignment",
+    "The API binds the request body directly to a model, so a client adds role: admin or balance: 999999. Allowlist the fields a client may set, and never trust hidden form fields.",
+    "Bind to an explicit DTO, not the database model. Blocklists always miss a field.",
+    "Rate limits and quotas",
+    "Limit per key, per user, and per IP. Return 429 with Retry-After. Use token buckets for bursts and quotas for billing. Protect expensive endpoints separately from cheap reads.",
+    "Rate limits are both a security control and a capacity control. Put them at the edge and at the service.",
+  ],
+  d: [
+    ["Client", "Calls the API", "Key, token, and object id in the request.", "emerald"],
+    ["Gateway", "Limits and authenticates", "Quota, rate limit, and token validation.", "sky"],
+    ["Service", "Authorizes the object", "Owner or tenant predicate on every query.", "violet"],
+    ["Data", "Returns only allowed rows", "No predicate, no row.", "amber"],
+  ],
+  c: ["OWASP", "OWASP's API Security Top 10 lists broken object-level authorization as the number one API risk, ahead of broken authentication and excessive data exposure.", "Object-level checks are the highest-leverage API control."],
+  q: ["What is the fix for BOLA/IDOR?", ["Hide the object id", "Check ownership or tenant on every object query", "Use POST instead of GET", "Add a WAF"], 1, "Authorization must be enforced in the query that fetches the object, not only at the route or gateway."],
+  sb: { t: "Requests over quota", p: "Raise traffic past the per-key quota and watch 429s protect the backend.", slider: "Requests per second", unit: "rps", min: 100, max: 100000, step: 100, def: 5000, prims: ["api_gateway", "rate_limiter", "rest_service"], kind: "rateLimit" },
+});
+
+addLesson("application-security-essentials", 32, "Application security essentials", "Supply chain security: SBOM, dependency confusion, and lockfiles", {
+  a: "Your app is mostly other people's code. Supply chain security is checking every box that arrives at the loading dock, because one poisoned package can run inside your build.",
+  learn: [
+    "What an SBOM is and why regulators now ask for one.",
+    "Dependency confusion, typosquatting, and how lockfiles help.",
+    "Practical controls: pinning, provenance, and least-privilege CI.",
+  ],
+  s: [
+    "The dependency tree",
+    "A modern app pulls hundreds of transitive packages. Each one can be compromised, abandoned, or typosquatted. You cannot secure what you cannot list, which is why an SBOM (Software Bill of Materials) exists.",
+    "Generate an SBOM on every build. It is the inventory you need during an incident.",
+    "Dependency confusion",
+    "An attacker publishes a public package with the same name as your private one. If your registry resolution is loose, the public package wins and runs attacker code in your build. Typosquatting does the same with a one-letter misspelling.",
+    "Scope private packages, pin versions, and use a lockfile with integrity hashes. Never resolve internal names from the public registry.",
+    "Provenance and least privilege",
+    "Verify signatures and provenance attestations where available. Run CI with a scoped token, not a personal admin token. Treat build scripts and postinstall hooks as code execution.",
+    "The build system is production. Lock it down like production.",
+  ],
+  d: [
+    ["Source", "Dependencies", "Direct and transitive packages enter the build.", "emerald"],
+    ["Registry", "Resolve and verify", "Scoped names, pinned versions, integrity hashes.", "sky"],
+    ["Build", "Runs code", "Postinstall scripts execute with CI privileges.", "violet"],
+    ["SBOM", "Inventory", "Every component and version recorded for response.", "amber"],
+  ],
+  c: ["SolarWinds", "The SolarWinds breach injected malicious code into a trusted build pipeline, distributing a backdoor to thousands of customers. Build integrity and provenance are the lessons.", "Trust in the build chain is a security boundary."],
+  q: ["What is dependency confusion?", ["Two packages with the same license", "A public package shadowing a private package name and being installed instead", "A slow dependency download", "A missing lockfile"], 1, "If private package names are resolved from the public registry, an attacker can publish a same-named package and have it installed into your build."],
+  sb: { t: "Dependency surface", p: "Grow transitive dependencies and watch the number of components you must track and patch.", slider: "Transitive dependencies", unit: "packages", min: 10, max: 2000, step: 10, def: 300, prims: ["container_registry", "k8s_cluster", "observability_stack"], kind: "plot" },
+});
+
+addLesson("application-security-essentials", 32, "Application security essentials", "Cryptography for engineers: hashing vs encryption vs signing", {
+  a: "A hash is a fingerprint. Encryption is a locked box. A signature is a wax seal. Use the fingerprint to compare, the box to hide, and the seal to prove who sent it.",
+  learn: [
+    "When to hash, when to encrypt, and when to sign.",
+    "Symmetric vs asymmetric keys and where each belongs.",
+    "The mistakes that make cryptography useless in practice.",
+  ],
+  s: [
+    "Hash: compare without revealing",
+    "A hash maps data to a fixed-size digest. Use it for integrity checks, password storage (with a slow hash), and content addressing. A hash is not encryption and cannot be reversed.",
+    "If you need to compare two values without storing one, hash it. If you need to recover the value, hash is the wrong tool.",
+    "Encrypt: hide the content",
+    "Symmetric encryption (AES-GCM) uses one key for encrypt and decrypt; it is fast and right for data at rest. Asymmetric encryption (RSA, ECDH) uses a public/private pair for key exchange or small payloads.",
+    "Encrypt data at rest and in transit. Prefer AES-GCM or ChaCha20-Poly1305, and never reuse a nonce.",
+    "Sign: prove origin",
+    "A digital signature proves who created a message and that it was not altered. Sign tokens, software artifacts, and webhooks. Verify with the public key. Signing is not encryption; the message may still be readable.",
+    "Sign what you must trust. Encrypt what you must hide. Hash what you must compare.",
+  ],
+  d: [
+    ["Plaintext", "Choose a primitive", "Hash, encrypt, or sign depending on the goal.", "emerald"],
+    ["Key", "Manage it", "KMS, rotation, and least-privilege access.", "sky"],
+    ["Operation", "Apply", "AES-GCM, Ed25519, SHA-256, or Argon2id.", "violet"],
+    ["Verify", "Check the result", "Constant-time compare, signature verify, or decrypt.", "amber"],
+  ],
+  c: ["Let's Encrypt", "Let's Encrypt automated certificate issuance and renewal with ACME, making TLS ubiquitous by removing the manual key-management toil that caused expired certificates.", "Automation is a security control: it removes the human step that gets skipped."],
+  q: ["Which primitive proves a message came from a specific sender and was not altered?", ["Hash", "Symmetric encryption", "Digital signature", "Base64"], 2, "A signature binds the message to the signer's private key, and anyone with the public key can verify it."],
+  sb: { t: "Key rotation", p: "Raise key age and watch the exposure window grow if a key leaks.", slider: "Days since key rotation", unit: "days", min: 1, max: 365, step: 1, def: 90, prims: ["secrets_manager", "identity_provider", "rest_service"], kind: "slo" },
+});
+
+addLesson("application-security-essentials", 32, "Application security essentials", "DDoS and bot defence: L3/L4 vs L7", {
+  a: "A DDoS is a crowd pushing on the door. L3/L4 attacks flood the pipe; L7 attacks knock politely but endlessly. You defend the pipe at the edge and the behaviour at the application.",
+  learn: [
+    "The difference between volumetric, protocol, and application-layer attacks.",
+    "How anycast, scrubbing, WAF, and rate limits combine.",
+    "Why bot defence needs behaviour, not just IP blocklists.",
+  ],
+  s: [
+    "Volumetric and protocol attacks",
+    "L3/L4 floods consume bandwidth, connection tables, or SYN queues. Anycast spreads traffic across many locations; scrubbing centers filter bad traffic; SYN cookies survive handshake floods. You cannot code your way out of a pipe-sized attack.",
+    "Volumetric attacks are an infrastructure problem. Use a provider with capacity and anycast.",
+    "Application-layer attacks",
+    "L7 attacks look like real requests: expensive search queries, login attempts, or API calls. They exhaust CPU, database connections, or third-party quotas. Rate limits, caching, and query cost limits are the defence.",
+    "L7 attacks are cheap to launch and hard to distinguish. Behaviour and cost controls matter more than raw volume.",
+    "Bot defence",
+    "IP blocklists fail against residential proxies. Use device fingerprints, proof-of-work challenges, CAPTCHAs on suspicious flows, and per-account quotas. Keep the challenge off the critical path for normal users.",
+    "Make the attacker pay more than you do. Challenge, rate limit, and cache aggressively.",
+  ],
+  d: [
+    ["Botnet", "Sends traffic", "Volumetric, protocol, or application-layer.", "emerald"],
+    ["Edge", "Absorbs and filters", "Anycast, scrubbing, and connection limits.", "sky"],
+    ["WAF", "Inspects requests", "Signatures, rate limits, and bot challenges.", "violet"],
+    ["Origin", "Serves only clean traffic", "Caching and admission control protect capacity.", "amber"],
+  ],
+  c: ["Cloudflare", "Cloudflare's DDoS protection combines anycast, automatic edge mitigation, and L7 rules, and it publishes that it mitigates some of the largest attacks without customer action.", "Automatic edge mitigation is the baseline; application controls are the second layer."],
+  q: ["Why are IP blocklists insufficient for bot defence?", ["IPs are encrypted", "Attackers use large residential proxy pools and rotate IPs", "Bots do not use IPs", "Blocklists are illegal"], 1, "Residential proxies give attackers millions of real IPs, so behaviour and account-level controls are needed."],
+  sb: { t: "Attack volume vs capacity", p: "Raise attack traffic and watch the edge absorb it while origin capacity stays protected.", slider: "Attack volume", unit: "Gbps", min: 1, max: 1000, step: 1, def: 50, prims: ["cdn_edge", "web_application_firewall", "api_gateway"], kind: "capacity" },
+});
+
+addLesson("application-security-essentials", 32, "Application security essentials", "Detection and incident response: logs, alerts, and the first hour", {
+  a: "Prevention is the lock; detection is the alarm. When the alarm rings, the first hour decides whether it is a story about a contained incident or a story about a breach.",
+  learn: [
+    "What to log, what never to log, and how to make logs useful.",
+    "The alerts that matter and the ones that cause fatigue.",
+    "A practical first-hour incident response sequence.",
+  ],
+  s: [
+    "Log the right things",
+    "Log authentication events, authorization failures, admin actions, and changes to security configuration. Never log passwords, tokens, or full card numbers. Include a request id and a user id so you can reconstruct a timeline.",
+    "A log without context is noise. A log with a request id is evidence.",
+    "Alert on symptoms, not everything",
+    "Alert on SLO burn, error-rate spikes, unusual admin activity, and repeated authorization failures. Suppress noisy rules. Every alert should have an owner and a runbook.",
+    "Alert fatigue is a security vulnerability. If everything pages, nothing does.",
+    "The first hour",
+    "Confirm the alert, scope the blast radius, contain (revoke keys, block the path, isolate the service), preserve evidence, and communicate. Do not wipe the host before you collect logs. Write the timeline as you go.",
+    "Contain first, then investigate. But preserve evidence before you rebuild.",
+  ],
+  d: [
+    ["Signal", "Logs and metrics", "Auth, authz, admin actions, and anomalies.", "emerald"],
+    ["Alert", "On-call page", "SLO burn, error spike, or suspicious pattern.", "sky"],
+    ["Triage", "Scope the blast radius", "Who, what, when, and which systems.", "violet"],
+    ["Contain", "Stop the spread", "Revoke, isolate, block, and preserve evidence.", "amber"],
+  ],
+  c: ["Google", "Google's incident response guidance emphasizes a clear incident commander, a shared timeline, and blameless postmortems, because coordination fails before technology does.", "Incident response is a team process, not a tool."],
+  q: ["What should you do first when a host is suspected compromised?", ["Rebuild it immediately", "Preserve evidence and scope the blast radius before containment", "Delete the logs", "Email all customers"], 1, "Containment matters, but wiping the host destroys the evidence you need to understand scope. Preserve first, then contain."],
+  sb: { t: "Time to detect and respond", p: "Raise detection and response time and watch the exposure window grow.", slider: "Minutes to contain", unit: "min", min: 5, max: 240, step: 5, def: 60, prims: ["observability_stack", "web_application_firewall", "secrets_manager"], kind: "slo" },
+});
+
+/**
+ * Completeness proof at module load: every lesson in PATH_PARTS must have a
  * blog (or this import fails loudly, which fails tests and dev builds).
  */
 const missing: string[] = [];

@@ -41,6 +41,50 @@ export interface PathPart {
 
 export const PATH_PARTS: PathPart[] = [
   {
+    id: "networking",
+    title: "Networking",
+    subtitle: "How bytes actually move: TCP, UDP, TLS, HTTP, DNS, the edge, and the latency budget.",
+    accentClass: "text-sky-300",
+    accentHex: "#38BDF8",
+    modules: [
+      {
+        id: "networking-fundamentals",
+        number: 0,
+        title: "Networking fundamentals",
+        description:
+          "TCP, UDP, TLS, HTTP/2, DNS, connection pooling, and the latency budget every L7 engineer reasons about.",
+        lessonTitles: [
+          "TCP vs UDP: reliability, ordering, and when to drop packets",
+          "The TCP handshake, congestion control, and head-of-line blocking",
+          "TLS 1.3: the handshake, 0-RTT, and certificate chains",
+          "HTTP/2 multiplexing, HTTP/3 QUIC, and the end of head-of-line",
+          "DNS resolution, caching, TTLs, and the 5-second outage",
+          "Connection pooling, keep-alive, and the cost of a new connection",
+          "Latency budgets: where the milliseconds go in a request",
+        ],
+        encyclopediaId: "load-balancing",
+        practiceLabIds: ["whatsapp-chat", "twitter-timeline"],
+      },
+      {
+        id: "web-protocols-and-edge",
+        number: 1,
+        title: "Web protocols and the edge",
+        description:
+          "HTTP methods and headers, cookies, L4 vs L7 load balancing, CDNs, realtime transports, and API styles.",
+        lessonTitles: [
+          "HTTP methods, status codes, and headers: the contract of the web",
+          "Cookies, sessions, and the stateless web",
+          "L4 vs L7 load balancing: where the decision happens",
+          "CDN and cache headers: making the edge do the work",
+          "WebSockets, SSE, and long polling: realtime transports",
+          "API styles: REST, gRPC, GraphQL, and when each fits",
+        ],
+        encyclopediaId: "load-balancing",
+        practiceLabIds: ["twitter-timeline", "search-autocomplete"],
+      },
+    ],
+  },
+  {
     id: "approach",
     title: "Approach",
     subtitle: "The process to follow on every design problem, before any box is drawn.",
@@ -49,7 +93,7 @@ export const PATH_PARTS: PathPart[] = [
     modules: [
       {
         id: "how-to-approach-design",
-        number: 0,
+        number: 2,
         title: "How to approach any design",
         description:
           "A six-step delivery framework — requirements, estimation, entities, API, high-level design, deep dives — that turns a blank page into a defensible architecture.",
@@ -73,7 +117,7 @@ export const PATH_PARTS: PathPart[] = [
     modules: [
       {
         id: "what-is-system-design",
-        number: 1,
+        number: 3,
         title: "What is system design?",
         description:
           "System design is making explicit trade-off decisions under constraints. Learn to read any problem before drawing any box.",
@@ -87,7 +131,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "simple-system",
-        number: 2,
+        number: 4,
         title: "Start with a simple system",
         description:
           "One server, one database. Understand the full request lifecycle — DNS through TLS — before adding complexity.",
@@ -106,7 +150,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "caching",
-        number: 3,
+        number: 5,
         title: "Caching",
         description:
           "Why caches work, the four strategies, eviction policies, invalidation, and how hot keys melt production.",
@@ -124,7 +168,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "one-server-not-enough",
-        number: 4,
+        number: 6,
         title: "When one server isn't enough",
         description:
           "Horizontal scaling, load balancing layers, health checks, and the queuing theory that explains why p99 explodes.",
@@ -141,7 +185,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "one-database-not-enough",
-        number: 5,
+        number: 7,
         title: "When one database isn't enough",
         description:
           "Replicas, failover, sharding, partitioning, CQRS, and choosing between SQL and NoSQL for the job at hand.",
@@ -160,7 +204,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "live-updates",
-        number: 6,
+        number: 8,
         title: "Live updates",
         description:
           "Polling to WebSockets: connection management at scale, presence, fan-out, and delivery guarantees for realtime.",
@@ -177,7 +221,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "background-jobs",
-        number: 7,
+        number: 9,
         title: "Background jobs",
         description:
           "Decouple to survive: job queues, worker pools, retries, idempotency, and exactly-once vs at-least-once processing.",
@@ -194,7 +238,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "rate-limiting",
-        number: 8,
+        number: 10,
         title: "Rate limiting and overload",
         description:
           "Token buckets to distributed counters, admission control, load shedding, and the retry storms you can cause yourself.",
@@ -211,7 +255,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "growing-big",
-        number: 9,
+        number: 11,
         title: "Growing big",
         description:
           "Service decomposition, API versioning, multi-region basics, cost-aware design, and observability for builders.",
@@ -227,7 +271,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "putting-it-together",
-        number: 10,
+        number: 12,
         title: "Putting it together",
         description:
           "Full walkthroughs of the classic interview systems — then how to review and present your own design.",
@@ -253,7 +297,7 @@ export const PATH_PARTS: PathPart[] = [
     modules: [
       {
         id: "microservices",
-        number: 11,
+        number: 13,
         title: "Microservices",
         description:
           "When to split the monolith — and when not to — where the boundaries go, and the operational cost of every new service.",
@@ -270,7 +314,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "distributed-problems",
-        number: 12,
+        number: 14,
         title: "Problems in distributed systems",
         description:
           "Partial failure, timeouts, retry storms, clock skew — and why partitions force the consistency/availability choice (CAP, PACELC).",
@@ -287,7 +331,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "replication-depth",
-        number: 13,
+        number: 15,
         title: "Replication in depth",
         description:
           "Leader-based, multi-leader, and leaderless replication, quorums with honest failure semantics, conflict resolution, and a first pass at consensus.",
@@ -304,7 +348,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "partitioning-depth",
-        number: 14,
+        number: 16,
         title: "Partitioning in depth",
         description:
           "Consistent hashing, rebalancing without downtime, hot partitions, and the pain of cross-partition queries.",
@@ -321,7 +365,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "messaging-kafka",
-        number: 15,
+        number: 17,
         title: "Messaging: Kafka and pub/sub",
         description:
           "Logs as the source of truth: topics, partitions, consumer groups, ordering, and backpressure.",
@@ -338,7 +382,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "cross-service-transactions",
-        number: 16,
+        number: 18,
         title: "Transactions across services",
         description:
           "Why 2PC stalls, sagas, compensations, the outbox pattern, and choosing your consistency model per workflow.",
@@ -355,7 +399,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "events-streams",
-        number: 17,
+        number: 19,
         title: "Events and streams",
         description:
           "Event sourcing, projections, stream processing, windowing, and when an event-driven design is the wrong answer.",
@@ -372,7 +416,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "availability-global",
-        number: 18,
+        number: 20,
         title: "Availability and going global",
         description:
           "Error budgets, multi-region topologies, global load balancing, and failover drills you actually run.",
@@ -399,7 +443,7 @@ export const PATH_PARTS: PathPart[] = [
     modules: [
       {
         id: "hashing-and-sketches",
-        number: 19,
+        number: 21,
         title: "Hashing and probabilistic sketches",
         description:
           "Consistent hashing, bloom filters, cardinality sketches, Merkle trees, and spatial indexes — the small algorithms behind big systems.",
@@ -416,7 +460,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "storage-engines",
-        number: 20,
+        number: 22,
         title: "Storage engines",
         description:
           "How a database actually stores and finds bytes: LSM trees, B-trees, write-ahead logs, and probabilistic indexes.",
@@ -430,7 +474,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "coordination-and-time",
-        number: 21,
+        number: 23,
         title: "Coordination and time",
         description:
           "Leader election, gossip, CRDTs, causal ordering, and fair scheduling — how a cluster agrees on anything.",
@@ -455,7 +499,7 @@ export const PATH_PARTS: PathPart[] = [
     modules: [
       {
         id: "embeddings-retrieval",
-        number: 22,
+        number: 24,
         title: "Embeddings and retrieval",
         description:
           "How text becomes numbers, how embeddings become searchable, and how retrieval augments generation — chunking, ANN, reranking, injection defense.",
@@ -474,7 +518,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "llm-serving",
-        number: 23,
+        number: 25,
         title: "LLM serving",
         description:
           "How self-attention's key/value memory scales, and how paged attention and continuous batching manage it.",
@@ -498,7 +542,7 @@ export const PATH_PARTS: PathPart[] = [
     modules: [
       {
         id: "aws-architecture-scratch-to-prod",
-        number: 24,
+        number: 26,
         title: "AWS architecture: scratch to production",
         description:
           "VPC subnet design, ALB vs NLB, ECS vs EKS, Aurora 6-way storage quorums, DynamoDB single-table partitions, and KMS envelope security.",
@@ -517,7 +561,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "cloudflare-edge-and-workers",
-        number: 25,
+        number: 27,
         title: "Cloudflare edge, Workers & Zero Trust",
         description:
           "How Anycast BGP, V8 Isolates, Tiered Cache, Durable Objects, R2, and Cloudflare Tunnels push compute and security to 330+ cities.",
@@ -535,7 +579,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "kubernetes-control-and-data-plane",
-        number: 26,
+        number: 28,
         title: "Kubernetes: control plane to service mesh",
         description:
           "Inside apiserver watch caches, etcd Raft quorums, scheduler predicates, Cilium eBPF vs iptables, Envoy mTLS meshes, and Argo CD GitOps.",
@@ -553,7 +597,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "extensible-plugins-and-operators",
-        number: 27,
+        number: 29,
         title: "Plugin architectures, WASM filters & K8s operators",
         description:
           "How extensible platforms let teams inject custom rules, Envoy Proxy-Wasm filters, admission webhooks, and CRD Operators safely.",
@@ -577,7 +621,7 @@ export const PATH_PARTS: PathPart[] = [
     modules: [
       {
         id: "security-zero-trust-and-cve-defense",
-        number: 28,
+        number: 30,
         title: "Security architecture, Zero Trust & CVE defense",
         description:
           "Align system design with STRIDE threat modeling, SPIFFE mTLS, OAuth2/OIDC, KMS secrets, and containing live CVE blast radius.",
@@ -593,8 +637,44 @@ export const PATH_PARTS: PathPart[] = [
         practiceLabIds: ["razorpay-payments", "agentic-rag-support"],
       },
       {
+        id: "security-vulnerabilities-and-attacks",
+        number: 31,
+        title: "Security vulnerabilities and attacks",
+        description:
+          "OWASP Top 10, CSRF, XSS, SQL injection, SSRF, and the infrastructure attacks an L7 engineer must recognise and stop.",
+        lessonTitles: [
+          "OWASP Top 10 in one page: the vulnerabilities that keep shipping",
+          "Cross-site request forgery: how a cookie becomes an attack",
+          "Cross-site scripting: stored, reflected, and DOM-based",
+          "SQL injection and parameterised queries: why OR 1=1 still works",
+          "Server-side request forgery: when your server attacks itself",
+          "Infrastructure attacks: SSRF to metadata, privilege escalation, and lateral movement",
+          "Defence in depth: CSP, CORS, SameSite, and security headers",
+        ],
+        encyclopediaId: "security-zero-trust-architecture",
+        practiceLabIds: ["razorpay-payments", "agentic-rag-support"],
+      },
+      {
+        id: "application-security-essentials",
+        number: 32,
+        title: "Application security essentials",
+        description:
+          "Authn vs authz, password storage, API security, supply chain, cryptography, DDoS, and incident response.",
+        lessonTitles: [
+          "Authentication vs authorization: sessions, JWT, and OAuth2/OIDC",
+          "Password storage: hashing, salting, and Argon2",
+          "API security: BOLA, mass assignment, and rate limits",
+          "Supply chain security: SBOM, dependency confusion, and lockfiles",
+          "Cryptography for engineers: hashing vs encryption vs signing",
+          "DDoS and bot defence: L3/L4 vs L7",
+          "Detection and incident response: logs, alerts, and the first hour",
+        ],
+        encyclopediaId: "security-zero-trust-architecture",
+        practiceLabIds: ["razorpay-payments", "agentic-rag-support"],
+      },
+      {
         id: "principal-architect-and-finops",
-        number: 29,
+        number: 33,
         title: "Principal architect toolkit: ADRs, SLOs & FinOps",
         description:
           "Composite serial vs parallel SLA arithmetic, error-budget burn alerts, writing high-leverage ADRs/RFCs, and cloud FinOps unit economics.",
@@ -620,7 +700,7 @@ export const PATH_PARTS: PathPart[] = [
     modules: [
       {
         id: "search-at-scale",
-        number: 30,
+        number: 34,
         title: "Search at scale",
         description:
           "Why a search box is not a SQL query: inverted indexes, ranking, analyzers, sharding, and keeping the index fresh.",
@@ -637,7 +717,7 @@ export const PATH_PARTS: PathPart[] = [
       },
       {
         id: "analytics-and-recommendations",
-        number: 31,
+        number: 35,
         title: "Analytics and recommendations",
         description:
           "Columnar stores, batch vs stream, and how personalization turns behaviour into a ranked list.",
@@ -651,51 +731,6 @@ export const PATH_PARTS: PathPart[] = [
         ],
         encyclopediaId: "event-streaming",
         practiceLabIds: ["netflix-streaming", "instagram-feed"],
-      },
-    ],
-  },
-  {
-    id: "networking-and-security",
-    title: "Networking and Security at depth",
-    subtitle: "How bytes move, how attackers move, and how L7 engineers defend.",
-    accentClass: "text-rose-300",
-    accentHex: "#FB7185",
-    modules: [
-      {
-        id: "networking-fundamentals",
-        number: 32,
-        title: "Networking fundamentals",
-        description:
-          "TCP, UDP, TLS, HTTP/2, DNS, connection pooling, and the latency budget every L7 engineer reasons about.",
-        lessonTitles: [
-          "TCP vs UDP: reliability, ordering, and when to drop packets",
-          "The TCP handshake, congestion control, and head-of-line blocking",
-          "TLS 1.3: the handshake, 0-RTT, and certificate chains",
-          "HTTP/2 multiplexing, HTTP/3 QUIC, and the end of head-of-line",
-          "DNS resolution, caching, TTLs, and the 5-second outage",
-          "Connection pooling, keep-alive, and the cost of a new connection",
-          "Latency budgets: where the milliseconds go in a request",
-        ],
-        encyclopediaId: "load-balancing",
-        practiceLabIds: ["whatsapp-chat", "twitter-timeline"],
-      },
-      {
-        id: "security-vulnerabilities-and-attacks",
-        number: 33,
-        title: "Security vulnerabilities and attacks",
-        description:
-          "OWASP Top 10, CSRF, XSS, SQL injection, SSRF, and the infrastructure attacks an L7 engineer must recognise and stop.",
-        lessonTitles: [
-          "OWASP Top 10 in one page: the vulnerabilities that keep shipping",
-          "Cross-site request forgery: how a cookie becomes an attack",
-          "Cross-site scripting: stored, reflected, and DOM-based",
-          "SQL injection and parameterised queries: why OR 1=1 still works",
-          "Server-side request forgery: when your server attacks itself",
-          "Infrastructure attacks: SSRF to metadata, privilege escalation, and lateral movement",
-          "Defence in depth: CSP, CORS, SameSite, and security headers",
-        ],
-        encyclopediaId: "security-zero-trust-architecture",
-        practiceLabIds: ["razorpay-payments", "agentic-rag-support"],
       },
     ],
   },
