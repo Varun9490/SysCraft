@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { SiteChrome } from "@/components/nav/SiteChrome";
 import { LabBrief } from "@/components/labs/LabBrief";
 import { GUIDED_LABS } from "@/data/guidedLabs";
 import { formatRps, labCleanTitle } from "@/data/labMeta";
@@ -56,9 +55,5 @@ export default async function LabWorkspacePage({
   const { id } = await params;
   const lab = GUIDED_LABS.find((entry) => entry.id === id);
   if (!lab) notFound();
-  return (
-    <SiteChrome>
-      <LabBrief lab={lab} />
-    </SiteChrome>
-  );
+  return <LabBrief lab={lab} />;
 }

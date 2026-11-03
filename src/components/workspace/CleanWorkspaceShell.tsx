@@ -407,6 +407,17 @@ export default function CleanWorkspaceShell() {
         }
         // Restored coordinates may sit off the previous viewport: refit once.
         useCanvasStore.setState((state) => ({ fitViewNonce: state.fitViewNonce + 1 }));
+        // A lesson/lab "Try on canvas" or "Open on canvas" asked for a clean
+        // slate: drop the restored topology before the deep-link drop runs.
+        try {
+          if (sessionStorage.getItem("syscraft:resetCanvas") === "1") {
+            sessionStorage.removeItem("syscraft:resetCanvas");
+            useCanvasStore.getState().replaceTopology([], []);
+          }
+        } catch {
+          /* storage disabled */
+        }
+
         // Tell the canvas the persisted topology is in place, so a wiki deep
         // link (?add=...) can drop its primitives on top of the restore
         // instead of being overwritten by it.

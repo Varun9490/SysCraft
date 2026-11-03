@@ -117,6 +117,11 @@ export function LessonBlogViewer({
   }, [quizRevealed, quizCorrect]);
 
   const handleTryOnCanvas = () => {
+    try {
+      sessionStorage.setItem("syscraft:resetCanvas", "1");
+    } catch {
+      /* storage disabled */
+    }
     if (blog.sandbox.blueprintId) {
       const bp = getBlueprint(blog.sandbox.blueprintId);
       if (bp) {

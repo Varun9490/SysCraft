@@ -31,6 +31,7 @@ export function CaseStudiesPageContent() {
   const open = (blueprint: Blueprint) => {
     try {
       sessionStorage.setItem("syscraft:pendingBlueprint", blueprint.id);
+      sessionStorage.setItem("syscraft:resetCanvas", "1");
     } catch {
       /* storage disabled — fall back to in-memory load */
     }

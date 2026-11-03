@@ -142,6 +142,9 @@ export function LabWorkspace({ labId }: { labId: string }) {
   useEffect(() => {
     void useLearningStore.getState().hydrateFromDb();
     setSoundOn(isSoundEnabled());
+    // A lab canvas must start empty, never inherit the user's previous design.
+    useCanvasStore.getState().replaceTopology([], []);
+    useCanvasStore.getState().setSceneName(`Lab: ${lab?.title ?? ""}`);
   }, []);
 
   if (!lab || !stage) {
