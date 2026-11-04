@@ -508,7 +508,7 @@ export function SecurityHubContent() {
                   strokeWidth="7"
                   strokeLinecap="round"
                   strokeDasharray={`${(score / 100) * circumference} ${circumference}`}
-                  className="transition-all duration-700"
+                  className="transition-[stroke-dasharray,stroke] duration-700"
                 />
               ) : null}
             </svg>

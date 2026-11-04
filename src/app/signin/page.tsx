@@ -18,10 +18,15 @@ export default function SignInPage() {
     setError("");
     if (!email || !password) { setError("Email and password are required."); return; }
     setLoading(true);
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (err) { setError(err.message); return; }
-    setDone(true);
+    try {
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) { setError(err.message); return; }
+      setDone(true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Sign-in failed. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

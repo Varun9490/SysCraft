@@ -79,15 +79,19 @@ export function LessonBlogViewer({
   const trackRef = useRef<HTMLDivElement>(null);
   const stepRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // Reset per-lesson interactive state whenever the blog changes.
-  useEffect(() => {
+  // Reset per-lesson interactive state whenever the blog changes. Adjusted
+  // during render (React docs pattern) so there is no extra painted frame.
+  const nextBlogKey = `${blog.id}::${blog.sandbox.defaultValue}`;
+  const [blogKey, setBlogKey] = useState(nextBlogKey);
+  if (blogKey !== nextBlogKey) {
+    setBlogKey(nextBlogKey);
     setSliderValue(blog.sandbox.defaultValue);
     setActiveStep(0);
     setAutoPlay(false);
     setStageIndex(0);
     setQuizChoice(null);
     setQuizRevealed(false);
-  }, [blog.id, blog.sandbox.defaultValue]);
+  }
 
   const flow = blog.diagramFlow;
   const flowLen = flow.length;

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Plus, Trash2 } from "@/components/ui/icons";
 import { useWorkbenchStore } from "@/store/useWorkbenchStore";
+import { parseFiniteNumber } from "@/lib/numbers";
 import type { ColumnType, Entity, TableColumn } from "@/types/workbench";
 
 /**
@@ -80,6 +81,7 @@ export function DataModelDesigner() {
           value={table}
           onChange={(e) => setTable(e.target.value)}
           placeholder="table name"
+          aria-label="Table name"
           className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 font-mono text-xs text-zinc-100"
         />
         <select
@@ -120,10 +122,10 @@ export function DataModelDesigner() {
                 ))}
               </select>
               <label className="ml-auto flex items-center gap-1 text-[11px] text-zinc-400">
-                R <input type="number" min={0} value={entity.readQps} onChange={(e) => updateEntity(entity.id, { readQps: Math.max(0, Number(e.target.value)) })} className="w-20 rounded bg-zinc-950 px-1 py-0.5 tabular-nums" />
+                R <input type="number" min={0} value={entity.readQps} onChange={(e) => updateEntity(entity.id, { readQps: Math.max(0, parseFiniteNumber(e.target.value, entity.readQps)) })} className="w-20 rounded bg-zinc-950 px-1 py-0.5 tabular-nums" aria-label="Read QPS" />
               </label>
               <label className="flex items-center gap-1 text-[11px] text-zinc-400">
-                W <input type="number" min={0} value={entity.writeQps} onChange={(e) => updateEntity(entity.id, { writeQps: Math.max(0, Number(e.target.value)) })} className="w-20 rounded bg-zinc-950 px-1 py-0.5 tabular-nums" />
+                W <input type="number" min={0} value={entity.writeQps} onChange={(e) => updateEntity(entity.id, { writeQps: Math.max(0, parseFiniteNumber(e.target.value, entity.writeQps)) })} className="w-20 rounded bg-zinc-950 px-1 py-0.5 tabular-nums" aria-label="Write QPS" />
               </label>
               <button onClick={() => removeEntity(entity.id)} className="text-zinc-500 hover:text-red-300" aria-label={`Delete table ${entity.table}`}>
                 <Trash2 size={14} />
@@ -145,6 +147,7 @@ export function DataModelDesigner() {
                 <div key={ci} className="flex items-center gap-1.5">
                   <input
                     value={col.name}
+                    aria-label="Column name"
                     onChange={(e) => updateEntity(entity.id, { columns: entity.columns.map((c, j) => (j === ci ? { ...c, name: e.target.value } : c)) })}
                     className="w-28 rounded bg-zinc-950 px-1.5 py-1 font-mono text-[11px] text-zinc-100"
                   />

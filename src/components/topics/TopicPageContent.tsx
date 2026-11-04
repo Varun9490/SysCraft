@@ -128,7 +128,7 @@ export function TopicPageContent({ topic }: { topic: Topic }) {
             <Link
               key={r.slug}
               href={`/topics/${r.slug}`}
-              className="group rounded-2xl border border-line bg-app/50 p-5 shadow-card transition-all hover:-translate-y-1 hover:border-brass/40"
+              className="group rounded-2xl border border-line bg-app/50 p-5 shadow-card transition hover:-translate-y-1 hover:border-brass/40"
             >
               <p className="text-[10px] uppercase tracking-[0.14em] text-content-tertiary">{r.category}</p>
               <p className="mt-2 text-[15px] font-semibold text-content">{r.title}</p>

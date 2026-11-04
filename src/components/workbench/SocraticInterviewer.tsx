@@ -290,6 +290,7 @@ export function SocraticInterviewer() {
             onChange={(e) => setAnswer(e.target.value)}
             rows={4}
             placeholder="Defend your design decision…"
+            aria-label="Your answer"
             className="mt-2 w-full rounded-md border border-zinc-700 bg-zinc-950 p-2 text-xs leading-relaxed text-zinc-100"
           />
           <button
@@ -344,7 +345,7 @@ export function SocraticInterviewer() {
         <summary className="cursor-pointer text-xs font-semibold text-zinc-300">AI settings (BYOK · WebGPU)</summary>
         <div className="mt-2 space-y-2">
           <div className="flex gap-1.5">
-            <select value={byokProvider} onChange={(e) => setByokProvider(e.target.value as ByokConfig["provider"])} className="rounded bg-zinc-900 px-2 py-1.5 text-xs text-zinc-200">
+            <select value={byokProvider} onChange={(e) => setByokProvider(e.target.value as ByokConfig["provider"])} aria-label="BYOK provider" className="rounded bg-zinc-900 px-2 py-1.5 text-xs text-zinc-200">
               <option value="gemini">Gemini</option>
               <option value="openai">OpenAI</option>
               <option value="anthropic">Anthropic</option>
@@ -354,6 +355,7 @@ export function SocraticInterviewer() {
               value={byokKey}
               onChange={(e) => setByokKey(e.target.value)}
               placeholder="API key (stored locally only)"
+              aria-label="API key (stored locally only)"
               className="flex-1 rounded bg-zinc-900 px-2 py-1.5 font-mono text-xs text-zinc-200"
             />
             <button

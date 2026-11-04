@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckSquare, Plus, Square, Trash2, X } from "@/components/ui/icons";
 import { useWorkbenchStore } from "@/store/useWorkbenchStore";
+import { parseFiniteNumber } from "@/lib/numbers";
 import type { WorkbenchStep } from "@/types/workbench";
 import { BoECalculator } from "./BoECalculator";
 import { ApiContractBuilder } from "./ApiContractBuilder";
@@ -90,6 +91,7 @@ export function DesignWorkbench({ open, onClose }: DesignWorkbenchProps) {
                   if (e.key === "Enter") add();
                 }}
                 placeholder="Add a functional requirement…"
+                aria-label="Add a functional requirement"
                 className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100"
               />
               <button onClick={add} className="flex items-center gap-1 rounded-md bg-sky-500 px-2.5 text-xs font-semibold text-zinc-950 hover:bg-sky-400">
@@ -112,11 +114,11 @@ export function DesignWorkbench({ open, onClose }: DesignWorkbenchProps) {
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <label className="block text-zinc-400">
                   Availability
-                  <input type="number" min={0} max={1} step={0.001} value={nonFunctional.availabilityTarget} onChange={(e) => setNonFunctional({ availabilityTarget: Math.max(0, Math.min(1, Number(e.target.value))) })} className="mt-0.5 w-full rounded bg-zinc-950 px-1.5 py-1 tabular-nums text-zinc-100" />
+                  <input type="number" min={0} max={1} step={0.001} value={nonFunctional.availabilityTarget} onChange={(e) => setNonFunctional({ availabilityTarget: Math.max(0, Math.min(1, parseFiniteNumber(e.target.value, nonFunctional.availabilityTarget))) })} className="mt-0.5 w-full rounded bg-zinc-950 px-1.5 py-1 tabular-nums text-zinc-100" />
                 </label>
                 <label className="block text-zinc-400">
                   p99 latency (ms)
-                  <input type="number" min={1} value={nonFunctional.p99LatencyMs} onChange={(e) => setNonFunctional({ p99LatencyMs: Math.max(1, Number(e.target.value)) })} className="mt-0.5 w-full rounded bg-zinc-950 px-1.5 py-1 tabular-nums text-zinc-100" />
+                  <input type="number" min={1} value={nonFunctional.p99LatencyMs} onChange={(e) => setNonFunctional({ p99LatencyMs: Math.max(1, parseFiniteNumber(e.target.value, nonFunctional.p99LatencyMs)) })} className="mt-0.5 w-full rounded bg-zinc-950 px-1.5 py-1 tabular-nums text-zinc-100" />
                 </label>
               </div>
             </div>
@@ -134,6 +136,7 @@ export function DesignWorkbench({ open, onClose }: DesignWorkbenchProps) {
               value={highLevelNotes}
               onChange={(e) => setHighLevelNotes(e.target.value)}
               rows={16}
+              aria-label="High-level design notes"
               className="w-full rounded-md border border-zinc-800 bg-zinc-900 p-2.5 font-mono text-xs leading-relaxed text-zinc-100"
             />
           </div>
@@ -147,6 +150,7 @@ export function DesignWorkbench({ open, onClose }: DesignWorkbenchProps) {
                 value={deepDiveNotes}
                 onChange={(e) => setDeepDiveNotes(e.target.value)}
                 rows={6}
+                aria-label="Deep-dive working notes"
                 className="w-full rounded-md border border-zinc-800 bg-zinc-900 p-2.5 font-mono text-xs leading-relaxed text-zinc-100"
               />
             </div>

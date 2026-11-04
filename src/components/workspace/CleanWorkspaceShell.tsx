@@ -619,13 +619,11 @@ export default function CleanWorkspaceShell() {
             className="absolute inset-0 z-[55] cursor-default bg-black/55 backdrop-blur-[1px] lg:hidden"
           />
         )}
-        <motion.aside
-          initial={false}
-          animate={{ width: railOpen ? railWidth : 0, opacity: railOpen ? 1 : 0 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        <aside
           className={`${
             isCompact ? "absolute inset-y-0 left-0 z-[60] shadow-2xl" : "relative"
-          } flex shrink-0 flex-col overflow-hidden border-r border-zinc-800/80 bg-zinc-950`}
+          } flex shrink-0 flex-col overflow-hidden border-r border-zinc-800/80 bg-zinc-950 transition-[width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]`}
+          style={{ width: railOpen ? railWidth : 0, opacity: railOpen ? 1 : 0 }}
           aria-hidden={!railOpen}
           aria-label="Workspace palette"
         >
@@ -704,7 +702,7 @@ export default function CleanWorkspaceShell() {
               }}
             />
           )}
-        </motion.aside>
+        </aside>
 
         <AnimatePresence>
           {!railOpen && (

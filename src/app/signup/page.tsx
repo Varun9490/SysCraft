@@ -20,10 +20,15 @@ export default function SignUpPage() {
     if (!email || !password || !name) { setError("All fields are required."); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     setLoading(true);
-    const { error: err } = await supabase.auth.signUp({ email, password, options: { data: { display_name: name } } });
-    setLoading(false);
-    if (err) { setError(err.message); return; }
-    setDone(true);
+    try {
+      const { error: err } = await supabase.auth.signUp({ email, password, options: { data: { display_name: name } } });
+      if (err) { setError(err.message); return; }
+      setDone(true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Sign-up failed. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

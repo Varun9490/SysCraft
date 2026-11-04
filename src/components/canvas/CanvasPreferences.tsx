@@ -277,6 +277,7 @@ export function CanvasPreferences() {
                       }
                     }}
                     placeholder="Preset name"
+                    aria-label="Preset name"
                     className="h-7 min-w-0 flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-[11.5px] text-zinc-200 placeholder:text-zinc-600"
                   />
                   <button

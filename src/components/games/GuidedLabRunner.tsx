@@ -111,7 +111,7 @@ export function GuidedLabRunner({ open, onClose }: GuidedLabRunnerProps) {
       >
         <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
           <FlaskConical size={16} className="text-sky-300" />
-          <select value={lab.id} onChange={(e) => setLabId(e.target.value)} className="max-w-64 truncate rounded bg-zinc-900 px-2 py-1 text-sm font-bold text-zinc-50">
+          <select value={lab.id} onChange={(e) => setLabId(e.target.value)} aria-label="Choose lab" className="max-w-64 truncate rounded bg-zinc-900 px-2 py-1 text-sm font-bold text-zinc-50">
             {GUIDED_LABS.map((l) => (
               <option key={l.id} value={l.id}>{l.title}</option>
             ))}

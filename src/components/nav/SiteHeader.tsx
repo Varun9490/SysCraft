@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
+import { Collapsible } from "@/components/ui/Collapsible";
 import { ArrowRight, Menu, X } from "@/components/ui/icons";
 
 /**
@@ -64,7 +65,7 @@ export function SiteHeader() {
 
   return (
     <header
-      className={`sticky top-0 z-40 w-full border-b transition-all duration-300 ${
+      className={`sticky top-0 z-40 w-full border-b transition duration-300 ${
         scrolled || mobileOpen
           ? "border-zinc-800/70 bg-zinc-950/85 backdrop-blur-xl"
           : "border-transparent bg-transparent"
@@ -128,16 +129,17 @@ export function SiteHeader() {
         </button>
       </div>
 
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.nav
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden border-t border-zinc-800/70 bg-zinc-950/95 backdrop-blur-xl lg:hidden"
-            aria-label="Mobile"
-          >
+      <Collapsible
+        open={mobileOpen}
+        durationMs={240}
+        outerClassName={`border-zinc-800/70 bg-zinc-950/95 backdrop-blur-xl lg:hidden ${
+          mobileOpen ? "border-t" : "border-transparent"
+        }`}
+      >
+        <nav
+          aria-label="Mobile"
+          className="overflow-hidden"
+        >
             <div className="section-container flex max-h-[70vh] flex-col gap-1 overflow-y-auto py-4">
               {NAV_LINKS.map((link, index) => {
                 const active = isActive(pathname, link.href);
@@ -174,9 +176,8 @@ export function SiteHeader() {
                 </Link>
               </motion.div>
             </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
+        </nav>
+      </Collapsible>
     </header>
   );
 }

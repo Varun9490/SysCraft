@@ -226,9 +226,9 @@ export function LabWorkspace({ labId }: { labId: string }) {
           <div className="hidden items-center gap-2 lg:flex">
             <div className="h-1.5 w-24 overflow-hidden rounded-full bg-zinc-800">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-brass to-success"
+                className="h-full w-full origin-left rounded-full bg-gradient-to-r from-brass to-success"
                 initial={false}
-                animate={{ width: `${progressPct}%` }}
+                animate={{ scaleX: Math.max(0, Math.min(1, progressPct / 100)) }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>

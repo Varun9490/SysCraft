@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useInView, useSpring } from 'framer-motion';
+import { useInView, useMotionValueEvent, useSpring } from 'framer-motion';
 
 /**
  * ReactBits-style CountUp: spring-driven integer count that starts when the
@@ -28,23 +28,24 @@ export function CountUp({ to, duration = 1.6, className, prefix = '', suffix = '
     mass: 0.9,
   });
 
+  useMotionValueEvent(spring, 'change', (v) => {
+    setDisplay(Math.max(0, Math.round(v)));
+  });
+
   useEffect(() => {
     const reduced =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (reduced || !inView) {
+      spring.jump(to);
       setDisplay(to);
-      return;
+      return undefined;
     }
     spring.jump(0);
-    const unsub = spring.on('change', (v) => setDisplay(Math.max(0, Math.round(v))));
     // start slightly later so the hero settles first
     const t = window.setTimeout(() => spring.set(to), 240);
-    return () => {
-      unsub();
-      window.clearTimeout(t);
-    };
+    return () => window.clearTimeout(t);
   }, [inView, to, spring]);
 
   return (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   BookOpen,
@@ -13,6 +13,7 @@ import {
   PlayCircle,
 } from "@/components/ui/icons";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
+import { Collapsible } from "@/components/ui/Collapsible";
 import { Markdown } from "@/components/Markdown";
 import { ENCYCLOPEDIA_MAP } from "@/data/encyclopediaData";
 import { GUIDED_LABS } from "@/data/guidedLabs";
@@ -74,23 +75,19 @@ export function PathPageContent() {
   };
 
   const toggleComplete = (id: string) => {
-    setCompletedLessons((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      persistCompleted(next);
-      return next;
-    });
+    const next = new Set(completedLessons);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    persistCompleted(next);
+    setCompletedLessons(next);
   };
 
   const markComplete = (id: string) => {
-    setCompletedLessons((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      persistCompleted(next);
-      return next;
-    });
+    if (completedLessons.has(id)) return;
+    const next = new Set(completedLessons);
+    next.add(id);
+    persistCompleted(next);
+    setCompletedLessons(next);
   };
 
   return (
@@ -234,16 +231,8 @@ export function PathPageContent() {
                       </motion.span>
                     </button>
 
-                    <AnimatePresence initial={false}>
-                      {expanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                          className="overflow-hidden"
-                        >
-                          <div className="border-t border-zinc-800/70 px-5 py-5">
+                    <Collapsible open={expanded} durationMs={300}>
+                        <div className="border-t border-zinc-800/70 px-5 py-5">
                             <div className="mb-4 flex flex-wrap items-center gap-2">
                               <button
                                 type="button"
@@ -408,9 +397,7 @@ export function PathPageContent() {
                               </div>
                             )}
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    </Collapsible>
                   </div>
                 </AnimatedSection>
               );

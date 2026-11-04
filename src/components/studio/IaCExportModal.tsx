@@ -162,6 +162,7 @@ export function IaCExportModal({ open, onClose }: IaCExportModalProps) {
                 onChange={(e) => setDslDraft(e.target.value)}
                 rows={18}
                 spellCheck={false}
+                aria-label="IaC DSL draft"
                 className="w-full rounded-md border border-zinc-800 bg-ink p-2.5 font-mono text-[12px] leading-relaxed text-zinc-100"
               />
               {dslErrors.length > 0 && (

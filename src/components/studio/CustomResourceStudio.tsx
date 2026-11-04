@@ -7,6 +7,7 @@ import type { CustomResourceRecord } from "@/store/db";
 import { makeCustomSpec, registerCustomResource } from "@/store/customResourceRegistry";
 import { synthesizeResourceOffline } from "@/engine/aiClient";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { parseFiniteNumber } from "@/lib/numbers";
 import type { ResourceCategory } from "@/types/resource";
 
 /**
@@ -110,6 +111,8 @@ export function CustomResourceStudio({ open, onClose }: CustomResourceStudioProp
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe the infrastructure in plain English"
+            aria-label="Describe the infrastructure in plain English"
             className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100"
           />
           <button onClick={compileFromText} className="flex items-center gap-1 rounded-md bg-amber-300 px-2.5 text-xs font-semibold text-zinc-950 hover:bg-amber-200">
@@ -132,11 +135,11 @@ export function CustomResourceStudio({ open, onClose }: CustomResourceStudioProp
           </label>
           <label className="block text-[11px] text-zinc-400">
             Base throughput (RPS)
-            <input type="number" min={1} value={throughput} onChange={(e) => setThroughput(Math.max(1, Number(e.target.value)))} className="mt-0.5 w-full rounded bg-zinc-900 px-2 py-1.5 text-xs tabular-nums text-zinc-100" />
+            <input type="number" min={1} value={throughput} onChange={(e) => setThroughput(Math.max(1, parseFiniteNumber(e.target.value, throughput)))} className="mt-0.5 w-full rounded bg-zinc-900 px-2 py-1.5 text-xs tabular-nums text-zinc-100" />
           </label>
           <label className="block text-[11px] text-zinc-400">
             Base p50 (ms)
-            <input type="number" min={0} value={p50} onChange={(e) => setP50(Math.max(0, Number(e.target.value)))} className="mt-0.5 w-full rounded bg-zinc-900 px-2 py-1.5 text-xs tabular-nums text-zinc-100" />
+            <input type="number" min={0} value={p50} onChange={(e) => setP50(Math.max(0, parseFiniteNumber(e.target.value, p50)))} className="mt-0.5 w-full rounded bg-zinc-900 px-2 py-1.5 text-xs tabular-nums text-zinc-100" />
           </label>
           <label className="block text-[11px] text-zinc-400">
             Cost per replica-hour (USD) — you decide
@@ -145,7 +148,7 @@ export function CustomResourceStudio({ open, onClose }: CustomResourceStudioProp
               min={0}
               step={0.01}
               value={cost}
-              onChange={(e) => setCost(Math.max(0, Number(e.target.value)))}
+              onChange={(e) => setCost(Math.max(0, parseFiniteNumber(e.target.value, cost)))}
               className="mt-0.5 w-full rounded bg-zinc-900 px-2 py-1.5 text-xs tabular-nums text-zinc-100"
             />
           </label>

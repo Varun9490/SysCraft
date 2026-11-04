@@ -80,7 +80,7 @@ export function NumbersDrill() {
               type="button"
               onClick={() => choose(side)}
               disabled={revealed}
-              className={`rounded-xl border px-4 py-3 text-left text-[13.5px] font-medium transition-all ${
+              className={`rounded-xl border px-4 py-3 text-left text-[13.5px] font-medium transition ${
                 revealed
                   ? isFaster
                     ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"

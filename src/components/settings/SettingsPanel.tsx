@@ -422,6 +422,7 @@ export function SettingsPanel() {
               type="button"
               role="switch"
               aria-checked={practice.catchUpMode}
+              aria-label="Catch-up mode"
               onClick={() => {
                 setPractice((p) => ({ ...p, catchUpMode: !p.catchUpMode }));
                 setPracticeSaved(false);
@@ -431,8 +432,8 @@ export function SettingsPanel() {
               }`}
             >
               <span
-                className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-zinc-100 transition-all ${
-                  practice.catchUpMode ? 'left-[18px]' : 'left-0.5'
+                className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-zinc-100 transition-transform duration-200 ${
+                  practice.catchUpMode ? 'translate-x-[16px]' : 'translate-x-0'
                 }`}
               />
             </button>

@@ -11,11 +11,10 @@ import type { KeyNumber } from '@/types/encyclopedia';
 export function KeyNumberGrid({ numbers }: { numbers: KeyNumber[] }) {
   if (numbers.length === 0) return null;
   return (
-    <div className="wiki-pop grid gap-3 sm:grid-cols-3" role="list" aria-label="Key numbers from this module">
+    <ul className="wiki-pop grid gap-3 sm:grid-cols-3" aria-label="Key numbers from this module">
       {numbers.map((n, i) => (
-        <div
+        <li
           key={n.label}
-          role="listitem"
           className="wiki-pop-item group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 transition-colors hover:border-brass/50"
           style={{ animationDelay: `${i * 90}ms` }}
         >
@@ -25,8 +24,8 @@ export function KeyNumberGrid({ numbers }: { numbers: KeyNumber[] }) {
           <p className="relative text-[22px] font-bold leading-tight tracking-tight text-brass-bright">{n.value}</p>
           <p className="relative mt-1 text-[12.5px] font-medium leading-snug text-zinc-200">{n.label}</p>
           {n.note && <p className="relative mt-1.5 text-[11.5px] leading-relaxed text-zinc-500">{n.note}</p>}
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

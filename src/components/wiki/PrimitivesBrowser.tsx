@@ -160,6 +160,7 @@ export function PrimitivesBrowser({ primitives = SEED_RESOURCES }: { primitives?
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search primitives, e.g. “redis” or “lambda”…"
+              aria-label="Search primitives"
               className="w-full rounded-xl border border-zinc-800 bg-zinc-900/70 py-2.5 pl-10 pr-4 text-[13.5px] text-zinc-200 outline-none transition-colors placeholder:text-zinc-600 focus:border-zinc-600"
             />
           </div>
@@ -206,7 +207,7 @@ export function PrimitivesBrowser({ primitives = SEED_RESOURCES }: { primitives?
                   <button
                     type="button"
                     onClick={() => select(p.id)}
-                    className={`wiki-pop-item w-full rounded-xl border px-3.5 py-3 pr-24 text-left transition-all ${
+                    className={`wiki-pop-item w-full rounded-xl border px-3.5 py-3 pr-24 text-left transition ${
                       active
                         ? 'border-brass/50 bg-brass/[0.07]'
                         : 'border-zinc-800 bg-zinc-950/40 hover:border-zinc-600 hover:bg-zinc-900/60'

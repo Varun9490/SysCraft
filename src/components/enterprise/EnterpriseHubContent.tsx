@@ -45,6 +45,7 @@ import { GUIDED_LABS } from "@/data/guidedLabs";
 import { PATH_PARTS } from "@/data/pathData";
 import { getSeedResource } from "@/data/seedResources";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { parseFiniteNumber } from "@/lib/numbers";
 import { useLearningStore } from "@/store/useLearningStore";
 import { useSimStore } from "@/store/useSimStore";
 import type { LabProgress } from "@/types/challenges";
@@ -1185,8 +1186,8 @@ export function EnterpriseHubContent() {
               </div>
               <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-app-raised">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-brass-deep via-brass to-brass-bright transition-all"
-                  style={{ width: `${Math.max(2, activeTrackStat.progress)}%` }}
+                  className="h-full w-full origin-left rounded-full bg-gradient-to-r from-brass-deep via-brass to-brass-bright transition-transform duration-300"
+                  style={{ transform: `scaleX(${Math.max(0.02, Math.min(1, Math.max(2, activeTrackStat.progress) / 100))})` }}
                 />
               </div>
               <p className="mt-3 text-[11.5px] leading-relaxed text-content-tertiary">
@@ -1279,7 +1280,7 @@ export function EnterpriseHubContent() {
                     type="button"
                     onClick={() => setSelectedTrackId(stat.track.id)}
                     aria-pressed={selected}
-                    className={`group rounded-2xl border p-4 text-left transition-all ${
+                    className={`group rounded-2xl border p-4 text-left transition ${
                       selected
                         ? "border-brass/45 bg-brass/[0.06] shadow-card"
                         : "border-line bg-app/40 hover:border-line-strong hover:bg-app/60"
@@ -1576,8 +1577,8 @@ export function EnterpriseHubContent() {
                       }`}
                     >
                       <span
-                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-ink transition-all ${
-                          multiRegion ? "left-[18px]" : "left-0.5"
+                        className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-ink transition-transform duration-200 ${
+                          multiRegion ? "translate-x-4" : "translate-x-0"
                         }`}
                       />
                     </span>
@@ -2181,11 +2182,9 @@ export function EnterpriseHubContent() {
                         step={0.0001}
                         value={selectedAdr.targetSlaPercent}
                         onChange={(event) => {
-                          const next = Number(event.target.value);
+                          const next = parseFiniteNumber(event.target.value, selectedAdr.targetSlaPercent);
                           updateSelectedAdr({
-                            targetSlaPercent: Number.isFinite(next)
-                              ? Math.max(0, Math.min(99.9999, next))
-                              : selectedAdr.targetSlaPercent,
+                            targetSlaPercent: Math.max(0, Math.min(99.9999, next)),
                           });
                         }}
                         className="mt-1 w-full rounded-lg border border-line bg-app-raised/40 px-2.5 py-2 text-[12px] tabular-nums text-content outline-none transition-colors focus:border-brass/50"
@@ -2201,11 +2200,9 @@ export function EnterpriseHubContent() {
                         step={100}
                         value={selectedAdr.estimatedMonthlyBudgetUsd}
                         onChange={(event) => {
-                          const next = Number(event.target.value);
+                          const next = parseFiniteNumber(event.target.value, selectedAdr.estimatedMonthlyBudgetUsd);
                           updateSelectedAdr({
-                            estimatedMonthlyBudgetUsd: Number.isFinite(next)
-                              ? Math.max(0, next)
-                              : selectedAdr.estimatedMonthlyBudgetUsd,
+                            estimatedMonthlyBudgetUsd: Math.max(0, next),
                           });
                         }}
                         className="mt-1 w-full rounded-lg border border-line bg-app-raised/40 px-2.5 py-2 text-[12px] tabular-nums text-content outline-none transition-colors focus:border-brass/50"
@@ -2404,7 +2401,7 @@ export function EnterpriseHubContent() {
                                   max={100}
                                   value={score}
                                   onChange={(event) =>
-                                    updateMemberScore(member.id, pillar.id, Number(event.target.value))
+                                    updateMemberScore(member.id, pillar.id, parseFiniteNumber(event.target.value, score))
                                   }
                                   aria-label={`${member.name} ${pillar.label} score`}
                                   className={`w-12 rounded-md border border-line bg-app-raised/40 px-1 py-1 text-center text-[11px] tabular-nums outline-none transition-colors focus:border-brass/50 ${cellTone.text}`}

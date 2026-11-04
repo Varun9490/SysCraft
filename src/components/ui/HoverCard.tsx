@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 
 /**
  * Hover card — the shadcn/base-UI composition (HoverCard > Trigger + Content)
@@ -38,22 +38,22 @@ export function HoverCard({
   const [open, setOpen] = useState(false);
   const timers = useRef<{ open?: number; close?: number }>({});
 
-  const clearTimers = () => {
+  const clearTimers = useCallback(() => {
     if (timers.current.open) window.clearTimeout(timers.current.open);
     if (timers.current.close) window.clearTimeout(timers.current.close);
     timers.current = {};
-  };
+  }, []);
 
-  const openCard = () => {
+  const openCard = useCallback(() => {
     clearTimers();
     timers.current.open = window.setTimeout(() => setOpen(true), delay);
-  };
-  const closeCard = () => {
+  }, [clearTimers, delay]);
+  const closeCard = useCallback(() => {
     clearTimers();
     timers.current.close = window.setTimeout(() => setOpen(false), closeDelay);
-  };
+  }, [clearTimers, closeDelay]);
 
-  useEffect(() => () => clearTimers(), []);
+  useEffect(() => () => clearTimers(), [clearTimers]);
   const contentId = useId();
   const value = useMemo<HoverCardCtx>(
     () => ({ open, openCard, closeCard, contentId, side }),

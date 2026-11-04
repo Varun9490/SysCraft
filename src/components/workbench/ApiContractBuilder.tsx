@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "@/components/ui/icons";
 import { useWorkbenchStore } from "@/store/useWorkbenchStore";
+import { parseFiniteNumber } from "@/lib/numbers";
 import type { ApiRoute, HttpMethod } from "@/types/workbench";
 
 /**
@@ -98,7 +99,7 @@ export function ApiContractBuilder() {
               type="number"
               min={1}
               value={draft.rateLimitRps}
-              onChange={(e) => setDraft({ ...draft, rateLimitRps: Math.max(1, Number(e.target.value)) })}
+              onChange={(e) => setDraft({ ...draft, rateLimitRps: Math.max(1, parseFiniteNumber(e.target.value, draft.rateLimitRps)) })}
               className="w-full rounded bg-zinc-950 px-1.5 py-1.5 text-xs tabular-nums text-zinc-100"
             />
           </label>
@@ -117,7 +118,7 @@ export function ApiContractBuilder() {
               type="number"
               min={1}
               value={draft.p99BudgetMs}
-              onChange={(e) => setDraft({ ...draft, p99BudgetMs: Math.max(1, Number(e.target.value)) })}
+              onChange={(e) => setDraft({ ...draft, p99BudgetMs: Math.max(1, parseFiniteNumber(e.target.value, draft.p99BudgetMs)) })}
               className="w-full rounded bg-zinc-950 px-1.5 py-1.5 text-xs tabular-nums text-zinc-100"
             />
           </label>
@@ -153,7 +154,7 @@ export function ApiContractBuilder() {
               type="number"
               min={1}
               value={route.p99BudgetMs}
-              onChange={(e) => updateApiRoute(route.id, { p99BudgetMs: Math.max(1, Number(e.target.value)) })}
+              onChange={(e) => updateApiRoute(route.id, { p99BudgetMs: Math.max(1, parseFiniteNumber(e.target.value, route.p99BudgetMs)) })}
               title="p99 budget (ms)"
               className="w-16 rounded bg-zinc-900 px-1 py-1 text-[11px] tabular-nums text-zinc-200"
             />

@@ -160,7 +160,7 @@ export function IncidentArena({ open, onClose }: IncidentArenaProps) {
       >
         <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
           <Flame size={16} className="text-red-400" />
-          <select value={scenario.id} onChange={(e) => { setScenarioId(e.target.value); setRunning(false); setFinished(null); }} disabled={running} className="max-w-64 truncate rounded bg-zinc-900 px-2 py-1 text-sm font-bold text-zinc-50 disabled:opacity-60">
+          <select value={scenario.id} onChange={(e) => { setScenarioId(e.target.value); setRunning(false); setFinished(null); }} disabled={running} aria-label="Choose incident scenario" className="max-w-64 truncate rounded bg-zinc-900 px-2 py-1 text-sm font-bold text-zinc-50 disabled:opacity-60">
             {CHAOS_SCENARIOS.map((s) => (
               <option key={s.id} value={s.id}>{s.title}</option>
             ))}

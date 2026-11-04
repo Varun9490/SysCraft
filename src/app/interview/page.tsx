@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { SiteChrome } from "@/components/nav/SiteChrome";
 import { SpotlightCard } from "@/components/ui/reactbits/SpotlightCard";
 import { CountUp } from "@/components/ui/reactbits/CountUp";
@@ -23,25 +24,28 @@ const RUBRIC = [
 
 export default function InterviewPage() {
   const [problem, setProblem] = useState(PROBLEMS[0]);
-  const [running, setRunning] = useState(false);
+  // The clock is deadline-based so it stays accurate even if the tab is
+  // throttled. `endsAt` doubles as the running flag.
+  const [endsAt, setEndsAt] = useState<number | null>(null);
   const [seconds, setSeconds] = useState(45 * 60);
   const [notes, setNotes] = useState("");
   const [scores, setScores] = useState<Record<string, number>>({});
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const running = endsAt !== null;
 
   useEffect(() => {
-    if (!running) return;
-    timerRef.current = setInterval(() => {
-      setSeconds((s) => {
-        if (s <= 1) { setRunning(false); return 0; }
-        return s - 1;
-      });
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [running]);
+    if (endsAt === null) return;
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+      setSeconds(remaining);
+      if (remaining <= 0) setEndsAt(null);
+    };
+    const id = window.setInterval(tick, 250);
+    tick();
+    return () => window.clearInterval(id);
+  }, [endsAt]);
 
-  const start = () => { setSeconds(45 * 60); setNotes(""); setScores({}); setRunning(true); };
-  const stop = () => setRunning(false);
+  const start = () => { setSeconds(45 * 60); setNotes(""); setScores({}); setEndsAt(Date.now() + 45 * 60 * 1000); };
+  const stop = () => setEndsAt(null);
 
   const total = RUBRIC.reduce((acc, r) => acc + (scores[r.key] ?? 0) * r.weight / 100, 0);
 
@@ -58,6 +62,7 @@ export default function InterviewPage() {
                 value={problem.id}
                 onChange={(e) => setProblem(PROBLEMS.find((p) => p.id === e.target.value)!)}
                 disabled={running}
+                aria-label="Interview problem"
                 className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
               >
                 {PROBLEMS.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
@@ -73,12 +78,13 @@ export default function InterviewPage() {
               ) : (
                 <button onClick={stop} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500">Stop</button>
               )}
-              <a href="/canvas" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800">Open canvas</a>
+              <Link href="/canvas" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800">Open canvas</Link>
             </div>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Notes: requirements, API, data model, scale numbers, bottlenecks, security..."
+              placeholder="Requirements, API, data model, scale numbers, bottlenecks, security…"
+              aria-label="Interview notes"
               className="mt-4 h-64 w-full rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-sm text-zinc-100"
             />
           </SpotlightCard>

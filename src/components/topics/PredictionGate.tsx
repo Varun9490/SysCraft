@@ -99,7 +99,7 @@ export function PredictionGate({
                   correct: correct.id,
                 })
               }
-              className="rounded-xl border border-line bg-app/60 px-3 py-3 text-[13px] font-medium text-content-secondary transition-all hover:border-brass/50 hover:text-content focus-visible:outline focus-visible:outline-brass/60"
+              className="rounded-xl border border-line bg-app/60 px-3 py-3 text-[13px] font-medium text-content-secondary transition-colors hover:border-brass/50 hover:text-content focus-visible:outline focus-visible:outline-brass/60"
             >
               {choice.label}
             </button>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, X } from "@/components/ui/icons";
 import { compactionSpike, writeAmplification } from "@/engine/queuingMath";
 import type { VisualKind } from "@/types/encyclopedia";
@@ -112,6 +112,7 @@ function BTreeVsLsmSim() {
           type="range"
           min={0}
           max={100}
+          aria-label="Write ratio"
           value={Math.round(writeRatio * 100)}
           onChange={(e) => setWriteRatio(Number(e.target.value) / 100)}
           className="mb-3 w-full"
@@ -127,8 +128,8 @@ function BTreeVsLsmSim() {
             </div>
             <div className="h-3 overflow-hidden rounded bg-zinc-800">
               <div
-                className="h-full rounded transition-all"
-                style={{ width: `${(row.amp / (maxAmp + 0.5)) * 100}%`, backgroundColor: row.color }}
+                className="h-full w-full origin-left rounded transition-transform duration-300"
+                style={{ transform: `scaleX(${Math.max(0, Math.min(1, row.amp / Math.max(1e-6, maxAmp + 0.5)))})`, backgroundColor: row.color }}
               />
             </div>
           </div>
@@ -196,35 +197,47 @@ function RaftSim() {
   );
   const [events, setEvents] = useState<RaftEvent[]>([{ tick: 0, text: "n0 elected leader for term 1" }]);
   const tickRef = useRef(0);
+  const nodesRef = useRef(nodes);
+  const appliedCountRef = useRef(nodeCount);
+
+  // Single commit point: keep the ref and the state in lockstep so the
+  // interval below can read the latest topology without a side effect
+  // inside an updater.
+  const commitNodes = useCallback((next: RaftNode[]) => {
+    nodesRef.current = next;
+    setNodes(next);
+  }, []);
 
   useEffect(() => {
-    setNodes((prev) => {
-      if (prev.length === nodeCount) return prev;
-      return Array.from({ length: nodeCount }, (_, i) => ({
+    if (appliedCountRef.current === nodeCount) return;
+    appliedCountRef.current = nodeCount;
+    tickRef.current = 0;
+    commitNodes(
+      Array.from({ length: nodeCount }, (_, i) => ({
         id: i,
         role: i === 0 ? ("leader" as RaftRole) : ("follower" as RaftRole),
         term: 1,
         timeoutMs: 300 + Math.floor(Math.random() * 300),
-      }));
-    });
-    setEvents([{ tick: 0, text: `cluster resized to ${nodeCount} voters` }]);
-    tickRef.current = 0;
-  }, [nodeCount]);
+      })),
+    );
+    setEvents((evs) => [{ tick: 0, text: `cluster resized to ${nodeCount} voters` }, ...evs].slice(0, 8));
+  }, [nodeCount, commitNodes]);
 
   useEffect(() => {
     if (!running) return;
     const timer = setInterval(() => {
       tickRef.current += 1;
       const tick = tickRef.current;
-      setNodes((prev) => {
-        const next = prev.map((n) => ({ ...n }));
-        const leader = next.find((n) => n.role === "leader");
-        if (leader) {
-          for (const n of next) {
-            if (n.role !== "leader") n.timeoutMs = 300 + ((n.id * 137 + tick * 59) % 300);
-          }
-          return next;
+      const prev = nodesRef.current;
+      const next = prev.map((n) => ({ ...n }));
+      const eventsOut: RaftEvent[] = [];
+
+      const leader = next.find((n) => n.role === "leader");
+      if (leader) {
+        for (const n of next) {
+          if (n.role !== "leader") n.timeoutMs = 300 + ((n.id * 137 + tick * 59) % 300);
         }
+      } else {
         for (const n of next) {
           if (n.role === "follower") {
             n.timeoutMs -= 100;
@@ -245,13 +258,9 @@ function RaftSim() {
               n.term = Math.max(n.term, winner.term);
               n.timeoutMs = 300 + ((n.id * 137 + tick * 59) % 300);
             }
-            setEvents((evs) =>
-              [{ tick, text: `n${winner.id} elected leader for term ${winner.term} (${votes}/${next.length} votes)` }, ...evs].slice(0, 8),
-            );
+            eventsOut.push({ tick, text: `n${winner.id} elected leader for term ${winner.term} (${votes}/${next.length} votes)` });
           } else {
-            setEvents((evs) =>
-              [{ tick, text: `term ${winner.term} split vote — retrying` }, ...evs].slice(0, 8),
-            );
+            eventsOut.push({ tick, text: `term ${winner.term} split vote — retrying` });
             for (const n of next) {
               if (n.role === "candidate") {
                 n.role = "follower";
@@ -260,18 +269,25 @@ function RaftSim() {
             }
           }
         }
-        return next;
-      });
+      }
+
+      nodesRef.current = next;
+      setNodes(next);
+      if (eventsOut.length > 0) {
+        setEvents((evs) => [...eventsOut.reverse(), ...evs].slice(0, 8));
+      }
     }, 400);
     return () => clearInterval(timer);
   }, [running]);
 
   const killLeader = () => {
-    const leader = nodes.find((n) => n.role === "leader");
-    setNodes((prev) => {
-      const survivors = prev.filter((n) => n.role !== "leader");
-      return survivors.map((n) => ({ ...n, role: "follower" as RaftRole, timeoutMs: 120 + n.id * 40 }));
-    });
+    const prev = nodesRef.current;
+    const leader = prev.find((n) => n.role === "leader");
+    commitNodes(
+      prev
+        .filter((n) => n.role !== "leader")
+        .map((n) => ({ ...n, role: "follower" as RaftRole, timeoutMs: 120 + n.id * 40 })),
+    );
     setEvents((evs) =>
       [{ tick: tickRef.current, text: leader ? `n${leader.id} partitioned — followers timing out` : "no leader to kill" }, ...evs].slice(0, 8),
     );
@@ -279,7 +295,7 @@ function RaftSim() {
 
   const reset = () => {
     tickRef.current = 0;
-    setNodes(
+    commitNodes(
       Array.from({ length: nodeCount }, (_, i) => ({
         id: i,
         role: i === 0 ? ("leader" as RaftRole) : ("follower" as RaftRole),
@@ -320,6 +336,7 @@ function RaftSim() {
           min={3}
           max={7}
           step={2}
+          aria-label="Voters"
           value={nodeCount}
           onChange={(e) => setNodeCount(Number(e.target.value))}
           className="mb-3 w-full"
@@ -465,8 +482,9 @@ function HashRingSim() {
       </div>
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
         <h4 className="mb-2 text-sm font-semibold text-zinc-100">Minimal-disruption membership</h4>
-        <label className="mb-1 block text-xs text-zinc-400">Physical nodes: {physicalCount}</label>
+        <label htmlFor="sim-physical-nodes" className="mb-1 block text-xs text-zinc-400">Physical nodes: {physicalCount}</label>
         <input
+          id="sim-physical-nodes"
           type="range"
           min={2}
           max={8}
@@ -527,35 +545,40 @@ function TokenBucketSim() {
   const [tokens, setTokens] = useState(120);
   const [allowed, setAllowed] = useState(0);
   const [denied, setDenied] = useState(0);
+  const tokensRef = useRef(120);
+
+  const commitTokens = useCallback((next: number) => {
+    tokensRef.current = next;
+    setTokens(next);
+  }, []);
+
+  const consume = useCallback(
+    (count: number) => {
+      const take = Math.min(tokensRef.current, count);
+      commitTokens(tokensRef.current - take);
+      if (take > 0) setAllowed((a) => a + take);
+      if (count - take > 0) setDenied((d) => d + (count - take));
+    },
+    [commitTokens],
+  );
 
   useEffect(() => {
-    setTokens((t) => Math.min(capacity, t));
-  }, [capacity]);
+    commitTokens(Math.min(capacity, tokensRef.current));
+  }, [capacity, commitTokens]);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTokens((t) => Math.min(capacity, t + refillPerSec * 0.1));
+      commitTokens(Math.min(capacity, tokensRef.current + refillPerSec * 0.1));
       if (autoTraffic) {
         const burst = 2 + Math.floor(Math.random() * 9);
-        setTokens((t) => {
-          const take = Math.min(t, burst);
-          const rejected = burst - take;
-          setAllowed((a) => a + take);
-          setDenied((d) => d + rejected);
-          return t - take;
-        });
+        consume(burst);
       }
     }, 100);
     return () => clearInterval(timer);
-  }, [autoTraffic, capacity, refillPerSec]);
+  }, [autoTraffic, capacity, refillPerSec, commitTokens, consume]);
 
   const sendRequest = (count: number) => {
-    setTokens((t) => {
-      const take = Math.min(t, count);
-      setAllowed((a) => a + take);
-      setDenied((d) => d + (count - take));
-      return t - take;
-    });
+    consume(count);
   };
 
   const total = allowed + denied;
@@ -571,14 +594,14 @@ function TokenBucketSim() {
         </div>
         <div className="h-8 overflow-hidden rounded-md bg-zinc-950">
           <div
-            className={`h-full rounded-md transition-all ${tokens < capacity * 0.2 ? "bg-red-400" : "bg-sky-400"}`}
-            style={{ width: `${(tokens / Math.max(1, capacity)) * 100}%` }}
+            className={`h-full w-full origin-left rounded-md transition-transform duration-150 ease-out ${tokens < capacity * 0.2 ? "bg-red-400" : "bg-sky-400"}`}
+            style={{ transform: `scaleX(${Math.max(0, Math.min(1, tokens / Math.max(1, capacity)))})` }}
           />
         </div>
-        <label className="mb-1 mt-3 block text-xs text-zinc-400">Capacity: {capacity}</label>
-        <input type="range" min={10} max={500} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full" />
-        <label className="mb-1 mt-2 block text-xs text-zinc-400">Refill rate: {refillPerSec}/s</label>
-        <input type="range" min={5} max={300} value={refillPerSec} onChange={(e) => setRefillPerSec(Number(e.target.value))} className="w-full" />
+        <label htmlFor="sim-capacity" className="mb-1 mt-3 block text-xs text-zinc-400">Capacity: {capacity}</label>
+        <input id="sim-capacity" aria-label="Token bucket capacity" type="range" min={10} max={500} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full" />
+        <label htmlFor="sim-refill" className="mb-1 mt-2 block text-xs text-zinc-400">Refill rate: {refillPerSec}/s</label>
+        <input id="sim-refill" aria-label="Token refill per second" type="range" min={5} max={300} value={refillPerSec} onChange={(e) => setRefillPerSec(Number(e.target.value))} className="w-full" />
         <div className="mt-3 flex gap-2">
           <button
             onClick={() => sendRequest(1)}
@@ -711,6 +734,7 @@ function K8sControlLoopSim() {
           type="range"
           min={1}
           max={12}
+          aria-label="Desired replicas"
           value={desired}
           onChange={(e) => setDesired(Number(e.target.value))}
           className="mb-3 w-full"
@@ -721,6 +745,7 @@ function K8sControlLoopSim() {
           min={50}
           max={4000}
           step={50}
+          aria-label="Incoming pod RPS"
           value={incomingRps}
           onChange={(e) => setIncomingRps(Number(e.target.value))}
           className="mb-3 w-full"
@@ -790,8 +815,8 @@ function K8sControlLoopSim() {
           </div>
           <div className="h-3 overflow-hidden rounded bg-zinc-800">
             <div
-              className={`h-full rounded transition-all ${converged ? "bg-emerald-400" : "bg-amber-400"}`}
-              style={{ width: `${Math.min(100, (observed / Math.max(1, desired)) * 100)}%` }}
+              className={`h-full w-full origin-left rounded transition-transform duration-300 ${converged ? "bg-emerald-400" : "bg-amber-400"}`}
+              style={{ transform: `scaleX(${Math.min(1, Math.max(0, observed / Math.max(1, desired)))})` }}
             />
           </div>
         </div>
@@ -851,6 +876,7 @@ function EdgeIsolateSim() {
           min={500}
           max={50000}
           step={500}
+          aria-label="Global traffic RPS"
           value={globalRps}
           onChange={(e) => setGlobalRps(Number(e.target.value))}
           className="mb-3 w-full"
@@ -860,6 +886,7 @@ function EdgeIsolateSim() {
           type="range"
           min={0}
           max={99}
+          aria-label="Edge cache hit ratio"
           value={Math.round(hitRatio * 100)}
           onChange={(e) => setHitRatio(Number(e.target.value) / 100)}
           className="mb-3 w-full"
@@ -926,8 +953,8 @@ function EdgeIsolateSim() {
           </div>
           <div className="h-3 overflow-hidden rounded bg-zinc-800">
             <div
-              className="h-full rounded bg-sky-400 transition-all"
-              style={{ width: `${hitRatio * 100}%` }}
+              className="h-full w-full origin-left rounded bg-sky-400 transition-transform duration-300"
+              style={{ transform: `scaleX(${Math.max(0, Math.min(1, hitRatio))})` }}
             />
           </div>
         </div>

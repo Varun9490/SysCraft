@@ -167,10 +167,10 @@ export function CostAnalysisPanel({ open, onClose }: { open: boolean; onClose: (
                       <div className="mt-1.5 flex items-center gap-2">
                         <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-800">
                           <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(lineHourly / maxLine) * 100}%` }}
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: Math.min(1, lineHourly / Math.max(1e-6, maxLine)) }}
                             transition={{ duration: 0.5, ease: "easeOut" }}
-                            className="h-full rounded-full"
+                            className="h-full w-full origin-left rounded-full"
                             style={{ backgroundColor: item.color }}
                           />
                         </div>

@@ -92,10 +92,14 @@ export function PracticeRunner() {
   const today = useMemo(() => new Date(), []);
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       await hydrateFromDb();
-      setHydrated(true);
+      if (!cancelled) setHydrated(true);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [hydrateFromDb]);
 
   useEffect(() => {

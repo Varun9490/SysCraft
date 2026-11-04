@@ -78,13 +78,17 @@ export function ProgressDashboard() {
   const [dailyCap, setDailyCap] = useState(20);
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       await hydrateFromDb();
-      setHydrated(true);
+      if (!cancelled) setHydrated(true);
     })();
     setHistory(loadPracticeHistory());
     setScores(loadPlayScores());
     setDailyCap(loadPracticeSettings().dailyCap);
+    return () => {
+      cancelled = true;
+    };
   }, [hydrateFromDb]);
 
   const now = useMemo(() => new Date(), []);

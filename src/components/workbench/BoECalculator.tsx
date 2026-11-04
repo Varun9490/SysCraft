@@ -3,6 +3,7 @@
 import { ArrowRightLeft } from "@/components/ui/icons";
 import { useWorkbenchStore } from "@/store/useWorkbenchStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { parseFiniteNumber } from "@/lib/numbers";
 
 /**
  * Back-of-the-envelope capacity calculator synced to the canvas.
@@ -54,7 +55,10 @@ export function BoECalculator() {
               min={0}
               step={f.step}
               value={boeParams[f.key]}
-              onChange={(e) => setBoeParams({ [f.key]: Math.max(0, Number(e.target.value)) } as Partial<typeof boeParams>)}
+              onChange={(e) => {
+                const next = parseFiniteNumber(e.target.value, boeParams[f.key]);
+                setBoeParams({ [f.key]: Math.max(0, next) } as Partial<typeof boeParams>);
+              }}
               className="w-full rounded bg-zinc-950 px-1.5 py-1 text-sm tabular-nums text-zinc-100"
             />
           </label>

@@ -42,23 +42,19 @@ export function LessonPageContent({ route }: { route: LessonRoute }) {
   }, []);
 
   const toggleComplete = useCallback((id: string) => {
-    setCompleted((current) => {
-      const nextSet = new Set(current);
-      if (nextSet.has(id)) nextSet.delete(id);
-      else nextSet.add(id);
-      writeCompleted(nextSet);
-      return nextSet;
-    });
-  }, []);
+    const nextSet = new Set(completed);
+    if (nextSet.has(id)) nextSet.delete(id);
+    else nextSet.add(id);
+    writeCompleted(nextSet);
+    setCompleted(nextSet);
+  }, [completed]);
 
   const markComplete = useCallback((id: string) => {
-    setCompleted((current) => {
-      const nextSet = new Set(current);
-      nextSet.add(id);
-      writeCompleted(nextSet);
-      return nextSet;
-    });
-  }, []);
+    const nextSet = new Set(completed);
+    nextSet.add(id);
+    writeCompleted(nextSet);
+    setCompleted(nextSet);
+  }, [completed]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">

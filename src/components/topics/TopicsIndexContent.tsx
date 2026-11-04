@@ -64,7 +64,7 @@ export function TopicsIndexContent() {
           <StaggerChild key={topic.slug}>
             <Link
               href={`/topics/${topic.slug}`}
-              className="group flex h-full flex-col rounded-2xl border border-line bg-app/50 p-6 shadow-card transition-all hover:-translate-y-1 hover:border-brass/40"
+              className="group flex h-full flex-col rounded-2xl border border-line bg-app/50 p-6 shadow-card transition hover:-translate-y-1 hover:border-brass/40"
             >
               <div className="flex items-center justify-between">
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-line-strong bg-app-raised text-2xl text-brass">

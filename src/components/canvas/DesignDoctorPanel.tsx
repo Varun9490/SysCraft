@@ -124,16 +124,13 @@ export function DesignDoctorPanel({ open, onClose }: DesignDoctorPanelProps) {
           </button>
         </header>
 
-        <AnimatePresence initial={false}>
-          {!collapsed && (
-            <motion.div
-              key="doctor-body"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              className="flex min-h-0 flex-col"
-            >
+        <div
+          className={`flex min-h-0 flex-col overflow-hidden transition-[max-height,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            collapsed ? 'max-h-0 opacity-0' : 'max-h-[62vh] opacity-100'
+          }`}
+          inert={collapsed}
+          aria-hidden={collapsed}
+        >
               <div className="flex shrink-0 gap-1.5 px-3.5 pt-2.5">
                 {(
                   [
@@ -253,9 +250,7 @@ export function DesignDoctorPanel({ open, onClose }: DesignDoctorPanelProps) {
                   </p>
                 )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
       </motion.aside>
     </AnimatePresence>
   );

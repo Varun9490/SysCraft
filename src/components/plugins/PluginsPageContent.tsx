@@ -38,6 +38,7 @@ import {
   type SysCraftPlugin,
 } from "@/data/pluginsCatalog";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { parseFiniteNumber } from "@/lib/numbers";
 import { usePluginStore } from "@/store/usePluginStore";
 import type { DoctorFinding, DoctorSeverity } from "@/engine/designDoctor";
 
@@ -842,6 +843,7 @@ function PluginStudio({ existingIds, onInstall, onImport, onError }: PluginStudi
                   onChange={(event) => setName(event.target.value)}
                   className={inputClass}
                   placeholder="Platform guardrail pack"
+                  aria-label="Plugin name"
                 />
               </Field>
 
@@ -901,6 +903,7 @@ function PluginStudio({ existingIds, onInstall, onImport, onError }: PluginStudi
                   onChange={(event) => setRuleTitle(event.target.value)}
                   className={inputClass}
                   placeholder="What the guardrail checks"
+                  aria-label="Rule title"
                 />
               </Field>
 
@@ -911,7 +914,7 @@ function PluginStudio({ existingIds, onInstall, onImport, onError }: PluginStudi
                     min={0}
                     step={0.5}
                     value={costCeiling}
-                    onChange={(event) => setCostCeiling(Number(event.target.value))}
+                    onChange={(event) => setCostCeiling(Math.max(0, parseFiniteNumber(event.target.value, costCeiling)))}
                     className={inputClass}
                   />
                 </Field>
@@ -942,6 +945,7 @@ function PluginStudio({ existingIds, onInstall, onImport, onError }: PluginStudi
                   onChange={(event) => setConceptId(event.target.value)}
                   className={inputClass}
                   placeholder="rate-limiting"
+                  aria-label="Encyclopedia concept (optional)"
                 />
               </Field>
             </div>

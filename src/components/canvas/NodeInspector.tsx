@@ -320,6 +320,7 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
           <select
             value={refRegion}
             onChange={(event) => setRefRegion(event.target.value)}
+            aria-label="Reference region"
             className={`${INPUT_CLASS} mt-2.5`}
           >
             {CLOUD_REGIONS.map((r) => (

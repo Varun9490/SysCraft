@@ -193,12 +193,15 @@ function LBView({ result }: { result: ReturnType<typeof simulateLoadBalancing> }
           <g key={i}>
             <motion.rect
               x={x}
+              y={210 - 180}
               width={barW}
-              rx={5}
+              height={180}
+              rx={4}
               fill={nodeColor(i)}
               fillOpacity={0.85}
               initial={false}
-              animate={{ y: 210 - h, height: Math.max(2, h) }}
+              style={{ transformOrigin: '50% 100%', transformBox: 'fill-box' }}
+              animate={{ scaleY: Math.max(0.02, h / 180) }}
               transition={{ type: 'spring', stiffness: 160, damping: 22 }}
             />
             <text x={x + barW / 2} y={230} fill="rgb(var(--content-tertiary))" fontSize="10" textAnchor="middle" fontFamily="ui-monospace, monospace">
@@ -273,7 +276,7 @@ function RateLimitView({ result }: { result: ReturnType<typeof simulateRateLimit
         </text>
       </svg>
       <div className="flex h-4 w-full overflow-hidden rounded-full">
-        <motion.div className="h-full bg-success" initial={false} animate={{ width: `${allowedPct}%` }} transition={{ type: 'spring', stiffness: 140, damping: 22 }} />
+        <motion.div className="h-full w-full origin-left bg-success" initial={false} animate={{ scaleX: Math.min(1, Math.max(0, allowedPct / 100)) }} transition={{ type: 'spring', stiffness: 140, damping: 22 }} />
         <div className="h-full flex-1 bg-danger/70" />
       </div>
       <div className="flex justify-between text-[11px] font-medium">
@@ -295,10 +298,10 @@ function ShardView({ result }: { result: ReturnType<typeof simulateSharding> }) 
             <span className="w-14 shrink-0 text-[11px] font-medium text-content-tertiary">shard {i + 1}</span>
             <div className="h-5 flex-1 overflow-hidden rounded-md border border-line bg-app-raised/40">
               <motion.div
-                className="h-full rounded-md"
+                className="h-full w-full origin-left rounded-md"
                 style={{ background: hot ? 'rgb(var(--danger))' : nodeColor(i) }}
                 initial={false}
-                animate={{ width: `${(value / max) * 100}%` }}
+                animate={{ scaleX: Math.min(1, Math.max(0, value / Math.max(1e-6, max))) }}
                 transition={{ type: 'spring', stiffness: 150, damping: 22 }}
               />
             </div>
@@ -316,7 +319,7 @@ function CdnView({ result, edges }: { result: ReturnType<typeof simulateCdn>; ed
     <div className="flex items-center gap-3">
       <span className="w-16 shrink-0 text-[11px] text-content-tertiary">{label}</span>
       <div className="h-5 flex-1 overflow-hidden rounded-md border border-line bg-app-raised/40">
-        <motion.div className="h-full rounded-md" style={{ background: color }} initial={false} animate={{ width: `${(value / max) * 100}%` }} transition={{ type: 'spring', stiffness: 150, damping: 22 }} />
+        <motion.div className="h-full w-full origin-left rounded-md" style={{ background: color }} initial={false} animate={{ scaleX: Math.min(1, Math.max(0, value / Math.max(1e-6, max))) }} transition={{ type: 'spring', stiffness: 150, damping: 22 }} />
       </div>
       <span className="w-14 shrink-0 text-right text-[11px] tabular-nums text-content-secondary">{Math.round(value)}ms</span>
     </div>
@@ -618,7 +621,7 @@ export function TopicSimulator({ topic }: { topic: Topic }) {
                   <button
                     type="button"
                     onClick={() => loadExperiment(experiment)}
-                    className={`mt-3 rounded-full px-4 py-2 text-[12px] font-semibold transition-all ${
+                    className={`mt-3 rounded-full px-4 py-2 text-[12px] font-semibold transition-colors ${
                       armed
                         ? 'border border-brass/50 bg-brass/15 text-brass'
                         : 'bg-brass/90 text-ink hover:bg-brass'

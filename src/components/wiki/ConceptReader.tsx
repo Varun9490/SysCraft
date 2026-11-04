@@ -292,8 +292,8 @@ function RookieGuideBanner({ module, flow }: { module: EncyclopediaModule; flow:
                   </div>
                   <div className="h-3 overflow-hidden rounded bg-zinc-800">
                     <div
-                      className="h-full rounded transition-all duration-300"
-                      style={{ width: `${bar.pct}%`, backgroundColor: bar.color }}
+                      className="h-full w-full origin-left rounded transition-transform duration-300"
+                      style={{ transform: `scaleX(${Math.max(0, Math.min(1, bar.pct / 100))})`, backgroundColor: bar.color }}
                     />
                   </div>
                 </div>
@@ -446,8 +446,8 @@ export function ConceptReader({ module }: { module: EncyclopediaModule }) {
       {/* Reading progress */}
       <div className="fixed inset-x-0 top-0 z-40 h-0.5" aria-hidden="true">
         <div
-          className="h-full bg-gradient-to-r from-brass to-brass-bright transition-[width] duration-150 ease-out"
-          style={{ width: `${(progress * 100).toFixed(2)}%` }}
+          className="h-full w-full origin-left bg-gradient-to-r from-brass to-brass-bright transition-transform duration-150 ease-out"
+          style={{ transform: `scaleX(${Math.max(0, Math.min(1, progress))})` }}
         />
       </div>
 
@@ -619,7 +619,7 @@ export function ConceptReader({ module }: { module: EncyclopediaModule }) {
                 <Link
                   key={next.href}
                   href={next.href}
-                  className="group rounded-xl border border-zinc-800 bg-zinc-900/40 p-3.5 transition-all hover:-translate-y-0.5 hover:border-brass/50"
+                  className="group rounded-xl border border-zinc-800 bg-zinc-900/40 p-3.5 transition hover:-translate-y-0.5 hover:border-brass/50"
                 >
                   <span className="flex items-center gap-1.5 text-[13.5px] font-semibold text-zinc-100 transition-colors group-hover:text-brass">
                     {next.title} <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
@@ -641,7 +641,7 @@ export function ConceptReader({ module }: { module: EncyclopediaModule }) {
                 <Link
                   key={rel.id}
                   href={`/wiki/${rel.id}`}
-                  className="wiki-pop-item inline-flex items-center gap-1.5 rounded-full border border-zinc-700 px-3 py-1.5 text-[12.5px] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-brass/60 hover:text-zinc-100"
+                  className="wiki-pop-item inline-flex items-center gap-1.5 rounded-full border border-zinc-700 px-3 py-1.5 text-[12.5px] text-zinc-300 transition hover:-translate-y-0.5 hover:border-brass/60 hover:text-zinc-100"
                   style={{ animationDelay: `${240 + related.indexOf(rel) * 70}ms` }}
                 >
                   {rel.title} <ArrowRight size={12} />
@@ -649,7 +649,7 @@ export function ConceptReader({ module }: { module: EncyclopediaModule }) {
               ))}
               <Link
                 href="/wiki/graph"
-                className="wiki-pop-item inline-flex items-center gap-1.5 rounded-full border border-violet-600/50 px-3 py-1.5 text-[12.5px] text-violet-300 transition-all hover:-translate-y-0.5 hover:border-violet-400"
+                className="wiki-pop-item inline-flex items-center gap-1.5 rounded-full border border-violet-600/50 px-3 py-1.5 text-[12.5px] text-violet-300 transition hover:-translate-y-0.5 hover:border-violet-400"
                 style={{ animationDelay: `${240 + related.length * 70}ms` }}
               >
                 Open knowledge graph
@@ -672,7 +672,7 @@ export function ConceptReader({ module }: { module: EncyclopediaModule }) {
             {previousModule ? (
               <Link
                 href={`/wiki/${previousModule.id}`}
-                className="group flex flex-col gap-1 rounded-xl border border-zinc-800 p-4 transition-all hover:-translate-y-0.5 hover:border-brass/50"
+                className="group flex flex-col gap-1 rounded-xl border border-zinc-800 p-4 transition hover:-translate-y-0.5 hover:border-brass/50"
               >
                 <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
                   <ArrowLeft size={12} className="transition-transform group-hover:-translate-x-0.5" /> Previous
@@ -687,7 +687,7 @@ export function ConceptReader({ module }: { module: EncyclopediaModule }) {
             {nextModule && (
               <Link
                 href={`/wiki/${nextModule.id}`}
-                className="group flex flex-col items-end gap-1 rounded-xl border border-zinc-800 p-4 text-right transition-all hover:-translate-y-0.5 hover:border-brass/50 sm:col-start-2"
+                className="group flex flex-col items-end gap-1 rounded-xl border border-zinc-800 p-4 text-right transition hover:-translate-y-0.5 hover:border-brass/50 sm:col-start-2"
               >
                 <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
                   Next <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />

@@ -374,14 +374,22 @@ export function PlayArena() {
           </AnimatePresence>
         </motion.div>
 
-        {/* Workspace sim challenges */}
-        {visibleLinks.length > 0 && (
-          <div>
-            <p className="mb-2 flex items-center gap-2 px-0.5 text-[10.5px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-              <Swords size={12} className="text-emerald-300" /> Run inside the live workspace
-            </p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <AnimatePresence mode="popLayout" initial={false}>
+        {/* Workspace sim challenges (exit animations run because the boundary
+            outlives the content it unmounts) */}
+        <AnimatePresence initial={false}>
+          {visibleLinks.length > 0 && (
+            <motion.div
+              key="workspace-links"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <p className="mb-2 flex items-center gap-2 px-0.5 text-[10.5px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                <Swords size={12} className="text-emerald-300" /> Run inside the live workspace
+              </p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <AnimatePresence mode="popLayout" initial={false}>
                 {visibleLinks.map((mode, i) => {
                   const accent = KIND_ACCENT.link;
                   const KindIcon = KIND_ICON.link;
@@ -413,10 +421,11 @@ export function PlayArena() {
                     </motion.article>
                   );
                 })}
-              </AnimatePresence>
-            </div>
-          </div>
-        )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <p className="text-[12px] leading-relaxed text-zinc-600">
           Scores count within tolerance clusters — exact answers hit 100, sane orders of magnitude still score.

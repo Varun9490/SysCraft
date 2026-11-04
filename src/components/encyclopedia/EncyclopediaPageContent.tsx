@@ -164,6 +164,7 @@ export function EncyclopediaPageContent() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search concepts, e.g. “consistent hashing”…"
+                aria-label="Search concepts"
                 className="w-full rounded-xl border border-zinc-800 bg-zinc-900/70 py-2.5 pl-10 pr-4 text-[13.5px] text-zinc-200 outline-none transition-colors placeholder:text-zinc-600 focus:border-zinc-600"
               />
             </div>
@@ -257,7 +258,7 @@ export function EncyclopediaPageContent() {
                           {VISUAL_LABELS[module.interactiveVisual] ?? "Interactive"}
                         </span>
                       )}
-                      <span className="ml-auto inline-flex translate-x-1 items-center gap-1 text-brass opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
+                      <span className="ml-auto inline-flex translate-x-1 items-center gap-1 text-brass opacity-0 transition-[transform,opacity] duration-200 group-hover:translate-x-0 group-hover:opacity-100">
                         Read full screen <ArrowRight size={11} />
                       </span>
                     </div>

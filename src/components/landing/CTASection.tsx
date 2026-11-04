@@ -77,7 +77,7 @@ export function CTASection() {
                     </span>
                     <ArrowRight
                       size={15}
-                      className="shrink-0 text-content-tertiary transition-all group-hover:translate-x-0.5 group-hover:text-brass"
+                      className="shrink-0 text-content-tertiary transition-[transform,color] group-hover:translate-x-0.5 group-hover:text-brass"
                     />
                   </Link>
                 </li>
