@@ -17,8 +17,8 @@ function edge(source: string, target: string): DoctorEdgeInput {
 }
 
 describe("cveAndPlugins", () => {
-  it("curated CVE feed has fifteen items with valid primitives", () => {
-    expect(CURATED_CVE_FEED).toHaveLength(15);
+  it("curated CVE feed has seventeen items with valid primitives", () => {
+    expect(CURATED_CVE_FEED).toHaveLength(17);
     for (const cve of CURATED_CVE_FEED) {
       for (const primitive of cve.affectedPrimitives) {
         expect(SEED_RESOURCE_MAP[primitive], `${cve.id} affected ${primitive}`).toBeTruthy();
@@ -38,6 +38,42 @@ describe("cveAndPlugins", () => {
     expect(cve!.stride).toBe("Elevation of Privilege");
     expect(cve!.ecosystem).toBe("Web Frameworks & Runtime");
     expect(cve!.exploitedInWild).toBe(true);
+    expect(CVE_ECOSYSTEMS).toContain(cve!.ecosystem);
+    for (const primitive of cve!.affectedPrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();
+    }
+    for (const primitive of cve!.recommendedDefensePrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} defense ${primitive}`).toBeTruthy();
+    }
+  });
+
+  it("CVE-2026-109618 is the php2shell memory-corruption RCE exploited in the wild", () => {
+    const cve = CURATED_CVE_FEED.find((entry) => entry.id === "CVE-2026-109618");
+    expect(cve).toBeDefined();
+    expect(cve!.cvss).toBe(9.2);
+    expect(cve!.severity).toBe("CRITICAL");
+    expect(cve!.stride).toBe("Elevation of Privilege");
+    expect(cve!.ecosystem).toBe("Web Frameworks & Runtime");
+    expect(cve!.exploitedInWild).toBe(true);
+    expect(cve!.published).toBe("2026-10-21");
+    expect(CVE_ECOSYSTEMS).toContain(cve!.ecosystem);
+    for (const primitive of cve!.affectedPrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();
+    }
+    for (const primitive of cve!.recommendedDefensePrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} defense ${primitive}`).toBeTruthy();
+    }
+  });
+
+  it("CVE-2026-109619 is the php2shell stale request-state RCE chained with CVE-2026-109618", () => {
+    const cve = CURATED_CVE_FEED.find((entry) => entry.id === "CVE-2026-109619");
+    expect(cve).toBeDefined();
+    expect(cve!.cvss).toBe(9.2);
+    expect(cve!.severity).toBe("CRITICAL");
+    expect(cve!.stride).toBe("Elevation of Privilege");
+    expect(cve!.ecosystem).toBe("Web Frameworks & Runtime");
+    expect(cve!.exploitedInWild).toBe(true);
+    expect(cve!.published).toBe("2026-10-21");
     expect(CVE_ECOSYSTEMS).toContain(cve!.ecosystem);
     for (const primitive of cve!.affectedPrimitives) {
       expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();

@@ -134,6 +134,46 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2025-55182",
   },
   {
+    id: "CVE-2026-109618",
+    title: 'PHP "php2shell" Memory-Corruption Unauthenticated RCE',
+    published: "2026-10-21",
+    cvss: 9.2,
+    severity: "CRITICAL",
+    cwe: "CWE-119",
+    stride: "Elevation of Privilege",
+    ecosystem: "Web Frameworks & Runtime",
+    affectedPrimitives: ["rest_service", "serverless_function"],
+    summary:
+      "A memory-corruption flaw in PHP's web request handling lets an unauthenticated attacker run arbitrary code in the PHP process. Every PHP SAPI that serves web requests is affected, including Apache with mod_php (rated highest risk), PHP-FPM, php-cgi, FrankenPHP, and LiteSpeed. Fixed in PHP 8.5.12, 8.4.27, 8.3.36, and 8.2.35. CISA added it to the Known Exploited Vulnerabilities catalog on 2026-10-26 after confirmed in-the-wild exploitation, including compromise of a U.S. government-affiliated network; Censys estimates more than 32 million PHP services still run an affected version.",
+    architecturalRootCause:
+      "The request-handling path trusted attacker-controlled bytes at the memory boundary of a language runtime that executes inline with the web server. With mod_php sharing memory with Apache workers, one corrupted request could spill straight from the parser into the process that held every hosted application's data and credentials — the web tier was the trust boundary and it failed open.",
+    mitigationPattern:
+      "Upgrade to PHP 8.5.12, 8.4.27, 8.3.36, or 8.2.35 immediately, prioritizing internet-facing systems; take unpatched or end-of-life PHP 8.1-and-below systems offline until they can be updated. A web application firewall may blunt exploitation as a stopgap, not a fix. Inventory PHP usage — including embedded instances inside appliances and CMS installs — patch through the normal release pipeline, and alert on PHP worker processes spawning shells or downloading tools, which is the confirmed post-exploitation signature.",
+    recommendedDefensePrimitives: ["web_application_firewall", "rate_limiter", "api_gateway", "observability_stack"],
+    exploitedInWild: true,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2026-109618",
+  },
+  {
+    id: "CVE-2026-109619",
+    title: 'PHP "php2shell" Stale Internal Request-State Unauthenticated RCE',
+    published: "2026-10-21",
+    cvss: 9.2,
+    severity: "CRITICAL",
+    cwe: "CWE-664",
+    stride: "Elevation of Privilege",
+    ecosystem: "Web Frameworks & Runtime",
+    affectedPrimitives: ["rest_service", "serverless_function"],
+    summary:
+      "The sibling php2shell flaw: a stale internal request-state vulnerability in PHP lets request-handling state persist or be reused across requests, again yielding unauthenticated remote code execution. It ships in the same affected SAPI surface (Apache mod_php, PHP-FPM, php-cgi, FrankenPHP, LiteSpeed), is fixed in the same releases (PHP 8.5.12, 8.4.27, 8.3.36, 8.2.35), and was added to the CISA KEV catalog on 2026-10-26. CISA notes it can be chained with CVE-2026-109618 to implant PHP webshells and execute commands as root.",
+    architecturalRootCause:
+      "The runtime failed to fully bound and reset internal request state across the request lifecycle, so mutable engine state outlived the request that created it. Attacker-controlled input could land in reused state and be interpreted later by a different execution context — a lifetime management failure at the exact layer every hosted application trusts to isolate one request from the next.",
+    mitigationPattern:
+      "Patch to the fixed PHP releases alongside CVE-2026-109618 — they are one remediation, not two. After upgrading, restart PHP-FPM pools and Apache so no stale worker survives with pre-patch memory. Keep the WAF stopgap and shell-spawn telemetry in place until the fleet is verified, rotate secrets on any host that served traffic while unpatched, and enforce SAPI-appropriate process isolation so a corrupted PHP worker cannot inherit the web server's full privileges.",
+    recommendedDefensePrimitives: ["web_application_firewall", "rate_limiter", "api_gateway", "observability_stack"],
+    exploitedInWild: true,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2026-109619",
+  },
+  {
     id: "CVE-2024-21626",
     title: 'runc File Descriptor Leak Container Escape ("Leaky Vessels")',
     published: "2024-01-31",
