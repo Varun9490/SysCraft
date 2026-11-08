@@ -25,7 +25,7 @@ function analyzeEntity(entity: Entity): string[] {
     warnings.push("Composite partition key with 3+ columns usually signals a modeling smell; re-check access patterns.");
   }
   if (entity.writeQps > 5000 && entity.engine !== "cassandra" && entity.engine !== "bigtable" && entity.engine !== "dynamodb") {
-    warnings.push(`Write rate ${entity.writeQps.toLocaleString()} QPS overwhelms single-leader ${entity.engine}; prefer a log-structured store.`);
+    warnings.push(`Write rate ${entity.writeQps.toLocaleString("en-US")} QPS overwhelms single-leader ${entity.engine}; prefer a log-structured store.`);
   }
   if (entity.estimatedRows > 100_000_000 && entity.columns.every((c) => !c.isSortKey)) {
     warnings.push("100M+ rows with no clustering/sort key — range scans and pagination will be expensive.");
@@ -48,7 +48,7 @@ function compileDdl(entity: Entity): string {
   if (entity.engine === "dynamodb") {
     return `// DynamoDB ${entity.table}\n// PartitionKey: ${pk.join(", ") || "(unset)"} · SortKey: ${clustering.join(", ") || "(unset)"}\n// Provisioned: read ${entity.readQps} RCU/s · write ${entity.writeQps} WCU/s (on-demand recommended)`;
   }
-  return `CREATE TABLE ${entity.table} (\n${cols}${pk.length > 0 ? `,\n  PRIMARY KEY (${pk.join(", ")})` : ""}\n); -- ~${entity.estimatedRows.toLocaleString()} rows`;
+  return `CREATE TABLE ${entity.table} (\n${cols}${pk.length > 0 ? `,\n  PRIMARY KEY (${pk.join(", ")})` : ""}\n); -- ~${entity.estimatedRows.toLocaleString("en-US")} rows`;
 }
 
 export function DataModelDesigner() {

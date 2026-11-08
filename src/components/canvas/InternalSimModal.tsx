@@ -106,7 +106,7 @@ function BTreeVsLsmSim() {
         </div>
         <label className="mb-1 block text-xs text-zinc-400">
           Write ratio {(writeRatio * 100).toFixed(0)}% · t={elapsed.toFixed(1)}s ·{" "}
-          {logicalWrites.toLocaleString()} logical writes
+          {logicalWrites.toLocaleString("en-US")} logical writes
         </label>
         <input
           type="range"
@@ -135,8 +135,8 @@ function BTreeVsLsmSim() {
           </div>
         ))}
         <p className="mt-2 text-xs leading-relaxed text-zinc-400">
-          Physical writes ≈ {Math.round(logicalWrites * lsmAmp).toLocaleString()} (LSM) vs{" "}
-          {Math.round(logicalWrites * btreeAmp).toLocaleString()} (B-Tree). LSM wins write-heavy
+          Physical writes ≈ {Math.round(logicalWrites * lsmAmp).toLocaleString("en-US")} (LSM) vs{" "}
+          {Math.round(logicalWrites * btreeAmp).toLocaleString("en-US")} (B-Tree). LSM wins write-heavy
           workloads until a compaction spike (below) briefly adds +{(spike * 100).toFixed(0)}% I/O.
         </p>
       </div>
@@ -630,11 +630,11 @@ function TokenBucketSim() {
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="rounded bg-zinc-950 p-2">
             <p className="text-[11px] text-zinc-500">Allowed</p>
-            <p className="text-lg font-bold tabular-nums text-emerald-300">{allowed.toLocaleString()}</p>
+            <p className="text-lg font-bold tabular-nums text-emerald-300">{allowed.toLocaleString("en-US")}</p>
           </div>
           <div className="rounded bg-zinc-950 p-2">
             <p className="text-[11px] text-zinc-500">Denied 429</p>
-            <p className="text-lg font-bold tabular-nums text-red-300">{denied.toLocaleString()}</p>
+            <p className="text-lg font-bold tabular-nums text-red-300">{denied.toLocaleString("en-US")}</p>
           </div>
           <div className="rounded bg-zinc-950 p-2">
             <p className="text-[11px] text-zinc-500">Deny %</p>
@@ -729,8 +729,9 @@ function K8sControlLoopSim() {
             </button>
           </div>
         </div>
-        <label className="mb-1 block text-xs text-zinc-400">Desired replicas: {desired}</label>
+        <label htmlFor="sim-desired" className="mb-1 block text-xs text-zinc-400">Desired replicas: {desired}</label>
         <input
+          id="sim-desired"
           type="range"
           min={1}
           max={12}
@@ -739,8 +740,9 @@ function K8sControlLoopSim() {
           onChange={(e) => setDesired(Number(e.target.value))}
           className="mb-3 w-full"
         />
-        <label className="mb-1 block text-xs text-zinc-400">Incoming pod RPS: {incomingRps}</label>
+        <label htmlFor="sim-incoming" className="mb-1 block text-xs text-zinc-400">Incoming pod RPS: {incomingRps}</label>
         <input
+          id="sim-incoming"
           type="range"
           min={50}
           max={4000}
@@ -861,7 +863,7 @@ function EdgeIsolateSim() {
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
         <div className="mb-2 flex items-center justify-between">
           <h4 className="text-sm font-semibold text-zinc-100">
-            Global {globalRps.toLocaleString()} rps · hit {(hitRatio * 100).toFixed(0)}%
+            Global {globalRps.toLocaleString("en-US")} rps · hit {(hitRatio * 100).toFixed(0)}%
           </h4>
           <button
             onClick={() => setRunning((r) => !r)}
@@ -870,8 +872,9 @@ function EdgeIsolateSim() {
             {running ? <Pause size={12} /> : <Play size={12} />} {running ? "Pause" : "Run"}
           </button>
         </div>
-        <label className="mb-1 block text-xs text-zinc-400">Global traffic RPS: {globalRps.toLocaleString()}</label>
+        <label htmlFor="sim-global-rps" className="mb-1 block text-xs text-zinc-400">Global traffic RPS: {globalRps.toLocaleString("en-US")}</label>
         <input
+          id="sim-global-rps"
           type="range"
           min={500}
           max={50000}
@@ -881,8 +884,9 @@ function EdgeIsolateSim() {
           onChange={(e) => setGlobalRps(Number(e.target.value))}
           className="mb-3 w-full"
         />
-        <label className="mb-1 block text-xs text-zinc-400">Edge cache hit ratio: {(hitRatio * 100).toFixed(0)}%</label>
+        <label htmlFor="sim-hit-ratio" className="mb-1 block text-xs text-zinc-400">Edge cache hit ratio: {(hitRatio * 100).toFixed(0)}%</label>
         <input
+          id="sim-hit-ratio"
           type="range"
           min={0}
           max={99}

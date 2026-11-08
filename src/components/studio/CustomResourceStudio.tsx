@@ -106,9 +106,10 @@ export function CustomResourceStudio({ open, onClose }: CustomResourceStudioProp
           </button>
         </div>
 
-        <label className="mb-1 block text-xs text-zinc-400">Describe the infrastructure in plain English</label>
+        <label htmlFor="studio-description" className="mb-1 block text-xs text-zinc-400">Describe the infrastructure in plain English</label>
         <div className="flex gap-1.5">
           <input
+            id="studio-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the infrastructure in plain English"

@@ -1639,7 +1639,7 @@ export function EnterpriseHubContent() {
                       {formatDowntime(sla.allowedMinutes)}
                     </p>
                     <p className="mt-1 text-[11px] text-content-tertiary">
-                      at {targetSla}% · {Math.round(sla.allowedSeconds).toLocaleString()} seconds
+                      at {targetSla}% · {Math.round(sla.allowedSeconds).toLocaleString("en-US")} seconds
                     </p>
                   </div>
                   <div

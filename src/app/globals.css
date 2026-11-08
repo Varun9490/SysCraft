@@ -719,6 +719,12 @@ aside .overflow-y-auto::-webkit-scrollbar-track {
   will-change: opacity, transform;
 }
 
+/* Keyboard focus ring for SVG availability-zone toggles (SVG has no outline). */
+.az-toggle:focus-visible > rect:first-of-type {
+  stroke: rgb(var(--accent-bright));
+  stroke-width: 3;
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,

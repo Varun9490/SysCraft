@@ -387,13 +387,13 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-zinc-500">Throughput vs stock</span>
               <span className="tabular-nums text-zinc-200">
-                {formatScale(sizing.throughputScale)} → {Math.round(sizing.baseThroughputRps).toLocaleString()} rps/replica
+                {formatScale(sizing.throughputScale)} → {Math.round(sizing.baseThroughputRps).toLocaleString("en-US")} rps/replica
               </span>
             </div>
             <div className="mt-1 flex items-center justify-between text-[11px]">
               <span className="text-zinc-500">Buffer vs stock</span>
               <span className="tabular-nums text-zinc-200">
-                {formatScale(sizing.concurrencyScale)} → {sizing.maxConcurrency.toLocaleString()} in-flight
+                {formatScale(sizing.concurrencyScale)} → {sizing.maxConcurrency.toLocaleString("en-US")} in-flight
               </span>
             </div>
             {sizing.customized && (
@@ -411,14 +411,14 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
                 <div className="flex items-center justify-between text-[10.5px] text-zinc-500">
                   <span>Live buffer</span>
                   <span className="tabular-nums text-zinc-300">
-                    {Math.round(telemetry.queueDepth).toLocaleString()} / {sizing.maxConcurrency.toLocaleString()}
+                    {Math.round(telemetry.queueDepth).toLocaleString("en-US")} / {sizing.maxConcurrency.toLocaleString("en-US")}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10.5px] text-zinc-500">
                   <span>Concurrency in flight</span>
                   <span className="tabular-nums text-zinc-300">
-                    {Math.round(telemetry.concurrentInFlight).toLocaleString()} /{" "}
-                    {(sizing.maxConcurrency * Math.max(1, replicationFactor)).toLocaleString()} slots
+                    {Math.round(telemetry.concurrentInFlight).toLocaleString("en-US")} /{" "}
+                    {(sizing.maxConcurrency * Math.max(1, replicationFactor)).toLocaleString("en-US")} slots
                   </span>
                 </div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
@@ -485,7 +485,7 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
               {(clusterCapacity / 1000).toFixed(clusterCapacity >= 10000 ? 0 : 1)}k rps
             </p>
             <p className="text-[10.5px] text-zinc-600">
-              {replicationFactor} × {Math.round(baseThroughputRps).toLocaleString()} rps/replica
+              {replicationFactor} × {Math.round(baseThroughputRps).toLocaleString("en-US")} rps/replica
             </p>
           </div>
         </div>

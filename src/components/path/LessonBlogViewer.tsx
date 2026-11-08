@@ -430,7 +430,7 @@ export function LessonBlogViewer({
 
         <div className="mt-4 rounded-xl border border-line bg-app/60 p-4">
           <div className="flex items-baseline justify-between gap-2">
-            <label className="text-[12.5px] font-medium text-content">
+            <label htmlFor="lesson-sandbox-slider" className="text-[12.5px] font-medium text-content">
               {blog.sandbox.sliderLabel}
             </label>
             <span className="font-mono text-[12px] text-brass">
@@ -438,6 +438,7 @@ export function LessonBlogViewer({
             </span>
           </div>
           <input
+            id="lesson-sandbox-slider"
             type="range"
             min={blog.sandbox.min}
             max={blog.sandbox.max}

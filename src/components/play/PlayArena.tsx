@@ -473,7 +473,7 @@ export function PlayArena() {
                 <p className="text-[12.5px] font-medium text-zinc-200">{q.prompt}</p>
                 <p className="mt-1 text-[11.5px] text-zinc-500">
                   {q.numeric
-                    ? `Answer: ${q.numeric.answer.toLocaleString()} ${q.numeric.unit} · your guess: ${outcome.value || '—'}`
+                    ? `Answer: ${q.numeric.answer.toLocaleString("en-US")} ${q.numeric.unit} · your guess: ${outcome.value || '—'}`
                     : `Correct: ${q.options?.find((o) => o.correct)?.text ?? ''}`}
                 </p>
                 <p className="mt-1 text-[11.5px] leading-relaxed text-zinc-400">{q.explanation}</p>
@@ -575,7 +575,7 @@ export function PlayArena() {
           )}
           {revealed && (
             <p className={`text-[13px] font-semibold ${wasCorrect ? 'text-emerald-300' : 'text-amber-300'}`}>
-              Actual: {question.numeric.answer.toLocaleString()} {question.numeric.unit}
+              Actual: {question.numeric.answer.toLocaleString("en-US")} {question.numeric.unit}
             </p>
           )}
         </div>

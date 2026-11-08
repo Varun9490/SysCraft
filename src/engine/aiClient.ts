@@ -159,7 +159,7 @@ export function analyzeTopologyOffline(brief: TopologyBrief): AiFinding[] {
         id: findingId("throttle", idx++),
         severity: "warn",
         area: "Unthrottled ingress",
-        message: `${label} allows ${node.rateLimitRps.toLocaleString()} RPS with no per-client budget — a retry storm multiplies ingress 3× in seconds.`,
+        message: `${label} allows ${node.rateLimitRps.toLocaleString("en-US")} RPS with no per-client budget — a retry storm multiplies ingress 3× in seconds.`,
         recommendation: `Cap ${label} with per-client token buckets (see the token-bucket simulator), return 429 + Retry-After, and add a gateway retry budget.`,
       });
     }

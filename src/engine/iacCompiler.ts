@@ -301,7 +301,7 @@ export function compileRfc(topology: GraphTopology, options: RfcOptions = {}): s
     ``,
     `## 1. Overview`,
     ``,
-    `${nodes.length} services, ${topology.edges.length} links${options.targetRps ? `, targeting ${options.targetRps.toLocaleString()} RPS` : ""}${options.sloP99Ms ? ` at p99 ≤ ${options.sloP99Ms}ms` : ""}. Estimated burn $${monthly.toFixed(2)}/mo.`,
+    `${nodes.length} services, ${topology.edges.length} links${options.targetRps ? `, targeting ${options.targetRps.toLocaleString("en-US")} RPS` : ""}${options.sloP99Ms ? ` at p99 ≤ ${options.sloP99Ms}ms` : ""}. Estimated burn $${monthly.toFixed(2)}/mo.`,
     ``,
     `## 2. Topology`,
     ``,

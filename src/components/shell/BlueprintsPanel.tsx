@@ -88,7 +88,7 @@ export function BlueprintsPanel() {
                   >
                     <span className="block truncate text-[12.5px] font-medium text-zinc-200">{record.name}</span>
                     <span className="block text-[10.5px] text-zinc-600">
-                      {new Date(record.updatedAt).toLocaleString()}
+                      {new Date(record.updatedAt).toLocaleString("en-US")}
                     </span>
                   </button>
                   <button

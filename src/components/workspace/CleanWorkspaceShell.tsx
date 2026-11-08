@@ -345,7 +345,7 @@ export default function CleanWorkspaceShell() {
     const stored = Number(window.localStorage?.getItem("syscraft.railWidth"));
     return Number.isFinite(stored) && stored >= 220 && stored <= 520 ? stored : 300;
   });
-  const resizeRef = useRef<{ startX: number; startW: number } | null>(null);
+  const resizeRef = useRef<{ startX: number; startW: number; currentW?: number } | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [isCompact, setIsCompact] = useState(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
@@ -685,9 +685,11 @@ export default function CleanWorkspaceShell() {
               onPointerMove={(e) => {
                 if (!resizeRef.current) return;
                 const next = Math.min(520, Math.max(220, resizeRef.current.startW + (e.clientX - resizeRef.current.startX)));
+                resizeRef.current.currentW = next;
                 setRailWidth(next);
               }}
               onPointerUp={(e) => {
+                const finalW = resizeRef.current?.currentW;
                 resizeRef.current = null;
                 try {
                   (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
@@ -695,7 +697,15 @@ export default function CleanWorkspaceShell() {
                   /* ignore */
                 }
                 try {
-                  window.localStorage?.setItem("syscraft.railWidth", String(railWidth));
+                  window.localStorage?.setItem("syscraft.railWidth", String(finalW ?? railWidth));
+                } catch {
+                  /* ignore */
+                }
+              }}
+              onPointerCancel={(e) => {
+                resizeRef.current = null;
+                try {
+                  (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
                 } catch {
                   /* ignore */
                 }

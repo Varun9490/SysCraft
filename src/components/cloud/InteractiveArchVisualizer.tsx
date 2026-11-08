@@ -46,7 +46,7 @@ const TONE_STROKE: Record<Tone, string> = {
 /* Formatting helpers (locale-pinned so SSR and CSR agree)             */
 /* ------------------------------------------------------------------ */
 
-const fmtInt = (n: number) => Math.round(n).toLocaleString('en-US');
+const fmtInt = (n: number) => Math.round(n).toLocaleString("en-US");
 const fmtPct = (n: number, digits = 0) => `${(n * 100).toFixed(digits)}%`;
 const fmtMs = (n: number) => {
   if (n >= 100) return `${fmtInt(n)} ms`;
@@ -54,7 +54,7 @@ const fmtMs = (n: number) => {
   if (n >= 1) return `${n.toFixed(2)} ms`;
   return `${Math.max(1, Math.round(n * 1000))} µs`;
 };
-const fmtUsd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
+const fmtUsd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 
 /* ------------------------------------------------------------------ */
 /* SVG primitives                                                      */
@@ -407,7 +407,7 @@ function AwsTab() {
       <DiagramPanel
         caption="Click any availability zone to fail it. The ALB bus drains to the survivors, Aurora keeps committing while at least four of its six storage copies answer, and the gateway endpoint removes the NAT hairpin from every S3 byte."
       >
-        <svg viewBox="0 0 960 410" className="block h-auto w-full" role="img" aria-label="AWS multi-AZ architecture schematic">
+        <svg viewBox="0 0 960 410" className="block h-auto w-full" role="group" aria-label="AWS multi-AZ architecture schematic. Click an availability zone to fail it.">
           <defs>
             <radialGradient id="aws-glow" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor={ACCENT} stopOpacity="0.18" />
@@ -451,7 +451,7 @@ function AwsTab() {
                 role="button"
                 tabIndex={0}
                 aria-label={`Toggle availability zone ${az.label}`}
-                className="cursor-pointer focus:outline-none"
+                className="az-toggle cursor-pointer focus:outline-none"
                 onClick={() => toggleAz(az.id)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {

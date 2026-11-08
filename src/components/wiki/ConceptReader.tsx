@@ -257,8 +257,9 @@ function RookieGuideBanner({ module, flow }: { module: EncyclopediaModule; flow:
           </p>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-              <label className="mb-1 block text-[12px] font-medium text-zinc-300">Traffic load (RPS): {rps.toLocaleString()}</label>
+              <label htmlFor="concept-rps" className="mb-1 block text-[12px] font-medium text-zinc-300">Traffic load (RPS): {rps.toLocaleString("en-US")}</label>
               <input
+                id="concept-rps"
                 type="range"
                 min={100}
                 max={100000}
@@ -268,8 +269,9 @@ function RookieGuideBanner({ module, flow }: { module: EncyclopediaModule; flow:
                 className="mb-3 w-full"
                 aria-label="Traffic load in requests per second"
               />
-              <label className="mb-1 block text-[12px] font-medium text-zinc-300">Protection / cache / replica level: {protection}%</label>
+              <label htmlFor="concept-protection" className="mb-1 block text-[12px] font-medium text-zinc-300">Protection / cache / replica level: {protection}%</label>
               <input
+                id="concept-protection"
                 type="range"
                 min={0}
                 max={100}
@@ -283,7 +285,7 @@ function RookieGuideBanner({ module, flow }: { module: EncyclopediaModule; flow:
               {[
                 { label: 'Latency (p99)', value: `${latency} ms`, pct: Math.min(100, latency / 5), color: latency > 120 ? '#f87171' : '#fbbf24' },
                 { label: 'Origin / DB survival', value: `${survival}%`, pct: survival, color: survival < 40 ? '#f87171' : '#34d399' },
-                { label: 'Monthly cost', value: `$${cost.toLocaleString()}`, pct: Math.min(100, cost / 8), color: '#a78bfa' },
+                { label: 'Monthly cost', value: `$${cost.toLocaleString("en-US")}`, pct: Math.min(100, cost / 8), color: '#a78bfa' },
               ].map((bar) => (
                 <div key={bar.label}>
                   <div className="mb-1 flex justify-between text-[11.5px]">

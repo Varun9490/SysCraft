@@ -42,23 +42,18 @@ export function RoomSession() {
   const [status, setStatus] = useState<RoomStatus>('idle');
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [cursors, setCursors] = useState<RemoteCursor[]>([]);
-  const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [posReady, setPosReady] = useState(false);
+  // Client-only shell (ssr:false), so reading the viewport here is safe and
+  // avoids a first-paint jump to the parked position.
+  const [pos, setPos] = useState<{ x: number; y: number }>(() =>
+    typeof window !== 'undefined'
+      ? { x: Math.max(12, window.innerWidth - 340), y: 76 }
+      : { x: 12, y: 76 },
+  );
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
-  const destroyedRef = useRef(false);
   const awarenessRef = useRef<unknown>(null);
 
   useEffect(() => {
     setConfig(loadRoomConfig());
-    // Park the panel below the floating toolbar so it never overlaps the
-    // canvas menu bar; the user can drag it anywhere afterwards.
-    if (typeof window !== 'undefined') {
-      setPos({ x: Math.max(12, window.innerWidth - 340), y: 76 });
-      setPosReady(true);
-    }
-    return () => {
-      destroyedRef.current = true;
-    };
   }, []);
 
   useEffect(() => {
@@ -70,6 +65,12 @@ export function RoomSession() {
 
     let cancelled = false;
     let cleanup: (() => void) | null = null;
+    // Timers live in effect scope so the synchronous cleanup can always
+    // retire them, even if unmount happens while the dynamic imports are
+    // still in flight (cleanup is not assigned until the awaits resolve).
+    let seedTimer: number | null = null;
+    let writeTimer: number | null = null;
+    let cursorTimer: number | null = null;
 
     void (async () => {
       try {
@@ -100,7 +101,6 @@ export function RoomSession() {
         // 1. Join an existing room, or seed an empty one after a grace period
         //    so two simultaneous joiners don't both clobber the shared state.
         const initial = sceneMap.get('payload');
-        let seedTimer: number | null = null;
         if (typeof initial === 'string') {
           applyRemotePayload(initial);
         } else {
@@ -126,7 +126,6 @@ export function RoomSession() {
         sceneMap.observe(observer);
 
         // 3. Local → remote, debounced so canvas drags don't flood the room.
-        let writeTimer: number | null = null;
         const unsub = useCanvasStore.subscribe((state, prev) => {
           if (applyingRemote) return;
           if (state.nodes === prev.nodes && state.edges === prev.edges) return;
@@ -171,7 +170,6 @@ export function RoomSession() {
         refreshPeers();
 
         // 5. Broadcast local cursor position (throttled).
-        let cursorTimer: number | null = null;
         const onPointerMove = (ev: PointerEvent) => {
           if (cancelled) return;
           const container = (ev.currentTarget as HTMLElement) ?? null;
@@ -216,6 +214,9 @@ export function RoomSession() {
 
     return () => {
       cancelled = true;
+      if (seedTimer !== null) window.clearTimeout(seedTimer);
+      if (writeTimer !== null) window.clearTimeout(writeTimer);
+      if (cursorTimer !== null) window.clearTimeout(cursorTimer);
       cleanup?.();
     };
   }, [config]);
@@ -264,7 +265,7 @@ export function RoomSession() {
       )}
       <div
         className="pointer-events-auto absolute z-40 flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950/95 px-2.5 py-1.5 shadow-2xl backdrop-blur"
-        style={posReady ? { left: pos.x, top: pos.y } : { right: 12, top: 76 }}
+        style={{ left: pos.x, top: pos.y }}
       >
         <button
           type="button"
@@ -336,6 +337,7 @@ export function RoomSession() {
         </span>
         <button
           onClick={copyInvite}
+          aria-label="Copy room invite link"
           className="flex h-5 w-5 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
           title="Copy room invite link"
         >
@@ -343,6 +345,7 @@ export function RoomSession() {
         </button>
         <button
           onClick={leave}
+          aria-label="Leave room"
           className="flex h-5 w-5 items-center justify-center rounded-md text-zinc-500 transition hover:bg-red-950 hover:text-red-300"
           title="Leave room"
         >

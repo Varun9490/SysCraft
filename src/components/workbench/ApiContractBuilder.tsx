@@ -146,7 +146,7 @@ export function ApiContractBuilder() {
             <div className="min-w-0 flex-1">
               <p className="truncate font-mono text-xs text-zinc-100">{route.path}</p>
               <p className="truncate text-[10px] text-zinc-500">
-                {route.auth} · {route.rateLimitRps.toLocaleString()} rps · p99 ≤ {route.p99BudgetMs}ms
+                {route.auth} · {route.rateLimitRps.toLocaleString("en-US")} rps · p99 ≤ {route.p99BudgetMs}ms
                 {route.description ? ` · ${route.description}` : ""}
               </p>
             </div>

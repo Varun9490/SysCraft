@@ -219,7 +219,7 @@ export function ProgressDashboard() {
         </div>
         <ol className="mt-4 grid grid-cols-7 gap-2">
           {rhythm.map((day) => {
-            const label = new Date(`${day.day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short' });
+            const label = new Date(`${day.day}T12:00:00`).toLocaleDateString("en-US", { weekday: 'short' });
             return (
               <li key={day.day} className="text-center">
                 <div

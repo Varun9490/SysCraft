@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { X } from "@/components/ui/icons";
 import { useCanvasStore } from "@/store/useCanvasStore";
@@ -76,6 +76,17 @@ export function CostAnalysisPanel({ open, onClose }: { open: boolean; onClose: (
   );
   const activeHourly = totalHourly - idleHourly;
   const maxLine = Math.max(0.0001, ...items.map((i) => i.unitCostUsd * i.replicas));
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -85,6 +96,7 @@ export function CostAnalysisPanel({ open, onClose }: { open: boolean; onClose: (
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        aria-hidden="true"
         className="absolute inset-0 bg-ink/80 backdrop-blur-sm"
         onClick={onClose}
       />
@@ -104,6 +116,7 @@ export function CostAnalysisPanel({ open, onClose }: { open: boolean; onClose: (
           </div>
           <button
             type="button"
+            ref={closeRef}
             onClick={onClose}
             className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
             aria-label="Close cost analysis"
@@ -121,10 +134,10 @@ export function CostAnalysisPanel({ open, onClose }: { open: boolean; onClose: (
             <div className="mb-4 grid grid-cols-3 gap-2.5">
               {[
                 { k: "Per hour", v: `$${totalHourly.toFixed(2)}`, tone: "text-zinc-100" },
-                { k: "Per month", v: `$${Math.round(totalHourly * 730).toLocaleString()}`, tone: "text-brass" },
+                { k: "Per month", v: `$${Math.round(totalHourly * 730).toLocaleString("en-US")}`, tone: "text-brass" },
                 {
                   k: "Live global RPS",
-                  v: globalRps > 0 ? Math.round(globalRps).toLocaleString() : simIdle(totalCostPerHourUsd, totalHourly),
+                  v: globalRps > 0 ? Math.round(globalRps).toLocaleString("en-US") : simIdle(totalCostPerHourUsd, totalHourly),
                   tone: "text-sky-300",
                 },
               ].map((card) => (

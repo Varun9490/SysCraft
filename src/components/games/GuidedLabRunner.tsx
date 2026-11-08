@@ -117,7 +117,7 @@ export function GuidedLabRunner({ open, onClose }: GuidedLabRunnerProps) {
             ))}
           </select>
           <span className="hidden text-[11px] text-zinc-500 md:inline">
-            target {lab.targetRps.toLocaleString()} RPS · p99 ≤ {lab.sloP99Ms}ms · ${lab.budgetUsdPerHour}/h
+            target {lab.targetRps.toLocaleString("en-US")} RPS · p99 ≤ {lab.sloP99Ms}ms · ${lab.budgetUsdPerHour}/h
           </span>
           {labProgress && labProgress.bestScore > 0 && (
             <span className="flex items-center gap-1 rounded bg-amber-300/15 px-1.5 py-0.5 text-[11px] font-semibold text-amber-200">

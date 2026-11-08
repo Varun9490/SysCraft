@@ -259,7 +259,7 @@ export function PracticeRunner() {
         <div className="flex flex-col justify-between rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 text-[12px] text-zinc-400">
           Next scheduled
           <p className="mt-1 text-[14px] font-semibold text-zinc-100">
-            {upcoming ? new Date(upcoming.due).toLocaleString() : 'Nothing scheduled yet'}
+            {upcoming ? new Date(upcoming.due).toLocaleString("en-US") : 'Nothing scheduled yet'}
           </p>
           <span className="mt-1 text-[11px] text-zinc-600">
             {upcoming
@@ -335,7 +335,7 @@ export function PracticeRunner() {
           </p>
           <p className="mt-1 text-[12.5px] text-zinc-400">
             Tomorrow&apos;s queue is already scheduled. The next scheduled item appears{' '}
-            {upcoming ? new Date(upcoming.due).toLocaleString() : 'after your next read'}.
+            {upcoming ? new Date(upcoming.due).toLocaleString("en-US") : 'after your next read'}.
           </p>
           <div className="mt-4 flex justify-center gap-2">
             <button

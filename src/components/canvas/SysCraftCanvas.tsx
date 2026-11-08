@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
   Background,
   BackgroundVariant,
@@ -163,11 +163,11 @@ function CanvasInner({ className }: { className: string }) {
     return () => clearTimeout(timer);
   }, [nodes, edges]);
 
-  const onConnect = (connection: Connection) => {
+  const onConnect = useCallback((connection: Connection) => {
     if (connection.source && connection.target) {
       useCanvasStore.getState().addEdge(connection.source, connection.target);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
