@@ -17,8 +17,8 @@ function edge(source: string, target: string): DoctorEdgeInput {
 }
 
 describe("cveAndPlugins", () => {
-  it("curated CVE feed has seventeen items with valid primitives", () => {
-    expect(CURATED_CVE_FEED).toHaveLength(17);
+  it("curated CVE feed has eighteen items with valid primitives", () => {
+    expect(CURATED_CVE_FEED).toHaveLength(18);
     for (const cve of CURATED_CVE_FEED) {
       for (const primitive of cve.affectedPrimitives) {
         expect(SEED_RESOURCE_MAP[primitive], `${cve.id} affected ${primitive}`).toBeTruthy();
@@ -74,6 +74,25 @@ describe("cveAndPlugins", () => {
     expect(cve!.ecosystem).toBe("Web Frameworks & Runtime");
     expect(cve!.exploitedInWild).toBe(true);
     expect(cve!.published).toBe("2026-10-21");
+    expect(CVE_ECOSYSTEMS).toContain(cve!.ecosystem);
+    for (const primitive of cve!.affectedPrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();
+    }
+    for (const primitive of cve!.recommendedDefensePrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} defense ${primitive}`).toBeTruthy();
+    }
+  });
+
+  it("CVE-2025-29927 is a Next.js middleware authorization bypass via a spoofed internal header", () => {
+    const cve = CURATED_CVE_FEED.find((entry) => entry.id === "CVE-2025-29927");
+    expect(cve).toBeDefined();
+    expect(cve!.cvss).toBe(9.1);
+    expect(cve!.severity).toBe("CRITICAL");
+    expect(cve!.cwe).toBe("CWE-285");
+    expect(cve!.stride).toBe("Spoofing");
+    expect(cve!.ecosystem).toBe("Web Frameworks & Runtime");
+    expect(cve!.exploitedInWild).toBe(true);
+    expect(cve!.published).toBe("2025-03-21");
     expect(CVE_ECOSYSTEMS).toContain(cve!.ecosystem);
     for (const primitive of cve!.affectedPrimitives) {
       expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();

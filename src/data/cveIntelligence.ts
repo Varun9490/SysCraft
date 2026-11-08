@@ -440,6 +440,26 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     exploitedInWild: false,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2025-46817",
   },
+  {
+    id: "CVE-2025-29927",
+    title: "Next.js Middleware Authorization Bypass via Spoofed Internal Header",
+    published: "2025-03-21",
+    cvss: 9.1,
+    severity: "CRITICAL",
+    cwe: "CWE-285",
+    stride: "Spoofing",
+    ecosystem: "Web Frameworks & Runtime",
+    affectedPrimitives: ["api_gateway", "rest_service", "serverless_function"],
+    summary:
+      "Next.js used an internal `x-middleware-subrequest` header to detect middleware recursion and skip middleware execution for subrequests. The header value was predictable (the middleware file path), so an unauthenticated client could set it to the middleware name and the framework treated the request as an internal subrequest, skipping auth and authorization checks performed in middleware entirely. Self-hosted Next.js apps (including `output: 'standalone'`) that enforced authorization in middleware were fully bypassable; Next.js deployments hosted on Vercel were protected because routing runs in a separate system.",
+    architecturalRootCause:
+      "The framework trusted a client-controllable HTTP header to decide whether authorization logic ran. An internal loop-prevention signal shared the same trust domain as external request input, so a forged header promoted an untrusted request into the trusted internal path and the route served without any auth check.",
+    mitigationPattern:
+      "Upgrade Next.js to 12.3.5, 13.5.9, 14.2.25, or 15.2.3 (Vercel-hosted apps were already protected). If patching is infeasible, drop external requests containing the `x-middleware-subrequest` header at the proxy or edge. Long-term, never rely on middleware as the sole authorization layer: enforce auth again in route handlers and at the data layer so a framework bypass cannot cross the route boundary.",
+    recommendedDefensePrimitives: ["web_application_firewall", "identity_provider", "rate_limiter", "observability_stack"],
+    exploitedInWild: true,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2025-29927",
+  },
 ];
 
 /** Fast lookup used by the hub's canvas-exposure annotations. */
