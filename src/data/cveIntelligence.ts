@@ -460,6 +460,26 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     exploitedInWild: true,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2025-29927",
   },
+  {
+    id: "CVE-2026-123007",
+    title: "NGINX HTTP/2 Flow-Control Integer Underflow Unauthenticated RCE",
+    published: "2026-11-18",
+    cvss: 9.2,
+    severity: "CRITICAL",
+    cwe: "CWE-191",
+    stride: "Elevation of Privilege",
+    ecosystem: "Web Frameworks & Runtime",
+    affectedPrimitives: ["api_gateway", "rest_service", "cdn_edge"],
+    summary:
+      "A flow-control accounting bug in the NGINX HTTP/2 implementation let an unauthenticated client corrupt memory inside the NGINX worker process. The worker miscalculated how much response data a client had permitted, so a cancelled queued response followed by a later response produced an invalid copy length and heap memory corruption in the worker context, leading to unauthenticated remote code execution with worker privileges. Requires HTTP/2 to be enabled on the affected listener; fixes shipped in NGINX 1.31.9 (mainline) and 1.30.7 (stable). Wiz, Rapid7, and Xint disclosed the findings as part of the NGINX2Root research; no public proof-of-concept or reported in-the-wild exploitation existed at publication.",
+    architecturalRootCause:
+      "The HTTP/2 flow-control implementation trusted client-declared window accounting and performed unchecked length arithmetic along the worker data path. Because the worker process holds the data-plane privileges for hosted traffic, a small accounting error became worker-context memory corruption that an unauthenticated peer could drive from cancelled streams into code execution.",
+    mitigationPattern:
+      "Upgrade NGINX to 1.31.9 or 1.30.7 through the normal release pipeline and verify the running version. Until patched, disable HTTP/2 on internet-facing listeners or front NGINX with a rate-limiting and WAF layer that caps request volume and aborts malformed stream sequences. Treat the NGINX worker as the data-plane security boundary: run it non-root, drop capabilities after binding, and alert on worker crash loops or abnormal worker restarts.",
+    recommendedDefensePrimitives: ["web_application_firewall", "rate_limiter", "api_gateway", "observability_stack"],
+    exploitedInWild: false,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2026-123007",
+  },
 ];
 
 /** Fast lookup used by the hub's canvas-exposure annotations. */

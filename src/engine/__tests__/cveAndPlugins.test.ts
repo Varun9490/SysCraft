@@ -17,8 +17,8 @@ function edge(source: string, target: string): DoctorEdgeInput {
 }
 
 describe("cveAndPlugins", () => {
-  it("curated CVE feed has eighteen items with valid primitives", () => {
-    expect(CURATED_CVE_FEED).toHaveLength(18);
+  it("curated CVE feed has nineteen items with valid primitives", () => {
+    expect(CURATED_CVE_FEED).toHaveLength(19);
     for (const cve of CURATED_CVE_FEED) {
       for (const primitive of cve.affectedPrimitives) {
         expect(SEED_RESOURCE_MAP[primitive], `${cve.id} affected ${primitive}`).toBeTruthy();
@@ -93,6 +93,25 @@ describe("cveAndPlugins", () => {
     expect(cve!.ecosystem).toBe("Web Frameworks & Runtime");
     expect(cve!.exploitedInWild).toBe(true);
     expect(cve!.published).toBe("2025-03-21");
+    expect(CVE_ECOSYSTEMS).toContain(cve!.ecosystem);
+    for (const primitive of cve!.affectedPrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();
+    }
+    for (const primitive of cve!.recommendedDefensePrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} defense ${primitive}`).toBeTruthy();
+    }
+  });
+
+  it("CVE-2026-123007 is an NGINX HTTP/2 flow-control RCE mitigated by edge defenses", () => {
+    const cve = CURATED_CVE_FEED.find((entry) => entry.id === "CVE-2026-123007");
+    expect(cve).toBeDefined();
+    expect(cve!.cvss).toBe(9.2);
+    expect(cve!.severity).toBe("CRITICAL");
+    expect(cve!.cwe).toBe("CWE-191");
+    expect(cve!.stride).toBe("Elevation of Privilege");
+    expect(cve!.ecosystem).toBe("Web Frameworks & Runtime");
+    expect(cve!.exploitedInWild).toBe(false);
+    expect(cve!.published).toBe("2026-11-18");
     expect(CVE_ECOSYSTEMS).toContain(cve!.ecosystem);
     for (const primitive of cve!.affectedPrimitives) {
       expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();
