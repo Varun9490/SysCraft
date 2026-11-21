@@ -62,8 +62,6 @@ const DATASTORE_CATEGORIES = new Set<ResourceCategory>(["database", "storage", "
 
 const QUEUE_CATEGORIES = new Set<ResourceCategory>(["messaging", "streaming"]);
 
-const ENTRY_CATEGORIES = new Set<ResourceCategory>(["edge", "network", "security", "api"]);
-
 function effectiveDefaults(resourceId: string): ResourceDefaults | null {
   const seed = seedById.get(resourceId);
   return seed ? seed.defaults : null;
@@ -182,11 +180,7 @@ function longestPathLength(nodes: DoctorNodeInput[], edges: DoctorEdgeInput[]): 
   return { length: best, endNodeId: bestEnd };
 }
 
-export function runDesignDoctor(
-  nodes: DoctorNodeInput[],
-  edges: DoctorEdgeInput[],
-  options: { multiAzSupport?: boolean } = {},
-): DoctorReport {
+export function runDesignDoctor(nodes: DoctorNodeInput[], edges: DoctorEdgeInput[]): DoctorReport {
   const findings: DoctorFinding[] = [];
   const { validEdges, out, incoming } = buildAdjacency(nodes, edges);
   const nodeById = new Map(nodes.map((n) => [n.id, n]));

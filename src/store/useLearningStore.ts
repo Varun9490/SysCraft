@@ -44,7 +44,7 @@ interface LearningState {
   persistToDb: () => Promise<boolean>;
 }
 
-function labTimestamp(progress: LabProgress): string {
+function labTimestamp(): string {
   return new Date().toISOString();
 }
 
@@ -93,7 +93,7 @@ export const useLearningStore = create<LearningState>()((set, get) => ({
   dueCount: (now = new Date()) => dueCards(Object.values(get().cards), now).length,
 
   setLabProgress: (progress) => {
-    const stamped: LabProgress = { ...progress, updatedAt: labTimestamp(progress) };
+    const stamped: LabProgress = { ...progress, updatedAt: labTimestamp() };
     set((state) => ({ labProgress: { ...state.labProgress, [progress.labId]: stamped } }));
     void putLabProgress({ ...stamped, updatedAt: stamped.updatedAt });
   },
