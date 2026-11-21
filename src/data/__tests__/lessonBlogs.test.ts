@@ -50,6 +50,35 @@ describe("lessonBlogs coverage", () => {
     }
   });
 
+  it("each sandbox default is inside its slider range", () => {
+    for (const part of PATH_PARTS) {
+      for (const module of part.modules) {
+        for (let i = 0; i < module.lessonTitles.length; i++) {
+          const { sandbox } = getLessonBlog(module.id, i);
+          expect(sandbox.min).toBeLessThan(sandbox.max);
+          expect(sandbox.step).toBeGreaterThan(0);
+          expect(sandbox.defaultValue).toBeGreaterThanOrEqual(sandbox.min);
+          expect(sandbox.defaultValue).toBeLessThanOrEqual(sandbox.max);
+        }
+      }
+    }
+  });
+
+  it("each quiz has valid options and an answer inside them", () => {
+    for (const part of PATH_PARTS) {
+      for (const module of part.modules) {
+        for (let i = 0; i < module.lessonTitles.length; i++) {
+          const { quiz } = getLessonBlog(module.id, i);
+          expect(quiz.options.length).toBeGreaterThanOrEqual(2);
+          expect(quiz.correctIndex).toBeGreaterThanOrEqual(0);
+          expect(quiz.correctIndex).toBeLessThan(quiz.options.length);
+          expect(new Set(quiz.options).size).toBe(quiz.options.length);
+          expect(quiz.explanation.length).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
   it("evaluateLessonSandbox is deterministic", () => {
     const part = PATH_PARTS[0];
     const module = part.modules[0];
