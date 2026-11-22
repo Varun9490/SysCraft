@@ -1,0 +1,58 @@
+import { describe, expect, it } from "vitest";
+
+import { GUIDED_LABS } from "@/data/guidedLabs";
+import { SEED_RESOURCE_IDS } from "@/data/seedResources";
+
+/**
+ * Structural guards for the guided labs. The grader matches canvas nodes by
+ * resource id, so a typo in `requiredResourceIds` silently makes a stage
+ * unpassable — the failure mode is a learner stuck on a correct design.
+ */
+describe("guided labs", () => {
+  it("has unique lab and stage ids", () => {
+    const labIds = GUIDED_LABS.map((lab) => lab.id);
+    expect(new Set(labIds).size).toBe(labIds.length);
+
+    for (const lab of GUIDED_LABS) {
+      const stageIds = lab.stages.map((stage) => stage.id);
+      expect(new Set(stageIds).size, `${lab.id} stage ids`).toBe(stageIds.length);
+    }
+  });
+
+  it("only grades resources that exist on the canvas", () => {
+    const known = new Set(SEED_RESOURCE_IDS);
+    for (const lab of GUIDED_LABS) {
+      for (const stage of lab.stages) {
+        for (const rule of stage.gradingRules) {
+          for (const resourceId of rule.requiredResourceIds) {
+            expect(known.has(resourceId), `${lab.id}/${stage.id}: ${resourceId}`).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
+  it("opens on a brief and closes on a written review", () => {
+    for (const lab of GUIDED_LABS) {
+      expect(lab.stages[0].kind, `${lab.id} first stage`).toBe("brief");
+      expect(lab.stages.at(-1)?.kind, `${lab.id} last stage`).toBe("review");
+    }
+  });
+
+  it("gives every lab at least one automated check and a reference solution", () => {
+    for (const lab of GUIDED_LABS) {
+      const rules = lab.stages.flatMap((stage) => stage.gradingRules);
+      expect(rules.length, `${lab.id} grading rules`).toBeGreaterThan(0);
+      expect(lab.briefMarkdown.length, `${lab.id} brief`).toBeGreaterThan(60);
+      expect(lab.solutionMarkdown.length, `${lab.id} solution`).toBeGreaterThan(100);
+    }
+  });
+
+  it("keeps the on-sale ticketing lab anchored to its correctness target", () => {
+    const lab = GUIDED_LABS.find((entry) => entry.id === "bookmyshow-ticketing");
+    expect(lab).toBeDefined();
+    expect(lab?.stages.some((stage) => stage.kind === "chaos")).toBe(true);
+    expect(lab?.targetRps).toBe(50000);
+    expect(lab?.solutionMarkdown).toContain("does not oversell");
+  });
+});

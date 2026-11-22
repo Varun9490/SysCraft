@@ -205,18 +205,97 @@ export const GUIDED_LABS: GuidedLab[] = [
     company: "BookMyShow",
     difficulty: "standard",
     estimatedMinutes: 60,
-    briefMarkdown: "# Ticketing: 50k concurrent for a blockbuster\n\nDesign seat hold (10 min), payment, and exactly-once allocation with 250ms p99 and zero double-book.",
+    briefMarkdown: "# BookMyShow: a blockbuster opens bookings at 10:00\n\nOne ticketing platform opens the same release across ~3,000 screens: **~8,000 shows, ~1.6M seats** going on sale in the same minute. Baseline traffic is ~1k req/s; the on-sale spike is ~50× that, so design for **50k req/s of browsing and hold attempts** with **p99 ≤ 250 ms** and **zero double-booked seats**. An unpaid hold dies after **10 minutes**; a payment seen twice must never produce two tickets.\n\nThree decisions are actually graded, and every stage ladders toward one of them: **(1)** is a hold a lock or a lease, and where does its authority live; **(2)** what happens to 50k users who all want the same 200-seat show; **(3)** what the confirm path does when the payment provider is slow, down, or retries a webhook. The seat map is a correctness surface, not a UI detail — this lab is about losing a race you cannot retry out of.",
     targetRps: 50000,
     sloP99Ms: 250,
     budgetUsdPerHour: 60,
     stages: [
-      { id: "bms-s1", kind: "brief", title: "Scope", instructionsMarkdown: "Define hold vs confirm, seat map versioning, and payment timeout handling.", hints: ["Holds are leases, not locks."], gradingRules: [] },
-      { id: "bms-s2", kind: "boe", title: "Back-of-envelope", instructionsMarkdown: "Compute seat-state QPS during on-sale spike (50x normal) and Redis memory for holds.", hints: ["Peak factor 50."], gradingRules: [] },
-      { id: "bms-s3", kind: "topology", title: "Topology", instructionsMarkdown: "Gateway + queue for spike absorption + Redis seat holds + Postgres ledger + worker confirmations.", hints: ["Queue absorbs the flash sale."], gradingRules: [{ id: "bms-g1", description: "Queue + cache + ledger", requiredResourceIds: ["message_queue", "redis_cache", "postgres_db"], minNodeCount: 5, maxP99Ms: null, maxErrorRate: null, maxCostPerHourUsd: null, requiresMultiAz: true, points: 30 }] },
-      { id: "bms-s4", kind: "data_model", title: "Seat ledger", instructionsMarkdown: "Model shows, seat_states with version column, and idempotent payment intents.", hints: ["Optimistic locking on version."], gradingRules: [] },
-      { id: "bms-s5", kind: "chaos", title: "On-sale spike drill", instructionsMarkdown: "Run traffic-surge chaos: 50x for 3 minutes. Holds must not double-book.", hints: ["Shed with numbered queue tokens."], gradingRules: [{ id: "bms-g2", description: "No oversell under surge", requiredResourceIds: [], minNodeCount: 5, maxP99Ms: 300, maxErrorRate: 0.03, maxCostPerHourUsd: 60, requiresMultiAz: false, points: 20 }] },
+      {
+        id: "bms-s1",
+        kind: "brief",
+        title: "Scope the on-sale, not the ticket page",
+        instructionsMarkdown:
+          "Write commitments, not feature headings.\n\n**Functional:** browse shows and seat maps, hold N adjacent seats, pay, confirm; auto-release on timeout; cancel/refund; seat-map layout versions; per-user and per-card purchase limits.\n\n**Non-functional:** seat-map read p99 ≤ 250 ms at 50k req/s; hold decision ≤ 300 ms; confirm is idempotent under webhook retries; 99.95% availability during the sale; **zero oversell**, including after a cache node dies.\n\n**The requirement that decides the design:** a hold is not a sale. A held seat is temporarily unavailable to everyone else and must become available again without human intervention. Write that sentence in your own words and say what breaks if holds never expire — inventory leaks, and a sold-out show has empty seats.\n\nAlso state the boundary you are *not* solving: seat-level pricing, food pre-orders, and recommendation ranking ride outside the hold/confirm path.",
+        hints: [
+          "Split the read path (seat map, heavy and cacheable) from the write path (hold/confirm, tiny and serialized). They scale for opposite reasons.",
+          "Expiry is a feature, not cleanup: an abandoned payment must return the seat within a bounded time or the show sells out with holes in it.",
+          "Decide the hold duration from the payment path, not from a round number — 10 minutes is a budget: ~8 minutes for the user plus provider callback, 2 minutes of buffer.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "bms-s2",
+        kind: "boe",
+        title: "Back-of-envelope: where the load actually is",
+        instructionsMarkdown:
+          "Every number must come from arithmetic you can name; label guesses as guesses.\n\n| Quantity | Arithmetic | Result |\n| --- | --- | --- |\n| Baseline traffic | given | ~1k req/s |\n| On-sale spike | 1k × 50 | 50k req/s |\n| Seat states per release | 8,000 shows × 200 seats | 1.6M |\n| Seat-map memory | 1.6M × ~200 B with overhead | ~320 MB (fits, but shard by venue) |\n| Active holds | 50k concurrent × 1 hold × ~150 B | ~7.5 MB — memory is not the problem |\n| Browse:write split | ~90% map reads / ~10% hold attempts | 45k reads/s vs 5k holds/s |\n| Hot-show contention | 10k watchers for 200 seats | 50:1 oversubscription |\n| Confirmed tickets/night | 1.6M sold, concentrated in first 20 min | ~1,300/s avg, ~4k/s peak |\n| Ledger growth | 1.6M rows/night × ~250 B | ~400 MB/night; partition + archive |\n| Payment provider ceiling | typically low-hundreds TPS per account | the real confirm bottleneck |\n\nThe two estimates that change the design:\n\n**Contention, not throughput.** 50k req/s sounds like a scaling problem, but the scarce resource is 200 seats in one show. If every watcher is allowed to attempt a hold, you convert a browse spike into a database race for the same 200 rows. Admission has to happen *before* the seat row is touched — a per-show gate, not a global one, because gating the whole platform on the hottest show starves every other screen.\n\n**Confirm rate is bounded by the payment provider, not by you.** 4k confirms/s at peak will not clear a provider that allows low-hundreds TPS. The queue is therefore on the confirm path: holds sit in `pending_payment` while a worker drains at the provider's actual rate. Size the hold TTL against that drain, or users will lose seats to your own backlog.",
+        hints: [
+          "Show the multiplier for every row: 50×, 90/10, 20 minutes = 1,200 s, 250 B/row.",
+          "320 MB of seat state is one box; that is exactly why you shard it — blast radius, not capacity.",
+          "Keep the 50:1 contention number next to you for stage 3: the topology must make most of those 10k watchers cheap.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "bms-s3",
+        kind: "topology",
+        title: "Build the topology: gate first, then serialize",
+        instructionsMarkdown:
+          "Place the tiers and draw both paths.\n\n**Edge / front door:** `dns_load_balancer` → `cdn_edge` for static assets and seat-map shells → `api_gateway` with `rate_limiter` (per-IP and per-account) → `web_application_firewall` for scripted inventory scraping.\n\n**Admission:** a per-show virtual waiting room. Issue numbered tokens at a rate the show can actually drain; the token is the only thing that lets a session call the hold API. Cache the waiting-room position in `redis_cache`, never in the seat row.\n\n**Read path:** seat map snapshots served from `redis_cache` (or the CDN for the static shell), versioned per layout. Reads must not touch `postgres_db`.\n\n**Hold path:** `rest_service` hold handler → atomic arbiter in `redis_cache` (`SET seat:{show}:{seat} {holdId} NX PX 600000`) → durable insert of the hold row into `postgres_db` (unique on show+seat where not released). Redis is the fast arbiter; Postgres is the truth. If they disagree, Postgres wins and a reconciler repairs Redis.\n\n**Confirm path:** `message_queue` between the confirm API and the payment workers so the provider's TPS ceiling cannot back-pressure the browse path; `background_worker` pool runs the confirm saga and the 60-second expiry sweeper; `observability_stack` tracks hold→confirm conversion and orphaned holds.\n\nEnable multi-AZ on Redis, Postgres, and the queue. Run the simulation and land inside 250 ms p99 before passing.",
+        hints: [
+          "The hold must be a single atomic decision (SET NX with TTL). Check-then-write in application code is the double-book bug, just harder to see.",
+          "Queue the confirm, not the hold: users tolerate a spinner after paying; they do not tolerate a sold seat they thought they owned.",
+          "Two writers must never own the same seat state. Pick Redis as the arbiter for speed, Postgres as the arbiter for truth, and write down the repair rule.",
+        ],
+        gradingRules: [
+          { id: "bms-g1", description: "Queue + atomic hold cache + durable ledger, multi-AZ", requiredResourceIds: ["message_queue", "redis_cache", "postgres_db"], minNodeCount: 5, maxP99Ms: null, maxErrorRate: null, maxCostPerHourUsd: null, requiresMultiAz: true, points: 25 },
+          { id: "bms-g1b", description: "Admission and abuse controls at the front door", requiredResourceIds: ["api_gateway", "rate_limiter"], minNodeCount: 0, maxP99Ms: null, maxErrorRate: null, maxCostPerHourUsd: null, requiresMultiAz: false, points: 10 },
+        ],
+      },
+      {
+        id: "bms-s4",
+        kind: "data_model",
+        title: "The seat ledger: leases, versions, idempotency",
+        instructionsMarkdown:
+          "Sign the contracts that make oversell impossible.\n\n**Tables (name the constraints, not just the columns):**\n\n- `shows(id, venue_id, starts_at, layout_version)` — layout version pins which seat map is authoritative.\n- `seat_states(show_id, seat_id, state, hold_id, expires_at, version)` with a **unique index on (show_id, seat_id) where state <> 'released'**. That partial unique index is the last line of defence: even if two application servers both believe a seat is free, the second insert fails.\n- `holds(id, show_id, user_id, seat_ids, state, expires_at, idempotency_key)` — state in `active | pending_payment | confirmed | expired | released`.\n- `payment_intents(id, hold_id, provider_ref, amount, state)` with **unique(provider_ref)** and **unique(hold_id)** — one hold, one charge.\n- `tickets(id, hold_id, show_id, seat_id)` with unique(show_id, seat_id) — the sale itself.\n\n**Hold contract:** `POST /v1/shows/{id}/holds`, body `{seats: [...], idempotencyKey}`, header `Idempotency-Key`; returns `201 {holdId, expiresAt}`; `409 {conflicts: [seatId]}` when any seat is taken; `429` with `Retry-After` and queue position when the token bucket says wait. Retrying the same idempotency key returns the original hold — never a second one.\n\n**Confirm contract:** `POST /v1/holds/{id}/confirm` returns `202 {paymentIntentId}` — accepted, not captured. The provider webhook is the authority; handle it **idempotently on provider event id**, and make the state transition `pending_payment → confirmed` a conditional update (`WHERE state = 'pending_payment'`). A duplicate webhook updates zero rows and returns 200.\n\n**Expiry:** Redis TTL releases the fast lock; a sweeper every 60 s flips `active` rows past `expires_at` to `expired` and frees the seats in one transaction. Never rely on TTL alone — a Redis restart loses TTLs, and the sweeper plus partial unique index are what stop the inventory leak.\n\nWrite the sentence that proves no oversell: *a seat can only become `confirmed` from `pending_payment`, and only one hold can ever be `pending_payment` for a given (show, seat).*",
+        hints: [
+          "A unique partial index is cheaper than any distributed lock and survives application bugs — it is the constraint you cannot forget to call.",
+          "The provider callback can arrive before your confirm response, twice, or a day late. Design the state machine for all three.",
+          "Holds are leases with a deadline. If you store an absolute `expires_at`, a clock skew or a paused worker is an inventory bug — compare against the database clock.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "bms-s5",
+        kind: "chaos",
+        title: "Chaos drill: 50× spike with a payment brownout",
+        instructionsMarkdown:
+          "Two things fail at once, because they always do.\n\n**Do it:** run the traffic-surge chaos at 50× for 3 minutes, and while it runs put the payment provider into a slow/failing dependency state (~5 s p99, 20% errors). Then re-run the checks.\n\n**What you are defending:**\n\n- **Admission:** the waiting room must absorb the spike. Without it, 50k sessions race for 200 seats and the hold handler's p99 collapses as Postgres serializes conflicting writes.\n- **Hold integrity:** no seat may appear in two confirmed tickets. If a hold handler times out mid-transaction, the client retry must be idempotent, and the partial unique index must reject the loser.\n- **Payment backlog:** confirms queue at the provider's real rate. Holds in `pending_payment` must not silently expire while their payment is still in flight — either extend the lease with a bounded grace state (`payment_pending`, not `active`) or reconcile the late webhook against a released seat and refund automatically. Pick one and defend it.\n- **Recovery:** when Redis restarts empty, the hold API must fail closed to Postgres for the affected shard (slower, correct) rather than rebuilding locks from nothing.\n\nPassing means: error rate stays under the incident guardrail, p99 degrades without collapsing, and the double-book count is **exactly zero**. Write down what your design does at second 0, 30, and 300, and name the metric you would page on first — for the reference design it is hold→confirm conversion plus orphaned `pending_payment` rows, not CPU.",
+        hints: [
+          "Second 0: gate closes, queue grows, browse stays fast. Second 30: confirm backlog is the p99. Second 300: sweeper has released abandoned holds; provider recovers and the queue drains.",
+          "A timeout is not a failure — it is an unknown outcome. Every unknown must be resolved by reading durable state, never by retrying the charge.",
+          "If you see double-books, look for a read-check-write path that bypassed SET NX or the partial unique index.",
+        ],
+        gradingRules: [
+          { id: "bms-g2", description: "No oversell and bounded errors under 50× surge", requiredResourceIds: ["message_queue", "redis_cache", "postgres_db"], minNodeCount: 5, maxP99Ms: 600, maxErrorRate: 0.03, maxCostPerHourUsd: 60, requiresMultiAz: false, points: 20 },
+        ],
+      },
+      {
+        id: "bms-s6",
+        kind: "review",
+        title: "Review: defend the three decisions",
+        instructionsMarkdown:
+          "Close with the argument, not a diagram tour.\n\n**1. Hold as lease, not lock.** A lock needs an owner who will release it; a user who closes the tab will not. A lease with `expires_at` in the database and a TTL in Redis is self-healing. Cost: legitimate slow payers lose seats — which is why the lease is a product decision, not an infrastructure one.\n\n**2. Per-show admission, not global.** Gating the whole platform on the hottest show turns one sold-out screen into a site-wide outage. Tokens per show keep other screens browsable and make the 50:1 contention cheap: most of the 10k watchers get a seat-map read and a queue position, not a database write.\n\n**3. Conditional state transitions.** `pending_payment → confirmed` only from `pending_payment`, keyed by the provider event id; `tickets` unique on (show, seat). Every retry is then safe by construction. The alternative — trusting the client's `payment succeeded` callback — is how double-books and double-charges happen.\n\n**Numbers to say from memory:** 50k req/s spike, 1.6M seat states, ~320 MB of seat state, ~7.5 MB of active holds, ~4k/s peak confirms against a provider ceiling in the low hundreds, 1.6M tickets/night. Then name the first page: orphaned `pending_payment` rows or a hold→confirm conversion drop.\n\nFinally, state the honest trade-off you would tell the business: a waiting room loses some impulse buyers, but overselling a blockbuster costs refunds, support load, and trust. Correctness is the SLO here.",
+        hints: [
+          "If your answer to 'what if the webhook is late?' is 'retry the payment', you have not designed the state machine yet.",
+          "The cheapest way to prevent double-booking is a constraint, not a lock service — say which constraint.",
+        ],
+        gradingRules: [
+          { id: "bms-g3", description: "Final design inside budget and at the 250 ms on-sale SLO", requiredResourceIds: [], minNodeCount: 5, maxP99Ms: 250, maxErrorRate: 0.01, maxCostPerHourUsd: 60, requiresMultiAz: false, points: 20 },
+        ],
+      },
     ],
-    solutionMarkdown: "# Reference\n\nVirtual waiting room -> SQS -> hold service (Redis SET NX 10-min TTL) -> Postgres confirm with version check -> payment saga. Zero double-books via single seat-state writer per screen.",
+    solutionMarkdown: "# Reference: the gold-standard on-sale design\n\n## Read path (90% of traffic)\nCDN serves the static shell; `redis_cache` holds versioned seat-map snapshots per show (`layout_version` in the key). 45k reads/s never touch Postgres. Seat-map state is eventually consistent by a few hundred ms — acceptable, because the hold decision re-checks atomically; the map is a hint, not the truth.\n\n## Admission\nPer-show virtual waiting room: arriving sessions get a numbered token at a drain rate derived from that show's confirm capacity, not a global constant. `rate_limiter` enforces per-IP and per-account ceilings; `web_application_firewall` blocks obvious scrapers. A token is required to call the hold API, so the 50:1 contention on a hot show becomes cheap queue positions rather than 50k database writes.\n\n## Hold path (the correctness core)\n`POST /holds` with an idempotency key → hold handler computes the seat set → per-seat `SET seat:{show}:{seat} {holdId} NX PX 600000` (all-or-nothing via a small Lua script that rolls back partial acquisition) → durable `seat_states` insert with the partial unique index `(show_id, seat_id) WHERE state <> 'released'`. If Postgres rejects, release the Redis keys and return `409` with the conflicting seats. Redis is the fast arbiter; the index is the truth. On a Redis restart, the shard fails closed to Postgres until the cache is rebuilt from `seat_states` — slower, never wrong.\n\n## Confirm path\n`POST /holds/{id}/confirm` writes a `payment_intent` (unique on `hold_id`) and returns `202`; a `message_queue` buffers the charge so provider latency never back-pressures browsing. Workers charge at the provider's TPS ceiling. The webhook is authoritative: `UPDATE payment_intents ... WHERE provider_ref = $1 AND state = 'pending'`; a duplicate event matches zero rows and returns 200. Only after that transition does a conditional `UPDATE seat_states SET state='confirmed' WHERE hold_id=$1 AND state='pending_payment'` create `tickets` rows. If the webhook arrives after the lease expired, the reconciler refunds and releases, and the seat returns to inventory.\n\n## Expiry and repair\nA `background_worker` sweeper every 60 s expires `active` holds past `expires_at` (database clock), frees Redis keys, and flips seats to `released` in one transaction. Orphaned `pending_payment` rows older than the grace window are reconciled against provider state — never guessed. Metrics: hold→confirm conversion, orphan count, partial-index conflict rate, per-show queue depth.\n\n## Capacity and cost\nAt peak: a handful of `rest_service` pods behind the gateway, Redis sharded by venue (~320 MB total), Postgres partitioned by show date (1.6M rows/night), one worker pool sized to the provider's TPS ceiling. Reference cost is well inside the $60/hr budget; headroom is spent on multi-AZ and on the queue, not on bigger databases. p99: seat map ~40 ms edge-cached, hold ~120 ms, confirm accepted ~90 ms (capture happens asynchronously).\n\n## Why this does not oversell\nThree independent barriers, in order: the per-show gate (most attempts never reach a seat write), the atomic `SET NX` lease (one winner per seat), and the partial unique index plus conditional transition (the database refuses to record a second sale even if the first two fail). Any one alone is a bug waiting for a race; together they fail closed.",
   },
   {
     id: "razorpay-payments",
