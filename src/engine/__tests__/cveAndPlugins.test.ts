@@ -17,8 +17,8 @@ function edge(source: string, target: string): DoctorEdgeInput {
 }
 
 describe("cveAndPlugins", () => {
-  it("curated CVE feed has nineteen items with valid primitives", () => {
-    expect(CURATED_CVE_FEED).toHaveLength(19);
+  it("curated CVE feed has twenty items with valid primitives", () => {
+    expect(CURATED_CVE_FEED).toHaveLength(20);
     for (const cve of CURATED_CVE_FEED) {
       for (const primitive of cve.affectedPrimitives) {
         expect(SEED_RESOURCE_MAP[primitive], `${cve.id} affected ${primitive}`).toBeTruthy();
@@ -44,6 +44,24 @@ describe("cveAndPlugins", () => {
     }
     for (const primitive of cve!.recommendedDefensePrimitives) {
       expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} defense ${primitive}`).toBeTruthy();
+    }
+  });
+
+  it("CVE-2021-44228 is Log4Shell, a JNDI lookup-injection RCE with an egress escape hatch", () => {
+    const cve = CURATED_CVE_FEED.find((entry) => entry.id === "CVE-2021-44228");
+    expect(cve).toBeDefined();
+    expect(cve!.cvss).toBe(10);
+    expect(cve!.severity).toBe("CRITICAL");
+    expect(cve!.cwe).toBe("CWE-502");
+    expect(cve!.stride).toBe("Elevation of Privilege");
+    expect(cve!.ecosystem).toBe("Web Frameworks & Runtime");
+    expect(cve!.published).toBe("2021-12-10");
+    expect(cve!.exploitedInWild).toBe(true);
+    // The defense must include an egress boundary, not only a WAF rule: the
+    // lookup is what reaches out, so blocking the outbound path removes the class.
+    expect(cve!.recommendedDefensePrimitives).toContain("service_mesh");
+    for (const primitive of [...cve!.affectedPrimitives, ...cve!.recommendedDefensePrimitives]) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} ${primitive}`).toBeTruthy();
     }
   });
 

