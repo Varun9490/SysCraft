@@ -520,6 +520,32 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     exploitedInWild: false,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-21626",
   },
+
+  {
+    id: "CVE-2023-46604",
+    title: "Apache ActiveMQ OpenWire Deserialization Remote Code Execution",
+    published: "2023-10-25",
+    cvss: 10.0,
+    severity: "CRITICAL",
+    cwe: "CWE-502",
+    stride: "Spoofing",
+    ecosystem: "Kubernetes",
+    affectedPrimitives: [
+      "kafka_stream",
+      "service_mesh",
+      "k8s_cluster",
+      "k8s_cluster",
+    ],
+    summary:
+      "A deserialization flaw in the OpenWire protocol implementation of Apache ActiveMQ allowed an unauthenticated remote attacker to execute arbitrary code on the broker host. The broker deserialized untrusted OpenWire commands without type validation, so a crafted packet caused the JVM to instantiate attacker-controlled classes and run their static initializers, yielding full RCE as the broker process.",
+    architecturalRootCause:
+      "The broker trusted wire-format type names and deserialized them with the application classloader instead of an allowlist. Any peer that could reach the OpenWire port could therefore turn the messaging layer into an arbitrary code execution surface.",
+    mitigationPattern:
+      "Upgrade ActiveMQ to 5.15.16, 5.16.7, 5.17.6, or 5.18.3 (or later) and restart every broker. Restrict the OpenWire port to trusted producers and consumers via network policy, disable unused transports, and run brokers as non-root with a read-only filesystem. Add egress and process-execution monitoring for the broker JVM and rotate credentials on any host that exposed an unpatched broker.",
+    recommendedDefensePrimitives: ["kafka_stream", "service_mesh", "k8s_cluster", "observability_stack"],
+    exploitedInWild: true,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2023-46604",
+  },
 ];
 
 /** Fast lookup used by the hub's canvas-exposure annotations. */
