@@ -303,18 +303,129 @@ export const GUIDED_LABS: GuidedLab[] = [
     company: "Razorpay",
     difficulty: "advanced",
     estimatedMinutes: 75,
-    briefMarkdown: "# Payments: 10k TPS, zero lost writes\n\nDesign idempotent charge API, double-entry ledger, PSP routing, and reconciliation with 400ms p99.",
+    briefMarkdown:
+      "# Payments: 10k attempts/sec, no lost or duplicated money\n\nDesign an intent API, a double-entry ledger, PSP routing, and settlement reconciliation at **10k charge attempts/sec**, **400ms p99**, **zero lost or duplicated postings**.\n\nThis lab grades the three decisions that separate a payment system from a CRUD app: **(1)** what the 400ms p99 actually covers - acceptance, not card-network authorization; **(2)** why the ledger is append-only postings instead of mutable balances; **(3)** what happens when a PSP times out after it may already have moved money. A design that says 'retry until success' fails stage five.",
     targetRps: 10000,
     sloP99Ms: 400,
     budgetUsdPerHour: 120,
     stages: [
-      { id: "rp-s1", kind: "brief", title: "Scope", instructionsMarkdown: "Cover auth, capture, refund, webhook delivery, and PCI scope minimization.", hints: ["Tokenize cards at edge."], gradingRules: [] },
-      { id: "rp-s2", kind: "boe", title: "Back-of-envelope", instructionsMarkdown: "Compute ledger rows/day, idempotency window storage, and PSP timeout budgets.", hints: ["864M rows/day at peak: partition daily."], gradingRules: [] },
-      { id: "rp-s3", kind: "topology", title: "Topology", instructionsMarkdown: "WAF + gateway + REST + distributed SQL ledger + Kafka webhooks + worker retries + secrets manager.", hints: ["Ledger on CP store."], gradingRules: [{ id: "rp-g1", description: "WAF + ledger + queue", requiredResourceIds: ["web_application_firewall", "cockroach_db", "message_queue"], minNodeCount: 6, maxP99Ms: null, maxErrorRate: null, maxCostPerHourUsd: null, requiresMultiAz: true, points: 30 }] },
-      { id: "rp-s4", kind: "api", title: "Idempotent charges", instructionsMarkdown: "Design POST /charges with Idempotency-Key, state machine, and webhook signing.", hints: ["Keys scoped 24h per merchant."], gradingRules: [] },
-      { id: "rp-s5", kind: "review", title: "Review", instructionsMarkdown: "Defend double-entry invariants and PSP failover without double-charge.", hints: ["Ledger append-only; PSP calls fenced by intent state."], gradingRules: [{ id: "rp-g2", description: "SLO/budget", requiredResourceIds: [], minNodeCount: 6, maxP99Ms: 450, maxErrorRate: 0.005, maxCostPerHourUsd: 120, requiresMultiAz: false, points: 20 }] },
+      {
+        id: "rp-s1",
+        kind: "brief",
+        title: "Scope the money movement",
+        instructionsMarkdown:
+          "Write requirements as commitments, not headings.\n\n**Functional:** charge intents with authorize, capture, void, refund (full and partial), multi-currency, PSP routing and failover, signed webhooks, and merchant settlement reports.\n\n**Non-functional:** 10k intent requests/sec peak, 400ms p99, 99.99% availability for reads of committed state, RPO 0 for acknowledged postings, 24h idempotency window, and zero tolerance for duplicate or missing money movements.\n\nThe first commitment is the clock. **400ms p99 is acceptance, not authorization.** A card-network round trip has its own p99 in the hundreds of milliseconds to seconds and is outside your control. So `POST /payments` validates, persists an intent, and returns **202** with an id; terminal state arrives by webhook or status poll. Say that explicitly - a design whose API waits on the PSP cannot also promise 400ms during a PSP slowdown, which is exactly when you need it most.\n\nSecond commitment is PCI scope. Card numbers are collected by hosted fields or the PSP SDK; your servers and logs see a token, never a PAN. State the boundary out loud: if PAN touches your VPC you are no longer in the lightest self-assessment tier, and every log sink becomes a compliance surface.\n\nThird: money is integer minor units with an explicit currency, never a float. A refund references the capture it reverses, not the original intent, so partial captures and partial refunds have an unambiguous parent.",
+        hints: [
+          "Separate 'accepted', 'authorized', 'captured', and 'settled' in the vocabulary now. Most broken payment designs collapse the first two.",
+          "Decide the failure semantics of acceptance: if you return 202 and then crash, the intent must still be recoverable and eventually reach a terminal state.",
+          "Name the currencies and the rounding rule before any arithmetic; JPY has no minor unit and 3-decimal currencies exist.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "rp-s2",
+        kind: "boe",
+        title: "Back-of-envelope: the ledger is the volume",
+        instructionsMarkdown:
+          "Do the arithmetic; 'partition the ledger' is not an answer until the numbers say by what.\n\n| Quantity | Arithmetic | Result |\n| --- | --- | --- |\n| Peak charge attempts | given | 10k/s |\n| Attempts/day at peak rate | 10k x 86,400 | 864M |\n| Authorization success | 60% assumed | 518M captured payments |\n| Postings per payment | 2 for authorize + 2 for capture | 4 |\n| Postings/day | 518M x 4 | ~2.07B |\n| Posting row | journal 16B + account 8B + amount 8B + currency 3B + ts 8B + request hash 32B + overhead | ~120B |\n| Raw postings/day | 2.07B x 120B | ~248 GB/day |\n| With 3x replication | 248 GB x 3 | ~744 GB/day |\n| Indexes and WAL | ~35% of replicated bytes | ~1 TB/day provisioned |\n| 30-day hot window | 1 TB x 30 | ~30 TB |\n| Idempotency records | 864M x (64B key + ~400B stored response + index) | ~430 GB/day |\n| Idempotency with 3 replicas | 430 GB x 3 | ~1.3 TB (24h TTL) |\n\nLatency budget for the 400ms: 15ms edge and TLS, 25ms gateway and auth, 120ms ledger commit at cross-region quorum, 10ms serialization = **170ms**, leaving 230ms for the p99 tail. That leftover is your tail budget, not permission to call the PSP synchronously.\n\nWebhook volume is its own number: 518M terminal events/day is ~6k/s average, but a PSP recovery or a batch capture can burst to 30k/s. Size the delivery tier for the burst and absorb the rest in a log.\n\nState the honest conclusion: at this write rate the ledger is a partitioned append-only log of postings with derived balances, not a table of account rows you update in place.",
+        hints: [
+          "Four postings per payment is a deliberately simple model. If you add fees, chargebacks, or FX, show the extra postings and the extra rows/day.",
+          "The 60% success assumption drives everything downstream. Write it as an assumption so a reviewer can challenge it.",
+          "Convert the 30 TB hot window into a storage bill and a restore-time estimate; both belong in the design.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "rp-s3",
+        kind: "topology",
+        title: "Build the topology",
+        instructionsMarkdown:
+          "Assemble the path so that no single component is allowed to be the source of truth for money.\n\n- **Edge:** WAF in front of the API gateway; card capture happens in hosted fields, so the WAF protects the intent API, not the PAN.\n- **Intent service:** stateless REST service that writes one transaction containing the intent row, its idempotency record, and an outbox row.\n- **Ledger:** CockroachDB (or equivalent CP store) with regional quorum. Postings are append-only; balances are materialized views rebuilt from postings.\n- **Outbox and streams:** the same transaction writes to an outbox, a relay publishes to Kafka. No dual-write between database and broker.\n- **PSP workers:** consume intent events, call the PSP with a stable idempotency key, write the outcome back with a compare-and-set on intent state.\n- **Webhook workers:** sign and deliver merchant events with retries and a DLQ.\n- **Secrets manager:** PSP API keys per environment, rotated; workers never read keys from config files.\n\nA Redis cache may hold recent idempotency responses for speed, but it must be a cache: the unique constraint in the database is what actually prevents a double charge. If Redis is down, correctness must not change, only latency.\n\nFailover rule: PSP routing may switch providers, but a switch creates a **new intent attempt fence** and must first resolve the prior attempt's unknown state. 'Route to the other PSP and retry' without that resolution is how customers get charged twice.",
+        hints: [
+          "Put the outbox in the same transaction as the intent. If your diagram has the service writing the DB and then publishing to Kafka directly, you have a dual-write and a lost-event window.",
+          "The ledger store is the only component allowed to be strongly consistent on the write path; everything else can be eventually consistent.",
+          "Draw the unknown-state resolution path (status query by PSP idempotency key) as a first-class flow, not an afterthought.",
+        ],
+        gradingRules: [
+          {
+            id: "rp-g1",
+            description: "WAF, CP ledger, stream/outbox, and workers on the write path",
+            requiredResourceIds: ["web_application_firewall", "cockroach_db", "kafka_stream", "background_worker"],
+            minNodeCount: 7,
+            maxP99Ms: null,
+            maxErrorRate: null,
+            maxCostPerHourUsd: null,
+            requiresMultiAz: true,
+            points: 30,
+          },
+        ],
+      },
+      {
+        id: "rp-s4",
+        kind: "api",
+        title: "Idempotency and the intent state machine",
+        instructionsMarkdown:
+          "Design `POST /v1/payments` around one atomic transaction and one uniqueness rule.\n\n```\nPOST /v1/payments\nIdempotency-Key: 7f3c...   (client-generated, unique per merchant attempt)\n{ amount: 4999, currency: \"INR\", capture: \"manual\", payment_method_token: \"tok_...\" }\n\n202 { id: \"pay_123\", status: \"created\" }\n```\n\n**The rule:** a unique index on `(merchant_id, idempotency_key)`. The first request inserts the intent, the idempotency record with a hash of the request body, and an outbox row in one transaction. A concurrent duplicate loses the insert race and reads the stored response. Same key and same body hash returns the original response (**200** on replay, not a second charge); same key with a different body returns **422**. Keys are scoped per merchant and retained 24h; retention is a product promise, so write it down.\n\n**State machine:** `created -> authorized -> captured -> settled`, with `created -> failed`, `authorized -> voided`, and `captured -> partially_refunded -> refunded`. Every transition is a compare-and-set on `(state, version)`, so a late PSP webhook cannot move a captured payment back to authorized.\n\n**Posting rules:** nothing updates a balance directly. A transition appends postings, and a journal invariant requires debits to equal credits in the same currency. A refund appends reversing postings against the capture; it never edits the original rows.\n\nThe client-facing promise is at-least-once delivery with at-most-once effect. Across a network you cannot have exactly-once, so you get it by making the effect idempotent and reconciling the residue.",
+        hints: [
+          "Distinguish the client idempotency key from the PSP idempotency key. They have different lifetimes and different owners.",
+          "Store the response body, not just the status code, or a replay returns a different payload than the original call.",
+          "A webhook can arrive before your synchronous write commits in a pathological retry. Make the handler tolerate an unknown intent id by queuing it briefly.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "rp-s5",
+        kind: "chaos",
+        title: "Chaos: the PSP timed out after it succeeded",
+        instructionsMarkdown:
+          "At 14:07 the primary PSP's authorize p99 crosses 700ms. Your worker times out at 600ms and retries. Four percent of those retries reach a PSP that already authorized the first call. Because the buggy retry path generated a **new** idempotency key, the customer is charged twice and support has 3,000 duplicate-charge tickets by 14:30.\n\nRun the drill and keep error rate under 0.5%:\n\n1. **Do not retry with a new key.** A timeout is an *unknown* outcome, not a failure. Retry only with the same PSP idempotency key, or resolve the state first.\n2. **Resolve before re-attempt.** Query the PSP by your key; if the answer is authorized, record it. If the PSP has no record, the attempt is safe to replay.\n3. **Fence the transition.** The intent state CAS means two workers cannot both move `created -> authorized`; the loser re-reads and exits.\n4. **Hedge only with the same key.** A hedged request to a second PSP is a new provider relationship, so it needs its own attempt record and the first attempt must be terminal or explicitly abandoned - otherwise you have two live authorizations.\n5. **Reconcile the residue.** Settlement files and PSP status dumps catch what the live path missed. Duplicate-charge detection is a query over postings grouped by intent, not a support ticket.\n\nThe graded target is not 'retry faster'. It is: no duplicate capture, an explicit unknown-state queue, and a reconciliation job that can prove the ledger matches the PSP.",
+        hints: [
+          "Timeouts, connection resets, and 5xx responses are unknown outcomes. A 4xx decline is a known terminal failure and is safe to mark failed.",
+          "Count the unknown-state queue as a first-class metric; its age is the real incident severity.",
+          "A dead-letter queue without an owner and an alert is a data-loss queue with extra steps.",
+        ],
+        gradingRules: [
+          {
+            id: "rp-g3",
+            description: "Unknown-outcome resolution without duplicate capture",
+            requiredResourceIds: ["cockroach_db", "message_queue", "observability_stack"],
+            minNodeCount: 6,
+            maxP99Ms: 450,
+            maxErrorRate: 0.005,
+            maxCostPerHourUsd: 120,
+            requiresMultiAz: false,
+            points: 25,
+          },
+        ],
+      },
+      {
+        id: "rp-s6",
+        kind: "review",
+        title: "Review: prove the invariants",
+        instructionsMarkdown:
+          "Close with the invariants an auditor or a staff reviewer will ask you to prove.\n\n- **Conservation:** for every journal and currency, sum(debits) = sum(credits). A posting that cannot be paired is rejected at write time.\n- **Immutability:** postings are append-only. Corrections are reversing entries; nothing is deleted or updated. Say how you enforce that in the database, not just in code review.\n- **One terminal state:** each intent reaches exactly one terminal state, and every terminal state is backed by a PSP fact (authorization id, capture id, settlement line).\n- **Replay safety:** re-delivering any webhook or client request produces no new postings. Show the unique constraint and the stored-response hash that make that true.\n- **Reconciliation:** daily settlement diff classifies every line as matched, in-transit, or broken, with aging thresholds and an owner. In-transit items older than the PSP's settlement window are incidents.\n- **Dual control:** manual journals and refunds above a threshold need a second approver and an audit record.\n\nThen answer the trade-off question: which part of this design would you relax to cut cost by half, and what invariant would you be risking? A defensible answer keeps the ledger and the idempotency constraint and sacrifices latency, cache warmth, or cross-region read locality.",
+        hints: [
+          "An invariant you cannot query for is a hope. Write the SQL or the check that proves each one.",
+          "Name the reconciliation window explicitly; 'nightly' is not a recovery objective.",
+          "If your answer to the cost question touches the ledger, you have failed the question.",
+        ],
+        gradingRules: [
+          {
+            id: "rp-g2",
+            description: "SLO and budget respected with invariants intact",
+            requiredResourceIds: [],
+            minNodeCount: 6,
+            maxP99Ms: 450,
+            maxErrorRate: 0.005,
+            maxCostPerHourUsd: 120,
+            requiresMultiAz: false,
+            points: 20,
+          },
+        ],
+      },
     ],
-    solutionMarkdown: "# Reference\n\nIdempotency-keyed intents -> CockroachDB double-entry -> PSP router with hedged timeouts -> Kafka webhooks with signed retries. Reconciliation job diffs PSP settlements nightly.",
+    solutionMarkdown:
+      "# Reference\n\n**Write path:** WAF -> gateway -> intent service. One transaction inserts the intent, the idempotency record (unique on merchant + key), and an outbox row. A relay publishes to Kafka; PSP workers call the provider with a stable idempotency key and compare-and-set the intent state on the result. Terminal state returns to the merchant by signed webhook; `GET /payments/{id}` is a cache-friendly read of committed state.\n\n**Ledger:** append-only postings in CockroachDB, four per captured payment (authorize debit/credit, capture debit/credit), 2.07B postings/day at peak, partitioned by day, ~1 TB/day provisioned with replicas and indexes, 30-day hot window then object storage. Balances are derived views; a journal invariant rejects any unbalanced write.\n\n**The 400ms budget:** 15ms edge, 25ms gateway and auth, 120ms ledger commit, 10ms serialize = 170ms, with 230ms of tail budget. The API returns **202** on acceptance and never waits on the card network.\n\n**Failure:** a timeout is an unknown outcome. The worker queries the PSP by its own idempotency key before replaying, fences state transitions with CAS, and queues unresolved attempts for reconciliation. Hedged requests reuse the same key or get a separate attempt record. Nightly settlement diff classifies every line as matched, in-transit, or broken, with aging alerts.\n\n**Invariants:** debits equal credits per journal and currency, postings are immutable, one terminal state per intent, replays add no postings, and manual adjustments need dual control. Cost is driven by ledger retention and cross-region quorum; neither is negotiable for correctness.",
   },
   {
     id: "uber-matching",

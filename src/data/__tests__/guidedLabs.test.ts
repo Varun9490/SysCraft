@@ -81,6 +81,27 @@ describe("guided labs", () => {
     }
   });
 
+  it("keeps the payment lab anchored to acceptance latency and an append-only ledger", () => {
+    const lab = GUIDED_LABS.find((entry) => entry.id === "razorpay-payments");
+    expect(lab).toBeDefined();
+    expect(lab?.stages).toHaveLength(6);
+    expect(lab?.sloP99Ms).toBe(400);
+    // 400ms must cover acceptance, not a card-network round trip.
+    expect(lab?.briefMarkdown).toContain("acceptance, not card-network authorization");
+    expect(lab?.solutionMarkdown).toContain("append-only");
+    expect(lab?.solutionMarkdown).toContain("202");
+    // An unknown PSP outcome is the graded failure mode, not a reason to retry with a new key.
+    const chaos = lab?.stages.find((stage) => stage.kind === "chaos");
+    expect(chaos).toBeDefined();
+    expect(chaos?.instructionsMarkdown).toContain("unknown-state queue");
+    const boe = lab?.stages.find((stage) => stage.kind === "boe");
+    expect(boe?.instructionsMarkdown).toContain("2.07B");
+    expect(boe?.instructionsMarkdown).toContain("248 GB");
+    for (const stage of lab?.stages ?? []) {
+      expect(stage.instructionsMarkdown.length, `${lab?.id}/${stage.id}`).toBeGreaterThan(400);
+    }
+  });
+
   it("keeps the rate limiter anchored to one atomic hop and a bounded over-admit", () => {
     const lab = GUIDED_LABS.find((entry) => entry.id === "distributed-rate-limiter");
     expect(lab).toBeDefined();
