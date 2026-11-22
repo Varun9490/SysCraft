@@ -435,19 +435,100 @@ export const GUIDED_LABS: GuidedLab[] = [
     title: "Stripe-Grade Rate Limiter",
     company: "Stripe",
     difficulty: "standard",
-    estimatedMinutes: 45,
-    briefMarkdown: "# Throttle 50k decisions/sec across 200 services with per-key fairness.",
+    estimatedMinutes: 60,
+    briefMarkdown:
+      "# Stripe: 50k limit decisions/sec without starving anyone\n\nYou are building the limiter in front of 200 internal services. Every request asks one question — may this key spend one unit on this route, now? — and the answer has to arrive inside the 10ms budget, not after it.\n\n**Commitments:** 50k decisions/sec at peak; 1M active API keys; per-key, per-plan and per-route buckets; deny responses that tell the client when to come back; a single abusive tenant must not be able to starve anyone else (the hot-key problem); one Redis shard dies at 09:00 and the platform still decides.\n\n**The trap:** this looks like a caching problem and is really a correctness problem. A limiter that over-admits by 1% is a different product from one that over-admits by 1000× under partition, and only the second one puts a wrong number on a customer's invoice.",
     targetRps: 50000,
     sloP99Ms: 10,
     budgetUsdPerHour: 25,
     stages: [
-      { id: "rl-s1", kind: "brief", title: "Scope", instructionsMarkdown: "Define per-key, per-plan, and per-route buckets plus header contract.", hints: ["Separate cost per route."], gradingRules: [] },
-      { id: "rl-s2", kind: "boe", title: "Back-of-envelope", instructionsMarkdown: "Compute Redis ops (2 per decision = 100k) and shard count.", hints: ["7 shards at 15k each."], gradingRules: [] },
-      { id: "rl-s3", kind: "topology", title: "Topology", instructionsMarkdown: "Gateway sidecar + Redis-cell shards + observability for burn alerts.", hints: ["Local cache 1s to cut Redis load."], gradingRules: [{ id: "rl-g1", description: "Limiter + gateway + Redis cache", requiredResourceIds: ["rate_limiter", "api_gateway", "redis_cache"], minNodeCount: 3, maxP99Ms: null, maxErrorRate: null, maxCostPerHourUsd: null, requiresMultiAz: true, points: 30 }] },
-      { id: "rl-s4", kind: "api", title: "Decision API", instructionsMarkdown: "Design allow/deny response with remaining, reset, and retry-after.", hints: ["Fail-open for reads."], gradingRules: [] },
-      { id: "rl-s5", kind: "review", title: "Review", instructionsMarkdown: "Justify fail-open vs closed per path and local-cache staleness bound.", hints: ["1s staleness, 5 percent over-admit."], gradingRules: [{ id: "rl-g2", description: "SLO/budget", requiredResourceIds: [], minNodeCount: 3, maxP99Ms: 15, maxErrorRate: 0.01, maxCostPerHourUsd: 25, requiresMultiAz: false, points: 20 }] },
+      {
+        id: "rl-s1",
+        kind: "brief",
+        title: "Scope: buckets, route classes, and one percentage",
+        instructionsMarkdown:
+          "Write the commitments first, then the bucket hierarchy — the hierarchy decides your failure mode.\n\n**Hierarchy:** global → plan → key → route. Name which level is authoritative when two disagree. If the key-level bucket is authoritative, one tenant can exhaust the global budget; if global wins, a noisy tenant silently throttles everyone. Pick and defend.\n\n**Route classes (this drives stage 5):** reads and search may fail open — a missing throttle costs money, a refused read costs a customer. Writes, auth and payments fail closed — an unthrottled login endpoint is free credential-stuffing capacity. Say which bucket each class consults.\n\n**Fairness:** per-key fairness across 1M keys is the easy half. The hard case is one key at 10× its limit, which pins one shard, because single-key atomicity means that counter cannot be split. Decide now whether a single tenant may exceed one shard's capacity (it may not) and what the platform does when it tries.\n\n**Cardinality budget:** 1M keys × 3 bucket types × 2 windows ≈ 6M counters. Counters are cheap only if you never store a list per key — that constraint is the whole data model.\n\n**Non-goals:** billing-grade metering (offline ledger, stage 4) and per-IP abuse blocking (WAF at the edge).\n\nThen commit to two numbers you will defend for the rest of the lab: p99 ≤ 10ms *including* the limiter's own hop, and a maximum over-admit stated as a percentage.",
+        hints: [
+          "Per-route cost is not decoration: a GraphQL query fanning out to 40 resolvers and a key-lookup GET cannot debit the same one token.",
+          "Write the fail-open/closed table per route class before you touch topology — retrofitting it after the chaos drill is how outages get worse.",
+          "The hot-key limit is physical, not a config: one Redis shard's throughput is the ceiling for one key.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "rl-s2",
+        kind: "boe",
+        title: "Back-of-envelope: one round trip and one bounded error",
+        instructionsMarkdown:
+          "Two numbers decide this design, and both are arithmetic you can show.\n\n| Quantity | Arithmetic | Result |\n| --- | --- | --- |\n| Decisions/sec | given | 50k |\n| Redis ops per decision | one `EVALSHA` (GCRA in Lua), never read-then-write | 1 |\n| Total Redis ops | 50k × 1 | 50k/s |\n| Planned per-shard ceiling | Lua + script overhead on one core | ~25k ops/s |\n| Shards, throughput minimum | 50k ÷ 25k | 2 |\n| Shards to actually run | 2 per AZ × 3 AZs | 6 (~8.3k/s each, 33% of ceiling) |\n| After one AZ loss | 50k ÷ 4 shards | 12.5k/s each (50% of ceiling) |\n| State per key | TAT + period + limit ≈ 64 B | 1M keys ≈ 64 MB, ×3 replicas ≈ 200 MB |\n| Local memo | 10k hottest keys × ~100 B | ~1 MB per gateway instance |\n\n**Why not a sliding log?** A 1000-req/hour key needs 1000 timestamps. At 1M such keys that is 10⁹ timestamps × 8 B ≈ 8 GB, plus a sort per decision to find the window edge. GCRA keeps *two* numbers per key — the theoretical arrival time and the period — so 1M keys fit in tens of MB and each decision is O(1). You are trading exact history for bounded state; say that trade out loud.\n\n**Decision 1 — one round trip, not two.** Read-then-write is two RTTs (~0.4ms each in-AZ) and, worse, is not atomic: two gateways can both read 99/100 and both admit the last token. One single-key Lua script that checks and debits in the same call makes it one atomic hop, so p99 is ~1 hop (~2ms with queueing) instead of 2 hops plus a race.\n\n**Decision 2 — over-admit is r × T, but only if you split the budget.** A 1s local memo on a key limited to 1000/min (16.7/s) lets one instance admit up to ~16 extra requests before it re-reads: 1.6%, acceptable. Now do *not* hand every gateway the full budget and memoize it: with 100 instances the worst case becomes 100 × r × T, i.e. 100× the limit. Give each instance r/N, let it burst locally, reconcile every T — global over-admit stays bounded by r × T no matter how many instances you add. That sentence is the stage.\n\nFinally, price it: 6 shards with one replica each at list-price order of magnitude ≈ $4/hr, metrics ≈ $2/hr, inside the $25/hr budget with room for a second region.",
+        hints: [
+          "`EVALSHA` with a preloaded script, not `GET` then `INCR`: atomicity is what stops two gateways from both taking the last token.",
+          "Plan the shard at ~25k ops/s, not Redis's best-case `GET` number — a Lua script is heavier, and you want headroom to survive an AZ.",
+          "6 shards, not 2: the extra four are what let you lose an AZ without rehashing under load.",
+          "Measure the memo's hit rate on real traffic before claiming 99% — the honest range for the top-10k-key working set is 60-80% of calls.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "rl-s3",
+        kind: "topology",
+        title: "Topology: put the decision where it cannot be skipped",
+        instructionsMarkdown:
+          "Place the tiers, then instrument the decision rather than only its outcome.\n\n**Front door:** api_gateway terminates and calls the limiter as an `ext_authz` hook — one extra localhost hop, already inside the 10ms budget.\n\n**Limiter:** rate_limiter as a sidecar (or a service_mesh authz filter) on every gateway pod, so a service that forgets to check cannot bypass the limit. Shard Redis by `hash(bucketKey)` so one key's counters live on exactly one shard and stay atomic. There are no cross-shard transactions here, which is precisely why every bucket boundary must be a single key.\n\n**State:** redis_cache — 6 primaries, one replica each, multi-AZ. No cluster-wide locks, no `MULTI` across shards.\n\n**Signals:** observability_stack tracking allow/deny ratio per bucket, a decision-latency histogram (not an average — an average hides the p99 that breaches the SLO), Redis CPU per shard, and a *burn* alert on deny rate rising across a whole plan rather than a single noisy key. Alert on the ratio, not on the count: absolute deny counts follow traffic and will page you at 3am for a marketing launch.\n\n**Async:** kafka_stream carries denied-decision events to abuse review and billing reconciliation — downstream of the decision, never on it. A limiter that waits for Kafka is a limiter with a Kafka-shaped outage.\n\nRun the simulation and confirm p99 lands under 10ms with the sidecar hop included before you pass the stage.",
+        hints: [
+          "Shard by key hash, never by tenant: a tenant-level shard concentrates its own hot key and takes neighbours down with it.",
+          "One replica per shard is for failover, not for reads — reading counters from a replica reintroduces the stale-read race you removed in stage 2.",
+          "Deny events asynchronously: the decision path must not depend on a broker ack.",
+        ],
+        gradingRules: [
+          { id: "rl-g1", description: "Limiter on the request path, sharded state, and decision observability, all multi-AZ", requiredResourceIds: ["rate_limiter", "api_gateway", "redis_cache", "observability_stack"], minNodeCount: 5, maxP99Ms: null, maxErrorRate: null, maxCostPerHourUsd: null, requiresMultiAz: true, points: 30 },
+        ],
+      },
+      {
+        id: "rl-s4",
+        kind: "api",
+        title: "Decision API and the one-key data model",
+        instructionsMarkdown:
+          "Sign the contract, then the shape of the counter.\n\n**Internal decision call:** `POST /v1/limit/check` with `{bucketKey, cost, rule}` → `200 {allowed, limit, remaining, resetSeconds, retryAfterSeconds}`. Keep `cost` in the request: a query that fans out to 40 resolvers should debit more than one token, or your per-route limit is fiction.\n\n**Client-facing headers:** `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` — a *delta* in seconds, not an absolute timestamp, because absolute resets turn clock skew into a support ticket. On a 429 add `Retry-After`. Emit the headers on allowed responses too: a client that only learns its limit after being throttled cannot back off gracefully.\n\n**Data model — one hash per bucket:** `{ bucketKey, tat, period, limit, updatedAt }` where `tat` is the theoretical arrival time. Never store a request list. Encode `bucketKey` as `tenant:route:window` so a plan change is a new key rather than a migration, and version the prefix (`v2:`) so a semantics change can roll out beside the old one and be compared.\n\n**Time:** read the clock from Redis `TIME` inside the script, not from the gateway's wall clock. Pod-to-pod skew at minute boundaries is exactly the bug that turns a smooth limit into a synchronised burst.\n\n**Retries:** a client timeout plus retry must not double-debit, or a flaky minute doubles a customer's usage. Either pass a decision id the script dedupes inside the window, or accept the double debit and say why the dedupe state costs more than the error.\n\n**Refunds:** long work that fails after admission needs a compensating credit. Without it, a flaky downstream looks like traffic and the customer pays for your incident.",
+        hints: [
+          "A single hash per bucket is what lets the whole decision be one script over one key.",
+          "Reset as a delta, never an absolute time — the header is read by clients you do not control.",
+          "State the refund path explicitly; it is the part reviewers forget and customers notice.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "rl-s5",
+        kind: "chaos",
+        title: "Chaos drill: a shard dies, then one tenant goes hot",
+        instructionsMarkdown:
+          "Two failures, and they are different exercises — run both.\n\n**(a) Shard loss.** Kill one Redis shard mid-run. The sidecar starts seeing connection errors for the keys homed there. Three options, ranked: (1) fall back to the in-process bucket for those keys at limit/N, so the platform degrades instead of going unlimited; (2) fail open for read-class routes only and closed for writes; (3) serve those keys from the replica, accepting a short window of stale counters. Choose per route class and write down the degraded over-admit — it is no longer r × T, it is however many instances are guessing, so compute *that* number.\n\n**(b) Hot key.** One tenant at 10× its limit drives every decision for its key onto one shard. Single-key atomicity means you cannot shard that counter further, so: shed at the edge before Redis (a cheap per-instance token bucket), or stripe the bucket into N sub-keys (`key#0…#N-1`) each holding limit/N — which admits up to N−1 extra requests by construction. Stripe it and state the slack.\n\nPassing means: error rate stays under the guardrail, decision p99 degrades without collapsing, and you can name the tab you would page first. Write what the limiter does at second 0, 30 and 300 of each failure.",
+        hints: [
+          "Degraded mode must be bounded: limit/N per instance over-admits by the instance count, which you must be able to say as a percentage.",
+          "Striping a hot key buys throughput at the price of slack — never stripe a payments or auth bucket without saying how much slack.",
+          "Fail-open on reads is a policy, not a default; a search endpoint with no limit at all is an outage waiting for a scraper.",
+        ],
+        gradingRules: [
+          { id: "rl-g3", description: "Bounded degradation on shard loss and a striped hot key", requiredResourceIds: ["rate_limiter", "redis_cache"], minNodeCount: 4, maxP99Ms: null, maxErrorRate: 0.01, maxCostPerHourUsd: null, requiresMultiAz: true, points: 20 },
+        ],
+      },
+      {
+        id: "rl-s6",
+        kind: "review",
+        title: "Review: defend four sentences with your own numbers",
+        instructionsMarkdown:
+          "Answer these with numbers from your design, not with adjectives.\n\n1. **Why not two Redis calls?** Because check-then-debit lets two gateways admit the same last token; one Lua script per key is the only atomicity you have across 200 services. Name the RTT difference you bought.\n2. **Why 6 shards and not 2?** 2 is the throughput minimum. The other four buy an AZ loss without rehashing under load. Say what re-sharding a live hot key costs and how you would avoid doing it at 09:00.\n3. **What is your over-admit, exactly?** r × T when each instance owns r/N; unbounded in the number of instances if they each own r. Give the percentage at your real limits and say which of the two you built.\n4. **What fails open, and what never does?** Reads and search, at limit/N per instance, with an alert; writes, auth and payments stay closed. An unthrottled login endpoint is free credential-stuffing capacity.\n\nThen the honest limitation: shared counters are per-region. A truly global limit needs either home-region pinning (a 60-150ms cross-region RTT — fine for admin routes, not for payments) or an approximate regional split that over-admits by the split ratio. Choose one and say which endpoints it protects.\n\nClose with the cost line: ~$4/hr for six shards with replicas, ~$2/hr of metrics, inside $25 — and the sentence that matters: **a limiter may be wrong by r × T, never by an instance count.**",
+        hints: [
+          "The best answers name the tradeoff they rejected, not only the one they chose.",
+          "If your degraded mode is 'fail open', you have chosen unlimited traffic for that route — say it that way.",
+        ],
+        gradingRules: [
+          { id: "rl-g2", description: "SLO/budget", requiredResourceIds: [], minNodeCount: 4, maxP99Ms: 15, maxErrorRate: 0.01, maxCostPerHourUsd: 25, requiresMultiAz: false, points: 20 },
+        ],
+      },
     ],
-    solutionMarkdown: "# Reference\n\nEnvoy ext-authz -> Redis-cell Lua (CL.THROTTLE) sharded by tenant -> 1s local memo. p99 ~3ms, ~$15/hr.",
+    solutionMarkdown:
+      "# Reference\n\nGateway `ext_authz` → per-pod GCRA bucket at limit/N with a 1s memo for the 10k hottest keys → sharded Redis (6 primaries, 1 replica each, shard = hash(bucketKey)) running a single `EVALSHA` of `CL.THROTTLE`, clock from Redis `TIME`. Over-admit is bounded by r × T, independent of instance count; degraded mode is per-instance buckets at limit/N with reads failing open and writes closed; hot keys are striped into N sub-buckets at limit/N each. p99 ≈ 2-3ms including the local hop; ~$4/hr state + ~$2/hr metrics. The limiter does not oversell platform capacity: it can be wrong by r × T, never by an instance count.",
   },
   {
     id: "agentic-rag-support",

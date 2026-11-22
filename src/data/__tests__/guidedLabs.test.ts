@@ -55,4 +55,28 @@ describe("guided labs", () => {
     expect(lab?.targetRps).toBe(50000);
     expect(lab?.solutionMarkdown).toContain("does not oversell");
   });
+
+  it("gives every chaos drill a passable check", () => {
+    for (const lab of GUIDED_LABS) {
+      for (const stage of lab.stages) {
+        if (stage.kind !== "chaos") continue;
+        expect(stage.gradingRules.length, `${lab.id}/${stage.id} chaos rules`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("keeps the rate limiter anchored to one atomic hop and a bounded over-admit", () => {
+    const lab = GUIDED_LABS.find((entry) => entry.id === "distributed-rate-limiter");
+    expect(lab).toBeDefined();
+    expect(lab?.stages).toHaveLength(6);
+    expect(lab?.sloP99Ms).toBe(10);
+    expect(lab?.solutionMarkdown).toContain("EVALSHA");
+    expect(lab?.solutionMarkdown).toContain("r × T");
+    // The stage-2 arithmetic must not regress to a two-round-trip read-then-write.
+    const boe = lab?.stages.find((stage) => stage.kind === "boe");
+    expect(boe?.instructionsMarkdown).toContain("one atomic hop");
+    for (const stage of lab?.stages ?? []) {
+      expect(stage.instructionsMarkdown.length, `${lab?.id}/${stage.id}`).toBeGreaterThan(400);
+    }
+  });
 });
