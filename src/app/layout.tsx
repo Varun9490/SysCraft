@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { BootRunner } from "@/components/shell/BootRunner";
 import { ThemeBridge } from "@/components/shell/ThemeBridge";
 import { SITE_NAME, SITE_URL } from "@/data/contentManifest";
@@ -57,6 +58,7 @@ export default function RootLayout({
         <BootRunner />
         <ThemeBridge />
         <div id="main-content">{children}</div>
+        <Analytics />
       </body>
     </html>
   );

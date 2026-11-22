@@ -704,7 +704,7 @@ export function ConceptReader({ module }: { module: EncyclopediaModule }) {
         </article>
 
         {toc.length > 1 && (
-          <aside className="sticky top-24 hidden w-56 shrink-0 xl:block" aria-label="On this page">
+          <aside className="sticky top-24 hidden w-56 shrink-0 self-start xl:block" aria-label="On this page">
             <p className="mb-2 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
               <ListChecks size={12} /> On this page
             </p>
