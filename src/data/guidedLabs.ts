@@ -359,19 +359,140 @@ export const GUIDED_LABS: GuidedLab[] = [
     title: "Search Autocomplete (Typeahead)",
     company: "Google",
     difficulty: "standard",
-    estimatedMinutes: 50,
-    briefMarkdown: "# Typeahead: 100k QPS, every keystroke\n\nDesign prefix completion under 50ms p99 with trending boosts.",
+    estimatedMinutes: 70,
+    briefMarkdown:
+      "# Typeahead: 100k QPS, every keystroke\n\nDesign prefix completion at **100k requests/sec peak**, **10 suggestions per response**, **50ms p99**, over a **100M-phrase** vocabulary, with trending terms reaching users **inside 60 seconds**.\n\nThis lab grades three decisions end to end: **(1)** whether the index is something you query or something you build and swap, **(2)** what the 50ms clock actually measures and what eats it, **(3)** how typo tolerance stays a bounded cost instead of a 10x lookup multiplier. Every stage ladders toward one of them.",
     targetRps: 100000,
     sloP99Ms: 50,
     budgetUsdPerHour: 90,
     stages: [
-      { id: "ac-s1", kind: "brief", title: "Scope", instructionsMarkdown: "Define prefix index, personalization, and trending mix.", hints: ["Debounce client at 100ms."], gradingRules: [] },
-      { id: "ac-s2", kind: "boe", title: "Back-of-envelope", instructionsMarkdown: "Compute 100k x 200B responses = 20 MB/s egress; trie RAM for 100M phrases.", hints: ["Top 10M covers 95 percent."], gradingRules: [] },
-      { id: "ac-s3", kind: "topology", title: "Topology", instructionsMarkdown: "Edge cache + REST suggester + Redis trie + search cluster + Kafka trend ingester.", hints: ["Serve from edge for top prefixes."], gradingRules: [{ id: "ac-g1", description: "Edge + cache + search", requiredResourceIds: ["cdn_edge", "redis_cache", "search_cluster"], minNodeCount: 4, maxP99Ms: null, maxErrorRate: null, maxCostPerHourUsd: null, requiresMultiAz: true, points: 30 }] },
-      { id: "ac-s4", kind: "data_model", title: "Index model", instructionsMarkdown: "Model prefix -> top-k with scores, TTLs, and locale shards.", hints: ["Shard by language."], gradingRules: [] },
-      { id: "ac-s5", kind: "review", title: "Review", instructionsMarkdown: "Explain trending freshness vs cache hit trade-off.", hints: ["60s trend refresh."], gradingRules: [{ id: "ac-g2", description: "SLO/budget", requiredResourceIds: [], minNodeCount: 4, maxP99Ms: 60, maxErrorRate: 0.02, maxCostPerHourUsd: 90, requiresMultiAz: false, points: 20 }] },
+      {
+        id: "ac-s1",
+        kind: "brief",
+        title: "Scope the problem",
+        instructionsMarkdown:
+          "Write the requirements as commitments, not headings.\n\n**Functional:** prefix suggestions (10 max), ranked by predicted engagement, one-edit typo tolerance, trending boost, locale and safe-search filtering, opt-in personalization.\n\n**Non-functional:** 50ms p99, 99.95% availability, catalog staleness <= 24h, trending staleness <= 60s, 100k req/s peak.\n\nThe scope test is the clock. State explicitly that the SLO runs from **request send**, not from keypress: a 100ms client debounce would otherwise consume the whole budget before the request exists. Debounce is a load-shedding and responsiveness decision, and it changes the request rate you must serve, so write down the assumed debounce and the keys-per-query it implies.\n\nSecond commitment: typo tolerance is **not** free. One-edit expansion on a 6-character prefix fans out to roughly 100-300 candidate keys. Cap it (one edit, prefixes of 4+ characters) or move it to a slower tier, and say which.",
+        hints: [
+          "Name the request rate after debounce, then the rate you actually provision: they differ by 3-5x and the wrong one sizes the fleet.",
+          "Separate freshness classes now: catalog (24h), trending (60s), personalization (per request). They have different storage and cache answers.",
+          "Decide what an empty prefix and a 1-character prefix return before you design the index; they are the hottest keys in the system.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "ac-s2",
+        kind: "boe",
+        title: "Back-of-envelope: show the arithmetic",
+        instructionsMarkdown:
+          "The old version of this lab said 'trie RAM for 100M phrases' and left it there. Do the arithmetic instead.\n\n| Quantity | Arithmetic | Result |\n| --- | --- | --- |\n| Peak requests | given | 100k/s |\n| Response size | 10 x ~18 B text + JSON keys/quotes | ~200 B |\n| Egress at edge | 100k x 200 B | 20 MB/s = 160 Mbps |\n| Origin requests | 80% edge hit | 20k/s |\n| Origin egress | 20k x 200 B | 4 MB/s |\n| Vocabulary | given | 100M phrases, avg 22 chars |\n| Indexed phrases | top 10M by clicks ~= 95% of impressions | 10M |\n| Prefix nodes | 10M phrases x 22 chars, ~70% shared prefixes | ~60M distinct prefixes |\n| Per-node top-8 | 8 x (4 B phrase id + 4 B score) + 32 B header | ~96 B |\n| Index RAM | 60M x 96 B | ~5.8 GB |\n| With 2 replicas | 5.8 GB x 2 | ~12 GB |\n| Per shard, 8 shards | 12 GB / 8 | ~1.5 GB (2x build headroom) |\n| Egress cost | 72 GB/h x $0.02/GB | ~$1.44/h |\n| Trending overlay | 5M rows x 40 B | ~200 MB |\n\nNow the latency budget for the 50ms, in order: 5ms edge TLS/CDN, 8ms network RTT, 2ms app, 3ms index lookup, 1ms merge and rank = **19ms**, which leaves 31ms for the p99 tail (GC pause, cold pod, cross-AZ retry). A design that budgets 45ms of work and calls the remainder \"headroom\" has no tail budget and will miss p99 every day.\n\nState the honest conclusion: 100M phrases do not fit as a pointer-chasing trie you mutate live. You serve **10M phrases as a flat, versioned segment**, and you pay for the tail with edge caching, not with a bigger trie.",
+        hints: [
+          "Show the 70% prefix-sharing assumption as an assumption. Node count is the number that decides whether the index is 6 GB or 60 GB.",
+          "Two replicas per shard is a read-throughput choice, not redundancy: with 3 the loss of one node costs 11% of a shard, with 2 it costs 50%.",
+          "Convert egress to money in the same table. A 90 dollars/hour budget is ~60 TB/month at list CDN prices, which is plenty here - say so.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "ac-s3",
+        kind: "topology",
+        title: "Build the topology",
+        instructionsMarkdown:
+          "Place the tiers and draw two request paths: the hot cached path and the cold tail path.\n\n**Edge:** dns_load_balancer and cdn_edge. Cache the finished JSON for the top 10k prefixes (~80% of requests), keyed by locale + query + index version, `s-maxage=60`.\n**Front door:** api_gateway with rate_limiter, per API key and per IP, so one scraping client cannot take the tail.\n**Serving:** rest_service, stateless suggesters, 8 shards x 2-3 replicas, each holding one immutable segment in memory. Shard by hash(locale + first 2 chars) so a shard owns a contiguous slice of the keyspace.\n**Cache:** redis_cache for the mid-tail (prefixes ranked 10k-1M) at 60s TTL. It absorbs the second tier of repeats without touching the segment.\n**Index pipeline:** kafka_stream of impressions and clicks, stream_processor to aggregate counts and emit a new segment every hour, blob_storage for segments, and a pointer flip that swaps versions atomically.\n**Fallback:** search_cluster only for typo-expanded queries, never on the hot path.\n\nEnable multi-AZ everywhere and run the simulation until p99 and error rate clear the SLO. If a shard has no replica in a second AZ, the multi-AZ flag is decoration.",
+        hints: [
+          "The index is read-only at serve time. If your diagram has the suggester writing to the index, you have re-invented the thing this lab is arguing against.",
+          "Version the cache key: `q=sys&v=2026-11-22T04` means a bad publish cannot poison the CDN for an hour.",
+          "Typo tolerance on search_cluster needs its own concurrency limit, or a typo storm becomes a search-cluster outage that also kills the safety net.",
+        ],
+        gradingRules: [
+          {
+            id: "ac-g1",
+            description: "Edge cache, in-memory segment tier, and durable segment store all present and multi-AZ",
+            requiredResourceIds: ["cdn_edge", "redis_cache", "rest_service", "blob_storage"],
+            minNodeCount: 8,
+            maxP99Ms: null,
+            maxErrorRate: null,
+            maxCostPerHourUsd: null,
+            requiresMultiAz: true,
+            points: 25,
+          },
+          {
+            id: "ac-g1b",
+            description: "Index rebuild pipeline is asynchronous and off the read path",
+            requiredResourceIds: ["kafka_stream", "stream_processor"],
+            minNodeCount: 0,
+            maxP99Ms: null,
+            maxErrorRate: null,
+            maxCostPerHourUsd: null,
+            requiresMultiAz: false,
+            points: 10,
+          },
+        ],
+      },
+      {
+        id: "ac-s4",
+        kind: "api",
+        title: "Serving contract and segment format",
+        instructionsMarkdown:
+          "Two artefacts to specify: the HTTP contract and the on-disk segment.\n\n**Endpoint:** `GET /v1/suggest?q=&locale=&limit=10&v=`\n\n- `q` max 64 chars; below 2 chars return a curated top list, not an error.\n- Response: `{ v, suggestions: [{ t, score, kind }] }` where `kind` is `organic | trending | personal`. Clients need to know why a term was shown.\n- `limit` capped at 10 server-side. A client asking for 50 must not make the server do 5x the work.\n- `ETag` = index version; `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`.\n- Personalization travels as a signed, short-lived header, never in the cache key. If it were in the key, the hit rate would collapse to per-user.\n\n**Segment format:** a flat, sorted array of prefix hashes with an 8-entry top-k posting each, plus a small header. Lookup is not a trie walk: a two-level index maps the first 4 characters to an offset range, then a binary search plus a short scan finds the prefix. One memory lookup, not 22 pointer chases.\n\n**Publish:** segment written to blob storage, checksummed, row count compared to the previous build, then an atomic pointer flip. Readers pin a version on boot and hot-swap on a poll. Never mutate a live segment.\n\nExplain why a Redis-hosted trie is the wrong tool here: either you pay a round trip per character, or you move the whole traversal into a Lua script and inherit a second, unversioned index.",
+        hints: [
+          "Cap `limit` server-side and say so in the contract; it is the cheapest load-protection decision in the whole design.",
+          "The version in the cache key and the ETag should be the same string. Two versioning schemes drift within a month.",
+          "Validation before the swap is the only thing standing between a bad build and a 60-minute stale CDN.",
+        ],
+        gradingRules: [],
+      },
+      {
+        id: "ac-s5",
+        kind: "chaos",
+        title: "Chaos drill: cold cache, bad publish, dead shard",
+        instructionsMarkdown:
+          "Three drills, each with an expected shape.\n\n**1. Full edge flush.** All 100k/s land on the fleet at once. With 8 shards that is 12.5k/s per shard, well inside capacity, but request coalescing matters: 100 concurrent misses for `sys` must produce **one** segment lookup, not 100. Expect a p99 bump for one TTL window and no error spike. If p99 crosses 50ms and stays there, you sized for the mean, not the flush.\n\n**2. Bad segment publish.** New build is 30% short on rows or fails checksum. The pointer must not flip: keep serving the previous version, page the on-call, and let catalog staleness burn the 24h budget. Trending is the exception - it is a small overlay, so a bad trend batch is fixed by the next 60s window.\n\n**3. Shard loss.** One of 8 shards loses a replica. With 2 replicas, the survivor absorbs 2x its normal load, so per-shard capacity must be >= 2x steady state or you shed. With 3 replicas the loss costs 50% extra on two survivors, which fits in the same 2x headroom and is why 3 is the cheaper answer at this size. Show the rule you apply and verify error rate stays under 2%.\n\nAlso bound the typo storm: one-edit expansion is allowed only for 4+ character prefixes, capped at 15% of QPS, and shed to a plain prefix lookup (no expansion) when the cap trips.",
+        hints: [
+          "Single-flight per prefix is the difference between a flush and a self-inflicted DDoS on your own shards.",
+          "Write the fallback explicitly: a failed publish serves the old version, it does not serve empty suggestions.",
+          "Per-shard capacity headroom is a number you choose in stage 2, not a property you discover during the drill.",
+        ],
+        gradingRules: [
+          {
+            id: "ac-g2",
+            description: "Survives a flush and a shard loss inside the SLO and budget",
+            requiredResourceIds: ["redis_cache", "rest_service"],
+            minNodeCount: 8,
+            maxP99Ms: 60,
+            maxErrorRate: 0.02,
+            maxCostPerHourUsd: 90,
+            requiresMultiAz: true,
+            points: 25,
+          },
+        ],
+      },
+      {
+        id: "ac-s6",
+        kind: "review",
+        title: "Review: defend the design",
+        instructionsMarkdown:
+          "Answer in prose, with numbers from your own envelope.\n\n1. Why is the index an immutable artefact rather than a database you query per keystroke? Name the two failure modes the immutable version removes (mutation contention at 100k/s, and an index that changes mid-request).\n2. Where does trending live, and why is a 200MB overlay merged at read time better than rebuilding a 6GB segment every 60 seconds? Give the rebuild cost you avoided.\n3. Your p99 is 50ms and your budget line says 19ms. What is the other 31ms for, and what will you instrument to prove it is not being eaten?\n4. At 10x traffic (1M/s), what breaks first - egress, shard count, or the publish pipeline - and what is the cheapest next move?\n5. What does this design deliberately give up? Say it plainly: no deep personalization on the hot path, capped typo tolerance, and up to 60s of stale trending.",
+        hints: [
+          "The 10x question has one right shape: shard count scales linearly, publish does not, so name the publish bottleneck specifically.",
+          "A good review names a trade-off the design loses, not only the ones it wins.",
+        ],
+        gradingRules: [
+          {
+            id: "ac-g3",
+            description: "Written review covers staleness, tail budget, and the 10x plan",
+            requiredResourceIds: [],
+            minNodeCount: 8,
+            maxP99Ms: 50,
+            maxErrorRate: 0.02,
+            maxCostPerHourUsd: 90,
+            requiresMultiAz: true,
+            points: 15,
+          },
+        ],
+      },
     ],
-    solutionMarkdown: "# Reference\n\nCDN caches top prefixes (80 percent hit), Redis trie serves tail at 2ms, Flink ingests trends every minute. p99 ~25ms.",
+    solutionMarkdown:
+      "# Reference\n\n**Shape:** CDN caches the top 10k prefixes (~80% hit, 60s TTL, versioned key), Redis covers ranks 10k-1M, and 8 shards x 3 replicas serve a ~6GB immutable segment from memory at ~1ms per lookup.\n\n**Envelope:** 100k x 200B = 20MB/s at the edge, ~4MB/s at origin. 10M indexed phrases over ~60M distinct prefixes at ~96B per node = ~5.8GB, doubled for replicas and 8-way sharded to ~1.5GB each. Latency: 5 + 8 + 2 + 3 + 1 = 19ms, leaving 31ms for the tail.\n\n**Why it holds:** the index is built hourly from the click stream and swapped by pointer flip, so no request ever reads a half-written index and the serve path never contends with a writer. Trending is a 200MB overlay refreshed every 60s and merged at read time, which is 30x cheaper than rebuilding the segment.\n\n**Failure story:** a bad publish fails validation and never flips, so the worst case is 24h of stale catalog, not an outage. A shard loss costs 50% extra on two replicas, inside the 2x headroom. A full cache flush coalesces to one lookup per prefix.\n\n**What it gives up:** deep personalization stays off the hot path, typo tolerance is capped at one edit on 4+ character prefixes, and trending can be 60s stale.",
   },
   {
     id: "dynamodb-from-scratch",

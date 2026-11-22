@@ -65,6 +65,22 @@ describe("guided labs", () => {
     }
   });
 
+  it("keeps typeahead anchored to an immutable index and a derived size", () => {
+    const lab = GUIDED_LABS.find((entry) => entry.id === "search-autocomplete");
+    expect(lab).toBeDefined();
+    expect(lab?.stages).toHaveLength(6);
+    expect(lab?.sloP99Ms).toBe(50);
+    expect(lab?.solutionMarkdown).toContain("immutable");
+    // The stage-2 arithmetic must not regress to a bare "trie RAM" hand-wave.
+    const boe = lab?.stages.find((stage) => stage.kind === "boe");
+    expect(boe?.instructionsMarkdown).toContain("60M");
+    expect(boe?.instructionsMarkdown).toContain("5.8 GB");
+    expect(lab?.stages.some((stage) => stage.kind === "chaos")).toBe(true);
+    for (const stage of lab?.stages ?? []) {
+      expect(stage.instructionsMarkdown.length, `${lab?.id}/${stage.id}`).toBeGreaterThan(400);
+    }
+  });
+
   it("keeps the rate limiter anchored to one atomic hop and a bounded over-admit", () => {
     const lab = GUIDED_LABS.find((entry) => entry.id === "distributed-rate-limiter");
     expect(lab).toBeDefined();
