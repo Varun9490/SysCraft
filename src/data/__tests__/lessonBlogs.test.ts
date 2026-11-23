@@ -89,4 +89,26 @@ describe("lessonBlogs coverage", () => {
     const statusValues = ["healthy", "warning", "critical"];
     expect(statusValues).toContain(first.status);
   });
+
+  it("analyzer sandbox reports recall/precision instead of table-maintenance numbers", () => {
+    const blog = getAllLessonBlogsForModule("search-at-scale").find(
+      (entry) => entry.sandbox.title === "Analyzer recall trade-off",
+    );
+    expect(blog).toBeDefined();
+    if (!blog) return;
+
+    const low = evaluateLessonSandbox(blog.sandbox, 10);
+    const high = evaluateLessonSandbox(blog.sandbox, 90);
+
+    expect(low.primaryMetricLabel).toContain("Recall");
+    expect(low.primaryMetricLabel).not.toContain("Structures");
+    expect(high.explanation).toContain("normalization");
+    expect(high.explanation).not.toContain("slow-query");
+
+    // Stronger normalization buys recall and costs precision.
+    expect(parseInt(high.primaryMetricValue, 10)).toBeGreaterThan(parseInt(low.primaryMetricValue, 10));
+    expect(parseInt(high.secondaryMetricValue, 10)).toBeLessThan(parseInt(low.secondaryMetricValue, 10));
+    expect(low.status).toBe("healthy");
+    expect(high.status).toBe("critical");
+  });
 });

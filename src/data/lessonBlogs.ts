@@ -92,12 +92,14 @@ type Tone = LessonDiagramStep["tone"];
  *   kvMem     – KV-cache gigabytes; GPU occupancy + sequences at risk
  *   batch     – sequences per batch; token throughput + extra wait
  *   fuel      – tenant plugin CPU cap; plugin rejection + added latency
- *   denied    – requests refused by a policy check; refused share + passes
+ *   denied    - requests refused by a policy check; refused share + passes
+ *   normalization - analyzer strength; recall gained vs precision lost
+ *   drain     - overload level; low-priority load shed vs critical path kept
  */
 type SandboxKind =
   | "capacity" | "latency" | "retry" | "receipt" | "plot" | "quorum"
   | "fanout" | "queue" | "rateLimit" | "cost" | "outbox" | "tail"
-  | "hitRatio" | "slo" | "kvMem" | "batch" | "fuel" | "denied" | "drain";
+  | "hitRatio" | "slo" | "kvMem" | "batch" | "fuel" | "denied" | "drain" | "normalization";
 
 interface RawSandbox {
   t: string; p: string; slider: string; unit: string;
@@ -6845,6 +6847,26 @@ function evaluateDenied(sandbox: LessonSandboxSpec, value: number): SandboxMetri
   };
 }
 
+/**
+ * Analyzer strength 0-100: stronger normalization (lowercasing, stemming,
+ * synonyms) buys recall but steadily burns precision, because distinct words
+ * collapse onto the same term. Numbers are illustrative, not benchmarked.
+ */
+function evaluateNormalization(sandbox: LessonSandboxSpec, value: number): SandboxMetric {
+  const strength = clamp(Math.round(value), 0, 100);
+  const recall = Math.round(clamp(35 + strength * 0.63, 0, 98));
+  const precision = Math.round(clamp(99 - strength * 0.52, 0, 99));
+  const status = strength <= 40 ? "healthy" : strength <= 70 ? "warning" : "critical";
+  return {
+    primaryMetricLabel: "Recall (relevant docs found)",
+    primaryMetricValue: `${recall}%`,
+    secondaryMetricLabel: "Precision (results actually relevant)",
+    secondaryMetricValue: `${precision}%`,
+    status,
+    explanation: `At ${strength}% normalization, a query for 'run shoe' finds roughly ${recall}% of the documents that mention 'running shoes', and about ${precision}% of what it returns is genuinely relevant. Turning the dial up applies stemming, stop-word removal, and synonyms, so more word forms meet - but 'university' and 'universe' can collapse onto one stem. Tune per field: keep exact fields on keyword analysis and let prose fields carry the aggressive chain.`,
+  };
+}
+
 const KIND_EVALUATORS: Record<SandboxKind, (sandbox: LessonSandboxSpec, value: number) => SandboxMetric> = {
   latency: evaluateLatency,
   capacity: evaluateCapacity,
@@ -6865,6 +6887,7 @@ const KIND_EVALUATORS: Record<SandboxKind, (sandbox: LessonSandboxSpec, value: n
   fuel: evaluateFuel,
   denied: evaluateDenied,
   drain: evaluateDrain,
+  normalization: evaluateNormalization,
 };
 
 /**
@@ -6978,7 +7001,7 @@ addLesson("search-at-scale", 34, "Search at scale", "Analyzers, tokenization, an
   q: ["A document contains 'Running'. A query for 'run' returns nothing. What is the most likely cause?", ["The document was not committed", "Index and query analyzers do not both stem", "The cluster is red"], 1, "If the index stored 'running' and the query looked for 'run' without stemming either side, the terms never meet. Analyzers must agree."],
   sb: {
     t: "Analyzer recall trade-off", p: "Increase normalization strength and watch recall rise while precision falls.", slider: "Normalization strength", unit: "%", min: 0, max: 100, step: 5, def: 50,
-    prims: ["search_cluster", "rest_service"], kind: "plot",
+    prims: ["search_cluster", "rest_service"], kind: "normalization",
   },
 });
 
