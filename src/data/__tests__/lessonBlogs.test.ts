@@ -156,6 +156,28 @@ describe("lessonBlogs coverage", () => {
     expect(large.status).toBe("critical");
   });
 
+  it("index tax sandbox reports write cost instead of structures to maintain", () => {
+    const blog = getAllLessonBlogsForModule("simple-system").find(
+      (entry) => entry.sandbox.title === "Index tax calculator",
+    );
+    expect(blog).toBeDefined();
+    if (!blog) return;
+
+    const bare = evaluateLessonSandbox(blog.sandbox, 0);
+    const loaded = evaluateLessonSandbox(blog.sandbox, 20);
+
+    expect(bare.primaryMetricLabel).toBe("Write latency per INSERT");
+    expect(bare.secondaryMetricValue).toBe("1 (heap + 0 indexes)");
+    expect(loaded.secondaryMetricValue).toBe("21 (heap + 20 indexes)");
+    expect(loaded.explanation).not.toContain("Slow-query risk");
+    expect(loaded.explanation).not.toContain("Structures");
+
+    // More indexes means strictly more write work and a worse status.
+    expect(parseFloat(loaded.primaryMetricValue)).toBeGreaterThan(parseFloat(bare.primaryMetricValue));
+    expect(bare.status).toBe("healthy");
+    expect(loaded.status).toBe("critical");
+  });
+
   it("index hunt sandbox reports index coverage instead of tail latency", () => {
     const blog = getAllLessonBlogsForModule("simple-system").find(
       (entry) => entry.sandbox.title === "Index hunt test",

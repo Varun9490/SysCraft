@@ -98,12 +98,13 @@ type Tone = LessonDiagramStep["tone"];
  *   bm25      - length penalty b; short precise doc vs long verbose doc score
  *   indexScan - share of queries matching an index; index hits vs full scans
  *   corpusScan - corpus size in documents; full-scan time vs inverted-index lookup
+ *   indexTax  - indexes on a hot table; write latency vs B-tree writes per change
  */
 type SandboxKind =
   | "capacity" | "latency" | "retry" | "receipt" | "plot" | "quorum"
   | "fanout" | "queue" | "rateLimit" | "cost" | "outbox" | "tail"
   | "hitRatio" | "slo" | "kvMem" | "batch" | "fuel" | "denied" | "drain" | "normalization"
-  | "bm25" | "indexScan" | "corpusScan";
+  | "bm25" | "indexScan" | "corpusScan" | "indexTax";
 
 interface RawSandbox {
   t: string; p: string; slider: string; unit: string;
@@ -682,7 +683,7 @@ addLesson("simple-system", 4, "Start with a simple system", "Data modeling: enti
   q: ["You add `post_count` to the users table to avoid counting posts on every profile view. What's the cost?", ["Slower reads", "Every write path must now keep the counter in sync (a consistency bug risk)", "Nothing — it's free"], 1, "Denormalization trades read speed for write-path coordination; every place updating a post must update the counter, and races can drift it. Worth it sometimes — but it's a real contract."],
   sb: {
     t: "Index tax calculator", p: "Set how many indexes your hot table carries and see what each write pays for the read shortcuts.", slider: "Indexes on the hot table", unit: "indexes", min: 0, max: 20, step: 1, def: 5,
-    prims: ["postgres_db", "redis_cache"], kind: "plot",
+    prims: ["postgres_db", "redis_cache"], kind: "indexTax",
   },
 });
 
@@ -6922,6 +6923,28 @@ function evaluateIndexScan(sandbox: LessonSandboxSpec, value: number): SandboxMe
   };
 }
 
+/**
+ * Secondary indexes on one hot table, 0-20. Every INSERT, UPDATE, and DELETE
+ * writes the heap row and then one leaf insert per index whose columns change,
+ * so write cost grows linearly with the number of indexes carried. Numbers are
+ * illustrative, not benchmarked.
+ */
+function evaluateIndexTax(sandbox: LessonSandboxSpec, value: number): SandboxMetric {
+  const indexes = Math.round(clamp(value, 0, sandbox.max));
+  const writes = indexes + 1;
+  const writeMs = Math.round((1.0 + indexes * 0.18) * 10) / 10;
+  const status = indexes <= 5 ? "healthy" : indexes <= 12 ? "warning" : "critical";
+  const indexWord = indexes === 1 ? "index" : "indexes";
+  return {
+    primaryMetricLabel: "Write latency per INSERT",
+    primaryMetricValue: `${writeMs.toFixed(1)} ms`,
+    secondaryMetricLabel: "B-tree writes per change",
+    secondaryMetricValue: `${writes} (heap + ${indexes} ${indexWord})`,
+    status,
+    explanation: `With ${indexes} secondary ${indexWord} on the table, every INSERT, UPDATE, and DELETE does ${writes} B-tree writes: one for the row itself plus one for each index that touches the changed columns. That puts a single write near ${writeMs.toFixed(1)} ms, so bulk loads and hot-row updates cost roughly ${writes}× the work of an unindexed table while a handful of well-chosen indexes keeps each write under 2 ms. Past roughly a dozen, write latency and WAL volume start to dominate - the honest fix is dropping indexes no query uses (idx_scan = 0 in pg_stat_user_indexes) and preferring covering indexes that serve several reads at once.`,
+  };
+}
+
 function evaluateCorpusScan(sandbox: LessonSandboxSpec, value: number): SandboxMetric {
   const docs = Math.max(0, Math.round(value));
   // Assumptions stated in the explanation: 1 KB per document, a sequential
@@ -6968,6 +6991,7 @@ const KIND_EVALUATORS: Record<SandboxKind, (sandbox: LessonSandboxSpec, value: n
   bm25: evaluateBm25,
   indexScan: evaluateIndexScan,
   corpusScan: evaluateCorpusScan,
+  indexTax: evaluateIndexTax,
 };
 
 /**
