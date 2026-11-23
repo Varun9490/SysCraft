@@ -546,26 +546,6 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     exploitedInWild: false,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-21626",
   },
-  {
-    id: "CVE-2023-44487",
-    title: "HTTP/2 Rapid Reset Denial of Service",
-    published: "2023-10-10",
-    cvss: 7.5,
-    severity: "HIGH",
-    cwe: "CWE-400",
-    stride: "Denial of Service",
-    ecosystem: "Cloudflare / Edge",
-    affectedPrimitives: ["cdn_edge", "dns_load_balancer", "api_gateway"],
-    summary:
-      "A protocol-level flaw in HTTP/2 allowed an attacker to send a rapid sequence of request-and-reset frames that consumed server resources faster than they could be released, amplifying a small client bandwidth into a large server-side denial of service. Because the weakness sat in the HTTP/2 specification itself, every conformant server implementation was initially vulnerable.",
-    architecturalRootCause:
-      "HTTP/2's stream multiplexing let a client open and cancel thousands of streams per connection while the server still paid the cost of parsing headers and allocating stream state. The protocol's flow control and reset semantics did not bound the rate of stream creation relative to stream teardown, so cancellation became cheaper for the attacker than handling was for the server.",
-    mitigationPattern:
-      "Apply vendor patches that cap concurrent streams and the rate of RST_STREAM frames per connection, and enable HTTP/2 rapid-reset mitigations in the reverse proxy or CDN. Fall back to HTTP/1.1 or disable HTTP/2 for untrusted traffic during an incident, rate-limit connection and stream creation at the edge, and size connection limits and timeouts so a single client cannot exhaust worker pools.",
-    recommendedDefensePrimitives: ["cdn_edge", "dns_load_balancer", "api_gateway", "observability_stack"],
-    exploitedInWild: true,
-    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2023-44487",
-  },
 ];
 
 /** Fast lookup used by the hub's canvas-exposure annotations. */
