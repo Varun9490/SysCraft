@@ -111,4 +111,45 @@ describe("lessonBlogs coverage", () => {
     expect(low.status).toBe("healthy");
     expect(high.status).toBe("critical");
   });
+
+  it("BM25 sandbox reports document scores and lets b flip the winner", () => {
+    const blog = getAllLessonBlogsForModule("search-at-scale").find(
+      (entry) => entry.sandbox.title === "Length normalization",
+    );
+    expect(blog).toBeDefined();
+    if (!blog) return;
+
+    const noPenalty = evaluateLessonSandbox(blog.sandbox, 0);
+    const tuned = evaluateLessonSandbox(blog.sandbox, 0.75);
+
+    expect(noPenalty.primaryMetricLabel).toContain("BM25");
+    expect(noPenalty.primaryMetricLabel).not.toContain("latency");
+    expect(noPenalty.secondaryMetricLabel).toContain("BM25");
+    expect(noPenalty.explanation).not.toContain("hot item");
+
+    // b = 0 ranks on frequency, so the padded doc wins; near the default the
+    // short precise doc does.
+    expect(parseFloat(noPenalty.secondaryMetricValue)).toBeGreaterThan(parseFloat(noPenalty.primaryMetricValue));
+    expect(parseFloat(tuned.primaryMetricValue)).toBeGreaterThan(parseFloat(tuned.secondaryMetricValue));
+    expect(noPenalty.status).toBe("critical");
+    expect(tuned.status).toBe("healthy");
+  });
+
+  it("index hunt sandbox reports index coverage instead of tail latency", () => {
+    const blog = getAllLessonBlogsForModule("simple-system").find(
+      (entry) => entry.sandbox.title === "Index hunt test",
+    );
+    expect(blog).toBeDefined();
+    if (!blog) return;
+
+    const poor = evaluateLessonSandbox(blog.sandbox, 20);
+    const good = evaluateLessonSandbox(blog.sandbox, 100);
+
+    expect(poor.primaryMetricLabel).toContain("index");
+    expect(poor.primaryMetricLabel).not.toContain("latency");
+    expect(poor.secondaryMetricValue).toBe("80%");
+    expect(good.secondaryMetricValue).toBe("0%");
+    expect(poor.status).toBe("critical");
+    expect(good.status).toBe("healthy");
+  });
 });

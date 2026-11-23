@@ -95,11 +95,14 @@ type Tone = LessonDiagramStep["tone"];
  *   denied    - requests refused by a policy check; refused share + passes
  *   normalization - analyzer strength; recall gained vs precision lost
  *   drain     - overload level; low-priority load shed vs critical path kept
+ *   bm25      - length penalty b; short precise doc vs long verbose doc score
+ *   indexScan - share of queries matching an index; index hits vs full scans
  */
 type SandboxKind =
   | "capacity" | "latency" | "retry" | "receipt" | "plot" | "quorum"
   | "fanout" | "queue" | "rateLimit" | "cost" | "outbox" | "tail"
-  | "hitRatio" | "slo" | "kvMem" | "batch" | "fuel" | "denied" | "drain" | "normalization";
+  | "hitRatio" | "slo" | "kvMem" | "batch" | "fuel" | "denied" | "drain" | "normalization"
+  | "bm25" | "indexScan";
 
 interface RawSandbox {
   t: string; p: string; slider: string; unit: string;
@@ -710,7 +713,7 @@ addLesson("simple-system", 4, "Start with a simple system", "Database indexing: 
   q: ["Query: WHERE created_at > now() - interval '7 days' on an index of (user_id, created_at). Why might the planner NOT use the index?", ["B-trees can't store dates", "The leading column is user_id; a query with no user_id can't seek this index's sort order", "Postgres doesn't use indexes for ranges"], 1, "Composite index order matters: (user_id, created_at) is sorted by user first. Filtering on created_at alone requires a different index — e.g. created_at desc — to serve that shape."],
   sb: {
     t: "Index hunt test", p: "Drag to set what share of queries actually match the index you built — and see how many fall back to a full scan.", slider: "Queries matching the index", unit: "% queries", min: 0, max: 100, step: 1, def: 60,
-    prims: ["postgres_db", "search_cluster"], kind: "tail",
+    prims: ["postgres_db", "search_cluster"], kind: "indexScan",
   },
 });
 
@@ -6867,6 +6870,57 @@ function evaluateNormalization(sandbox: LessonSandboxSpec, value: number): Sandb
   };
 }
 
+/**
+ * BM25 length penalty b in [0, 1]. Illustrative scores for the catalogue's
+ * own example: a short, precise doc (3 mentions in 50 words) against a long,
+ * verbose one (12 mentions in 2,000 words), with avgdl 500 and k1 1.2.
+ * b = 0 ignores length entirely, so raw term frequency lets the verbose page
+ * win; b = 1 fully normalizes by length. Numbers are illustrative, not a
+ * benchmark.
+ */
+function evaluateBm25(sandbox: LessonSandboxSpec, value: number): SandboxMetric {
+  const b = clamp(value, 0, 1);
+  const k1 = 1.2;
+  const avgdl = 500;
+  const score = (tf: number, dl: number): number =>
+    (tf * (k1 + 1)) / (tf + k1 * (1 - b + (b * dl) / avgdl));
+  const shortScore = score(3, 50);
+  const longScore = score(12, 2000);
+  const shortWins = shortScore >= longScore;
+  const status = b < 0.4 ? "critical" : b <= 0.6 ? "warning" : b <= 0.9 ? "healthy" : "warning";
+  const verdict = shortWins
+    ? "the short, precise document now outranks the long, padded one"
+    : "the long, padded document still outranks the short, precise one";
+  return {
+    primaryMetricLabel: "Short precise doc (BM25 score)",
+    primaryMetricValue: shortScore.toFixed(2),
+    secondaryMetricLabel: "Long verbose doc (BM25 score)",
+    secondaryMetricValue: longScore.toFixed(2),
+    status,
+    explanation: `With b = ${b.toFixed(2)}, ${verdict}: ${shortScore.toFixed(2)} vs ${longScore.toFixed(2)}. The b knob scales length normalization, so b = 0 ranks on term frequency alone (verbose pages win) and b = 1 fully divides by document length (genuinely long, topical pages get punished). The scorer's default sits near 0.75 because it usually balances the two; tune it against a labelled query set rather than by feel.`,
+  };
+}
+
+/**
+ * Share of queries that can use an index, 0-100. The remainder fall back to a
+ * sequential scan, which is fine at 10k rows and fatal at 50M.
+ */
+function evaluateIndexScan(sandbox: LessonSandboxSpec, value: number): SandboxMetric {
+  const matching = clamp(Math.round(value), 0, 100);
+  const scanning = 100 - matching;
+  const rows = 50_000_000;
+  const scannedRowsPerSec = Math.round(rows * (scanning / 100));
+  const status = matching >= 90 ? "healthy" : matching >= 60 ? "warning" : "critical";
+  return {
+    primaryMetricLabel: "Queries served by the index",
+    secondaryMetricLabel: "Queries falling back to a full scan",
+    primaryMetricValue: `${matching}%`,
+    secondaryMetricValue: `${scanning}%`,
+    status,
+    explanation: `When ${matching}% of queries match the index shape, the other ${scanning}% read every row: on a 50 million row table that is roughly ${scannedRowsPerSec.toLocaleString("en-US")} rows visited per 100 such queries. A sequential scan is honest work at small sizes and an outage at scale, which is why the leading-wildcard LIKE and mismatched sort orders deserve their own index or a search engine. Watch pg_stat_statements for the offenders.`,
+  };
+}
+
 const KIND_EVALUATORS: Record<SandboxKind, (sandbox: LessonSandboxSpec, value: number) => SandboxMetric> = {
   latency: evaluateLatency,
   capacity: evaluateCapacity,
@@ -6888,6 +6942,8 @@ const KIND_EVALUATORS: Record<SandboxKind, (sandbox: LessonSandboxSpec, value: n
   denied: evaluateDenied,
   drain: evaluateDrain,
   normalization: evaluateNormalization,
+  bm25: evaluateBm25,
+  indexScan: evaluateIndexScan,
 };
 
 /**
@@ -7033,7 +7089,7 @@ addLesson("search-at-scale", 34, "Search at scale", "Ranking: TF-IDF, BM25, and 
   q: ["What does the b parameter in BM25 control?", ["The number of shards", "How strongly document length is penalized", "The size of the posting list"], 1, "b scales length normalization. b = 0 ignores length; b = 1 fully normalizes by length relative to the average document."],
   sb: {
     t: "Length normalization", p: "Slide the length penalty and watch a short precise document compete with a long verbose one.", slider: "Length penalty (b)", unit: "", min: 0, max: 1, step: 0.05, def: 0.75,
-    prims: ["search_cluster", "rest_service"], kind: "tail",
+    prims: ["search_cluster", "rest_service"], kind: "bm25",
   },
 });
 
