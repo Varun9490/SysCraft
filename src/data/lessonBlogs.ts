@@ -97,12 +97,13 @@ type Tone = LessonDiagramStep["tone"];
  *   drain     - overload level; low-priority load shed vs critical path kept
  *   bm25      - length penalty b; short precise doc vs long verbose doc score
  *   indexScan - share of queries matching an index; index hits vs full scans
+ *   corpusScan - corpus size in documents; full-scan time vs inverted-index lookup
  */
 type SandboxKind =
   | "capacity" | "latency" | "retry" | "receipt" | "plot" | "quorum"
   | "fanout" | "queue" | "rateLimit" | "cost" | "outbox" | "tail"
   | "hitRatio" | "slo" | "kvMem" | "batch" | "fuel" | "denied" | "drain" | "normalization"
-  | "bm25" | "indexScan";
+  | "bm25" | "indexScan" | "corpusScan";
 
 interface RawSandbox {
   t: string; p: string; slider: string; unit: string;
@@ -6921,6 +6922,28 @@ function evaluateIndexScan(sandbox: LessonSandboxSpec, value: number): SandboxMe
   };
 }
 
+function evaluateCorpusScan(sandbox: LessonSandboxSpec, value: number): SandboxMetric {
+  const docs = Math.max(0, Math.round(value));
+  // Assumptions stated in the explanation: 1 KB per document, a sequential
+  // read at ~1 GB/s, and a sharded term dictionary that answers a lookup in a
+  // few milliseconds regardless of corpus size.
+  const gigabytes = (docs * 1024) / 1e9;
+  const scanMs = gigabytes * 1000;
+  const lookupMs = 2 + docs * 1e-7;
+  const ratio = scanMs / lookupMs;
+  const status = scanMs <= 100 ? "healthy" : scanMs <= 3000 ? "warning" : "critical";
+  const scanLabel = scanMs >= 1000 ? `${(scanMs / 1000).toFixed(1)} s` : `${Math.max(1, Math.round(scanMs))} ms`;
+  const lookupLabel = lookupMs < 10 ? `${lookupMs.toFixed(1)} ms` : `${Math.round(lookupMs)} ms`;
+  return {
+    primaryMetricLabel: "Full-scan time per search",
+    primaryMetricValue: scanLabel,
+    secondaryMetricLabel: "Inverted-index lookup",
+    secondaryMetricValue: lookupLabel,
+    status,
+    explanation: `At ${docs.toLocaleString("en-US")} ${sandbox.unit} the table holds roughly ${gigabytes.toFixed(1)} GB (assuming 1 KB per document) and a LIKE scan reads all of it, so one search costs about ${scanLabel}. The index reads a term dictionary entry and a posting list instead, staying near ${lookupLabel} no matter how large the corpus grows — about ${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)}× faster here. Below a few hundred milliseconds a scan is honest work; past seconds it is an outage that every user pays for with every keystroke.`,
+  };
+}
+
 const KIND_EVALUATORS: Record<SandboxKind, (sandbox: LessonSandboxSpec, value: number) => SandboxMetric> = {
   latency: evaluateLatency,
   capacity: evaluateCapacity,
@@ -6944,6 +6967,7 @@ const KIND_EVALUATORS: Record<SandboxKind, (sandbox: LessonSandboxSpec, value: n
   normalization: evaluateNormalization,
   bm25: evaluateBm25,
   indexScan: evaluateIndexScan,
+  corpusScan: evaluateCorpusScan,
 };
 
 /**

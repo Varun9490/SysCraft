@@ -546,6 +546,26 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     exploitedInWild: true,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2023-46604",
   },
+  {
+    id: "CVE-2024-23897",
+    title: "Jenkins Arbitrary File Read via CLI Command Parser",
+    published: "2024-01-24",
+    cvss: 9.8,
+    severity: "CRITICAL",
+    cwe: "CWE-22",
+    stride: "Information Disclosure",
+    ecosystem: "Web Frameworks & Runtime",
+    affectedPrimitives: ["rest_service", "api_gateway"],
+    summary:
+      "A path-traversal flaw in the Jenkins CLI command parser allowed an unauthenticated attacker to read arbitrary files on the controller filesystem by expanding '@' file arguments. In configurations where anonymous read access was enabled, or with a low-privilege account, this leaked /proc/self/environ, credentials XML, and private keys, enabling full controller compromise and downstream agent RCE.",
+    architecturalRootCause:
+      "The CLI trusted user-supplied '@' tokens to inline file contents without restricting the resolved path to a safe root. Input parsing and filesystem access shared one trust boundary, so a control character in argv became a file read primitive.",
+    mitigationPattern:
+      "Upgrade Jenkins to 2.440.1 LTS or 2.442+ and disable the CLI if unused. Restrict anonymous access, rotate all credentials stored on the controller, and run Jenkins under a dedicated service account with a read-only root filesystem and minimal filesystem permissions.",
+    recommendedDefensePrimitives: ["web_application_firewall", "identity_provider", "secrets_manager", "observability_stack"],
+    exploitedInWild: true,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-23897",
+  },
 ];
 
 /** Fast lookup used by the hub's canvas-exposure annotations. */
