@@ -99,12 +99,13 @@ type Tone = LessonDiagramStep["tone"];
  *   indexScan - share of queries matching an index; index hits vs full scans
  *   corpusScan - corpus size in documents; full-scan time vs inverted-index lookup
  *   indexTax  - indexes on a hot table; write latency vs B-tree writes per change
+ *   bloomFp   - bits per element; false-positive rate vs memory per million keys
  */
 type SandboxKind =
   | "capacity" | "latency" | "retry" | "receipt" | "plot" | "quorum"
   | "fanout" | "queue" | "rateLimit" | "cost" | "outbox" | "tail"
   | "hitRatio" | "slo" | "kvMem" | "batch" | "fuel" | "denied" | "drain" | "normalization"
-  | "bm25" | "indexScan" | "corpusScan" | "indexTax";
+  | "bm25" | "indexScan" | "corpusScan" | "indexTax" | "bloomFp";
 
 interface RawSandbox {
   t: string; p: string; slider: string; unit: string;
@@ -4399,7 +4400,7 @@ addLesson("hashing-and-sketches", 21, "Hashing and probabilistic sketches", "Blo
   q: ["A bloom filter returns 'present'. What's the honest interpretation?", ["It's definitely there", "It's probably present (possible false positive from bit collisions) — 'definitely absent' is the trusted answer", "It's definitely not there"], 1, "The guarantee is one-sided: 'absent' is true, 'present' can be a false positive. If you need certainty, add a follow-up exact check."],
   sb: {
     t: "Bloom filter trainer", p: "Drag bit-per-item settings and see how the false-positive rate behaves.", slider: "Bits per element", unit: "bits", min: 1, max: 32, step: 1, def: 10,
-    prims: ["redis_cache", "postgres_db", "blob_storage"], kind: "plot",
+    prims: ["redis_cache", "postgres_db", "blob_storage"], kind: "bloomFp",
   },
 });
 
@@ -6945,6 +6946,36 @@ function evaluateIndexTax(sandbox: LessonSandboxSpec, value: number): SandboxMet
   };
 }
 
+/**
+ * Bloom filter bits per element, 1-32. For each setting the hash count is the
+ * classic optimum k = (m/n) ln 2, and the false-positive rate is
+ * (1 - e^(-k n/m))^k. Numbers are textbook formulas, not a benchmark.
+ */
+function evaluateBloomFp(sandbox: LessonSandboxSpec, value: number): SandboxMetric {
+  const bits = Math.round(clamp(value, 1, 32));
+  const hashes = Math.max(1, Math.round(bits * Math.LN2));
+  const fpr = Math.pow(1 - Math.exp(-hashes / bits), hashes);
+  const memoryMb = bits / 8; // per one million keys
+  const status = bits >= 8 ? "healthy" : bits >= 5 ? "warning" : "critical";
+  const absentShare = Math.round((1 - fpr) * 1000) / 10;
+  return {
+    primaryMetricLabel: "False-positive rate",
+    primaryMetricValue: formatRate(fpr * 100),
+    secondaryMetricLabel: "Memory per 1M keys",
+    secondaryMetricValue: `${memoryMb.toFixed(2)} MB`,
+    status,
+    explanation: `At ${bits} ${sandbox.unit} per element the filter runs its optimal ${hashes} hashes, so roughly ${formatRate(fpr * 100)} of lookups for items that were never added come back "probably present". With ${bits} bits per element that costs about ${memoryMb.toFixed(2)} MB per million keys - a few thousand times smaller than keeping the keys themselves. "Definitely absent" stays exact at every setting (${absentShare}% of genuine misses here), which is why the filter sits in front of an expensive lookup: a negative answer usually saves the disk or database trip, and the rare false positive only costs one unnecessary check.`,
+  };
+}
+
+function formatRate(pct: number): string {
+  if (pct >= 10) return `${pct.toFixed(0)}%`;
+  if (pct >= 1) return `${pct.toFixed(1)}%`;
+  if (pct >= 0.1) return `${pct.toFixed(2)}%`;
+  if (pct >= 0.001) return `${pct.toFixed(3)}%`;
+  return `${pct.toExponential(1)}%`;
+}
+
 function evaluateCorpusScan(sandbox: LessonSandboxSpec, value: number): SandboxMetric {
   const docs = Math.max(0, Math.round(value));
   // Assumptions stated in the explanation: 1 KB per document, a sequential
@@ -6992,6 +7023,7 @@ const KIND_EVALUATORS: Record<SandboxKind, (sandbox: LessonSandboxSpec, value: n
   indexScan: evaluateIndexScan,
   corpusScan: evaluateCorpusScan,
   indexTax: evaluateIndexTax,
+  bloomFp: evaluateBloomFp,
 };
 
 /**

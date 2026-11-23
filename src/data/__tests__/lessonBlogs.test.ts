@@ -195,4 +195,28 @@ describe("lessonBlogs coverage", () => {
     expect(poor.status).toBe("critical");
     expect(good.status).toBe("healthy");
   });
+
+  it("bloom filter sandbox reports false-positive rate instead of table maintenance", () => {
+    const blog = getAllLessonBlogsForModule("hashing-and-sketches").find(
+      (entry) => entry.sandbox.title === "Bloom filter trainer",
+    );
+    expect(blog).toBeDefined();
+    if (!blog) return;
+
+    const sparse = evaluateLessonSandbox(blog.sandbox, 2);
+    const tuned = evaluateLessonSandbox(blog.sandbox, 10);
+    const roomy = evaluateLessonSandbox(blog.sandbox, 32);
+
+    expect(tuned.primaryMetricLabel).toBe("False-positive rate");
+    expect(tuned.secondaryMetricValue).toBe("1.25 MB");
+    expect(roomy.secondaryMetricValue).toBe("4.00 MB");
+    expect(sparse.explanation).not.toContain("Structures");
+    expect(sparse.explanation).not.toContain("Slow-query");
+
+    // More bits per element means a rarer false positive and more memory.
+    expect(parseFloat(roomy.primaryMetricValue)).toBeLessThan(parseFloat(tuned.primaryMetricValue));
+    expect(parseFloat(tuned.primaryMetricValue)).toBeLessThan(parseFloat(sparse.primaryMetricValue));
+    expect(sparse.status).toBe("critical");
+    expect(tuned.status).toBe("healthy");
+  });
 });
