@@ -102,6 +102,29 @@ describe("guided labs", () => {
     }
   });
 
+  it("keeps the pastebin lab anchored to blob bodies and a single-use claim", () => {
+    const lab = GUIDED_LABS.find((entry) => entry.id === "pastebin-service");
+    expect(lab).toBeDefined();
+    expect(lab?.stages).toHaveLength(6);
+    expect(lab?.sloP99Ms).toBe(200);
+    // Bodies leave the app tier: presigned upload, streamed reads, never proxied.
+    expect(lab?.briefMarkdown).toContain("burn-after-read");
+    expect(lab?.solutionMarkdown).toContain("presigned PUT");
+    // Single use is one atomic compare-and-set, not read-then-delete.
+    expect(lab?.solutionMarkdown).toContain("UPDATE pastes SET state = 'burned'");
+    expect(lab?.solutionMarkdown).toContain("fail closed");
+    // Expiry must be enforced on read even when the sweeper lags.
+    expect(lab?.solutionMarkdown).toContain("410");
+    expect(lab?.stages.some((stage) => stage.kind === "chaos")).toBe(true);
+    const boe = lab?.stages.find((stage) => stage.kind === "boe");
+    expect(boe?.instructionsMarkdown).toContain("600M");
+    expect(boe?.instructionsMarkdown).toContain("5 GB/s");
+    expect(boe?.instructionsMarkdown).toContain("250 MB/s");
+    for (const stage of lab?.stages ?? []) {
+      expect(stage.instructionsMarkdown.length, `${lab?.id}/${stage.id}`).toBeGreaterThan(400);
+    }
+  });
+
   it("keeps the rate limiter anchored to one atomic hop and a bounded over-admit", () => {
     const lab = GUIDED_LABS.find((entry) => entry.id === "distributed-rate-limiter");
     expect(lab).toBeDefined();
