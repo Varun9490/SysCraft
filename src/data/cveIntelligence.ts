@@ -194,26 +194,6 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2026-109619",
   },
   {
-    id: "CVE-2024-21626",
-    title: 'runc File Descriptor Leak Container Escape ("Leaky Vessels")',
-    published: "2024-01-31",
-    cvss: 8.6,
-    severity: "HIGH",
-    cwe: "CWE-403",
-    stride: "Elevation of Privilege",
-    ecosystem: "Kubernetes",
-    affectedPrimitives: ["k8s_deployment", "container_registry", "k8s_cluster"],
-    summary:
-      "runc leaked a host file descriptor for the container's working directory before exec, and a container process could keep it open. By changing directory through that descriptor, a workload escaped to the host filesystem and could overwrite host binaries, read other tenants' mounts, or collect node credentials.",
-    architecturalRootCause:
-      "The container runtime inherited a privileged host descriptor across the exec boundary. Isolation depended on namespace correctness alone, with no seccomp or LSM rule denying use of leaked descriptors.",
-    mitigationPattern:
-      "Pin runc and containerd to patched releases and verify the runtime version during image admission. Add a seccomp profile that blocks the abuse primitive, run workloads rootless with user namespaces, mount the host filesystem read-only, and keep node pools on an immutable rebuild path so one runtime patch rolls everywhere.",
-    recommendedDefensePrimitives: ["cni_overlay", "secrets_manager", "identity_provider", "cert_manager"],
-    exploitedInWild: false,
-    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-21626",
-  },
-  {
     id: "CVE-2026-53495",
     title: "containerd CRI ExecSync Goroutine Leak Leads to Node-Level Denial of Service",
     published: "2026-09-14",
@@ -499,26 +479,6 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     recommendedDefensePrimitives: ["web_application_firewall", "rate_limiter", "api_gateway", "observability_stack"],
     exploitedInWild: false,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2026-123007",
-  },
-  {
-    id: "CVE-2024-21626",
-    title: "runc Working-Directory Escape to Host Filesystem During Container Start",
-    published: "2024-01-31",
-    cvss: 8.6,
-    severity: "HIGH",
-    cwe: "CWE-22",
-    stride: "Elevation of Privilege",
-    ecosystem: "Kubernetes",
-    affectedPrimitives: ["k8s_cluster", "container_registry"],
-    summary:
-      "A path-traversal bug in runc's working-directory handling let a malicious image set its working directory to a host path via a symlink in the image layer. When the container started, runc chdir'd into that host path and subsequent file operations (including writing the container's /proc/self/fd) escaped the mount namespace, giving the attacker read/write access to the host filesystem and, in many configurations, host root. The bug affected runc 1.1.11 and earlier and containerd/CRI-O builds that bundled it.",
-    architecturalRootCause:
-      "Container runtime identity was derived from a filesystem path supplied by the untrusted image instead of an immutable, namespace-internal handle. The runtime trusted image-controlled metadata to choose its own working directory, collapsing the boundary between container and host filesystem namespaces.",
-    mitigationPattern:
-      "Upgrade runc to 1.1.12 or later and rebuild container images on the patched runtime. Enforce image provenance with cosign/Sigstore signatures and admission policies that reject images containing symlinks escaping the rootfs, run containers with a read-only root filesystem and dropped capabilities, and isolate the runtime on a dedicated node pool with seccomp and AppArmor profiles enabled.",
-    recommendedDefensePrimitives: ["k8s_cluster", "container_registry", "cert_manager", "observability_stack"],
-    exploitedInWild: false,
-    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-21626",
   },
 
   {
