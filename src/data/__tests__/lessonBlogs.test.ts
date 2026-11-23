@@ -135,6 +135,27 @@ describe("lessonBlogs coverage", () => {
     expect(tuned.status).toBe("healthy");
   });
 
+  it("scan vs index sandbox reports scan and lookup times instead of table maintenance", () => {
+    const blog = getAllLessonBlogsForModule("search-at-scale").find(
+      (entry) => entry.sandbox.title === "Scan vs index",
+    );
+    expect(blog).toBeDefined();
+    if (!blog) return;
+
+    const small = evaluateLessonSandbox(blog.sandbox, 10_000);
+    const large = evaluateLessonSandbox(blog.sandbox, 50_000_000);
+
+    expect(small.primaryMetricLabel).toContain("Full-scan");
+    expect(small.secondaryMetricLabel).toContain("index");
+    expect(large.explanation).not.toContain("slow-query");
+    expect(large.explanation).not.toContain("Structures");
+
+    // A bigger corpus makes the full scan costlier while the index stays flat.
+    expect(large.primaryMetricValue).not.toBe(small.primaryMetricValue);
+    expect(small.status).toBe("healthy");
+    expect(large.status).toBe("critical");
+  });
+
   it("index hunt sandbox reports index coverage instead of tail latency", () => {
     const blog = getAllLessonBlogsForModule("simple-system").find(
       (entry) => entry.sandbox.title === "Index hunt test",

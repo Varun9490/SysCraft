@@ -7049,7 +7049,7 @@ addLesson("search-at-scale", 34, "Search at scale", "Inverted indexes: why searc
   q: ["Why does a B-tree index on a text column fail to speed up WHERE body LIKE '%dragon%'?", ["The B-tree stores hashes, not text", "The leading wildcard prevents a range seek", "B-trees only work on numbers"], 1, "A B-tree can seek to a prefix, but a leading % means there is no prefix to seek. The engine must scan every row, so the index is unused."],
   sb: {
     t: "Scan vs index", p: "Drag the document count to see how a full scan and an inverted-index lookup diverge as the corpus grows.", slider: "Documents in the corpus", unit: "docs", min: 10000, max: 50000000, step: 10000, def: 1000000,
-    prims: ["search_cluster", "postgres_db", "redis_cache"], kind: "plot",
+    prims: ["search_cluster", "postgres_db", "redis_cache"], kind: "corpusScan",
   },
 });
 
