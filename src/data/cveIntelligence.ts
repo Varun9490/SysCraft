@@ -566,6 +566,26 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     exploitedInWild: true,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-23897",
   },
+  {
+    id: "CVE-2024-21626",
+    title: "runc Container Escape via Leaky File Descriptors (Leaky Vessels)",
+    published: "2024-01-31",
+    cvss: 8.6,
+    severity: "HIGH",
+    cwe: "CWE-404",
+    stride: "Elevation of Privilege",
+    ecosystem: "Kubernetes",
+    affectedPrimitives: ["k8s_deployment", "container_registry"],
+    summary:
+      "A flaw in runc allowed a malicious container image to leak host file descriptors into the container, enabling an attacker to overwrite the host runc binary and escape the container to gain root on the host node. The issue affected the default Docker and containerd runtimes, putting any untrusted image pull at risk of full node compromise.",
+    architecturalRootCause:
+      "The container runtime shared a file descriptor (the host's /proc/self/fd) across the container boundary and trusted the container's working directory without re-resolving it against the mount namespace. A symlink in the image turned a relative path into a host path, breaking the namespace isolation the container model promises.",
+    mitigationPattern:
+      "Upgrade runc to 1.1.12+ and containerd/Docker to patched releases, and rebuild any images built on affected base layers. Enforce image provenance with signatures (cosign/Sigstore), run containers as non-root with a read-only root filesystem, drop all capabilities, and enable seccomp/AppArmor profiles. Restrict who can pull or build images via RBAC and audit admission controllers for untrusted sources.",
+    recommendedDefensePrimitives: ["k8s_cluster", "ingress_controller", "observability_stack", "identity_provider"],
+    exploitedInWild: false,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-21626",
+  },
 ];
 
 /** Fast lookup used by the hub's canvas-exposure annotations. */
