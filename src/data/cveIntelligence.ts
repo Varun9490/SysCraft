@@ -546,6 +546,26 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     exploitedInWild: false,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-21626",
   },
+  {
+    id: "CVE-2024-3094",
+    title: "XZ Utils Backdoor (liblzma) SSHD Supply-Chain Compromise",
+    published: "2024-03-29",
+    cvss: 10.0,
+    severity: "CRITICAL",
+    cwe: "CWE-506",
+    stride: "Tampering",
+    ecosystem: "AWS / Cloud",
+    affectedPrimitives: ["k8s_deployment", "container_registry"],
+    summary:
+      "A malicious maintainer introduced a backdoor into XZ Utils 5.6.0/5.6.1 via obfuscated build scripts that injected code into liblzma. The payload hooked OpenSSH's authentication path (via systemd notification socket) to allow remote unauthenticated command execution as root on affected distributions.",
+    architecturalRootCause:
+      "The build pipeline trusted a single maintainer's release artifacts and ran obfuscated m4/shell scripts during compilation with no reproducible-build or provenance checks. A shared compression library loaded into the SSH daemon's process space gained execution capability without any SSH-level authentication.",
+    mitigationPattern:
+      "Downgrade or rebuild XZ Utils to 5.4.x, verify package signatures and reproducible builds, and pin dependency versions with SBOMs. Restrict SSH to key-based auth behind a bastion, disable systemd socket activation where possible, and monitor for unexpected child processes from sshd. Audit CI/CD for tampered build scripts and maintainer account changes.",
+    recommendedDefensePrimitives: ["k8s_cluster", "ingress_controller", "observability_stack", "identity_provider"],
+    exploitedInWild: false,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-3094",
+  },
 ];
 
 /** Fast lookup used by the hub's canvas-exposure annotations. */
