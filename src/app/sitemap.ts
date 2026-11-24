@@ -41,9 +41,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/wiki/graph", 0.5),
     page("/practice", 0.7),
     page("/play", 0.7),
+    page("/interview", 0.7),
+    page("/security", 0.7),
+    page("/enterprise", 0.65),
+    page("/plugins", 0.6),
     page("/flowchart", 0.5),
     page("/cloud", 0.6),
     page("/reference/numbers", 0.6),
+    page("/pricing", 0.4),
     page("/privacy", 0.4),
   ];
 }
