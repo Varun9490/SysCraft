@@ -190,7 +190,9 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
   const height = data.height ?? NODE_TIER_HEIGHTS[zoom];
 
   // Rough.js frame paths. Memoised ONLY on geometry + stroke/fill inputs so
-  // live telemetry (RPS/CPU/P99) never regenerates the sketch geometry.
+  // live telemetry (RPS/CPU/P99) never regenerates the sketch geometry. The
+  // compiler cannot preserve this deliberately narrower dependency set.
+  /* eslint-disable react-hooks/preserve-manual-memoization -- geometry-only memo; telemetry must never regenerate paths */
   const fillStyle = "hachure";
   const sketchPaths = useMemo<PathInfo[]>(() => {
     if (!sketchy) return [];
@@ -208,8 +210,8 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
       seed: 11,
     });
     return generator.toPaths(drawable);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on render inputs only
   }, [width, height, accent, fillStyle, sketchy]);
+  /* eslint-enable react-hooks/preserve-manual-memoization */
 
   const arrivalRps = telemetry?.arrivalRps ?? 0;
   const cpuPct = telemetry?.cpuPct ?? 0;
@@ -281,6 +283,7 @@ function ResourceNodeInner({ id, data, selected }: NodeProps<Node<ResourceNodeDa
                 className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-lg"
                 style={{ backgroundColor: `${accent}1f`, color: accent }}
               >
+                {/* eslint-disable-next-line react-hooks/static-components -- stable module-level icon lookup, not a component made during render */}
                 <Icon size={15} weight="bold" />
               </span>
               <div className="min-w-0 flex-1">

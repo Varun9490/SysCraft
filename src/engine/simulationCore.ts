@@ -24,6 +24,21 @@ import {
   updateQueue,
   utilization,
 } from "./queuingMath";
+import {
+  beginPhysicsBatch,
+  commitPhysicsBatch,
+  PHYSICS_STRIDE,
+  writePhysicsNode,
+} from "./wasm/simKernel";
+
+const STORAGE_ENGINE_CODE: Record<StorageEngine, number> = {
+  none: 0,
+  b_tree: 1,
+  lsm_tree: 2,
+  in_memory: 3,
+  append_log: 4,
+  columnar: 5,
+};
 
 /**
  * Milestone 3 simulation core.
@@ -460,14 +475,51 @@ export function stepSimulationTick(
   let entryRps = 0;
   let totalCost = 0;
 
+  // One batched call replaces the per-node JS math object churn. The WASM
+  // workspace is borrowed for this tick only and reused on the next one.
+  // If WASM is unavailable (or the graph exceeds 96 nodes), the pure TypeScript
+  // queueing math below remains the exact fallback.
+  const wasmInput = topology.nodes.length <= 96 ? beginPhysicsBatch() : null;
+  if (wasmInput) {
+    topology.nodes.forEach((node, index) => {
+      const meta = getResourceMeta(node.resourceId);
+      const lambda = Math.max(0, arrival.get(node.id) ?? 0);
+      const capacity = capacities.get(node.id) ?? 1;
+      writePhysicsNode(
+        index,
+        capacity,
+        lambda,
+        node.baseP50Ms,
+        node.baseP95Ms,
+        node.baseP99Ms,
+        STORAGE_ENGINE_CODE[meta.storageEngine],
+        node.writeRatio,
+        elapsedSeconds,
+        prevTick.queueDepths[node.id] ?? 0,
+        node.maxConcurrency,
+        node.replicationFactor,
+        node.avgPromptTokens ?? 1024,
+        node.avgOutputTokens ?? 256,
+        node.vramGbPerReplica ?? 0,
+        isLlmLike(meta.category),
+      );
+    });
+  }
+  const wasmOutput = wasmInput ? commitPhysicsBatch(topology.nodes.length) : null;
+  let nodeIndexCounter = 0;
+
   for (const node of topology.nodes) {
+    const nodeSlot = nodeIndexCounter * PHYSICS_STRIDE;
+    nodeIndexCounter += 1;
     const meta = getResourceMeta(node.resourceId);
     const penalty = penalties.get(node.id) ?? NO_PENALTY;
     const lambda = Math.max(0, arrival.get(node.id) ?? 0);
     const capacity = capacities.get(node.id) ?? 1;
     const prevDepth = prevTick.queueDepths[node.id] ?? 0;
-    const queue = updateQueue(prevDepth, lambda, capacity, node.maxConcurrency, node.replicationFactor);
-    nextQueueDepths[node.id] = queue.queueDepth;
+    const jsQueue = wasmOutput ? null : updateQueue(prevDepth, lambda, capacity, node.maxConcurrency, node.replicationFactor);
+    const queueDepth = wasmOutput ? wasmOutput[nodeSlot] : jsQueue!.queueDepth;
+    const queueDropped = wasmOutput ? wasmOutput[nodeSlot + 1] >= 0.5 : jsQueue!.dropped;
+    nextQueueDepths[node.id] = queueDepth;
 
     if (isCacheLike(node.resourceId, meta.category)) {
       const base = clamp01(node.cacheHitRate);
@@ -487,55 +539,72 @@ export function stepSimulationTick(
 
     const served = Math.min(lambda, capacity);
     const forwarded = computeOutput(node, lambda);
-    const overloadError = errorRate(lambda, capacity);
+    const rho = wasmOutput ? wasmOutput[nodeSlot + 6] : utilization(lambda, capacity);
+    const overloadError = wasmOutput ? wasmOutput[nodeSlot + 8] : errorRate(lambda, capacity);
     const combinedError = Math.min(1, Math.max(0, overloadError + penalty.extraError));
-    const overloadDrops = Math.max(0, lambda - served) * (queue.dropped ? 1 : 0.25);
+    const overloadDrops = Math.max(0, lambda - served) * (queueDropped ? 1 : 0.25);
     const accountedDrops = Math.max(combinedError * lambda, overloadDrops);
     const outputRps = Math.max(0, forwarded);
-    const lat = nodeLatency({
-      baseP50Ms: node.baseP50Ms,
-      baseP95Ms: node.baseP95Ms,
-      baseP99Ms: node.baseP99Ms,
-      arrivalRps: lambda,
-      capacityRps: capacity,
-      storageEngine: meta.storageEngine,
-      writeRatio: node.writeRatio,
-      elapsedSeconds,
-      queueDepth: queue.queueDepth,
-    });
+    const jsLatency = wasmOutput
+      ? null
+      : nodeLatency({
+          baseP50Ms: node.baseP50Ms,
+          baseP95Ms: node.baseP95Ms,
+          baseP99Ms: node.baseP99Ms,
+          arrivalRps: lambda,
+          capacityRps: capacity,
+          storageEngine: meta.storageEngine,
+          writeRatio: node.writeRatio,
+          elapsedSeconds,
+          queueDepth,
+        });
+    const baseP50 = wasmOutput ? wasmOutput[nodeSlot + 2] : jsLatency!.p50Ms;
+    const baseP95 = wasmOutput ? wasmOutput[nodeSlot + 3] : jsLatency!.p95Ms;
+    const baseP99 = wasmOutput ? wasmOutput[nodeSlot + 4] : jsLatency!.p99Ms;
 
-    let p50 = lat.p50Ms + penalty.latencyMs;
-    let p95 = lat.p95Ms + penalty.latencyMs;
-    let p99 = lat.p99Ms + penalty.latencyMs;
+    let p50 = baseP50 + penalty.latencyMs;
+    let p95 = baseP95 + penalty.latencyMs;
+    let p99 = baseP99 + penalty.latencyMs;
     let ttftMs = 0;
     let kvCachePct = 0;
     if (isLlmLike(meta.category)) {
-      const llm = llmPhysics({
-        baseP50Ms: node.baseP50Ms,
-        arrivalRps: lambda,
-        capacityRps: capacity,
-        avgPromptTokens: node.avgPromptTokens,
-        avgOutputTokens: node.avgOutputTokens,
-        vramGbPerReplica: node.vramGbPerReplica,
-        replicationFactor: node.replicationFactor,
-        activeConcurrentRequests: lambda * (lat.p50Ms / 1000),
-      });
-      ttftMs = llm.ttftMs + penalty.latencyMs;
-      kvCachePct = llm.kvCachePct;
-      if (llm.preempted) {
-        p50 *= llm.latencyPenalty;
-        p95 *= llm.latencyPenalty;
-        p99 *= llm.latencyPenalty;
+      if (wasmOutput) {
+        ttftMs = wasmOutput[nodeSlot + 10] + penalty.latencyMs;
+        kvCachePct = wasmOutput[nodeSlot + 11];
+        if (wasmOutput[nodeSlot + 13] >= 0.5) {
+          const penaltyFactor = wasmOutput[nodeSlot + 12];
+          p50 *= penaltyFactor;
+          p95 *= penaltyFactor;
+          p99 *= penaltyFactor;
+        }
+      } else {
+        const llm = llmPhysics({
+          baseP50Ms: node.baseP50Ms,
+          arrivalRps: lambda,
+          capacityRps: capacity,
+          avgPromptTokens: node.avgPromptTokens,
+          avgOutputTokens: node.avgOutputTokens,
+          vramGbPerReplica: node.vramGbPerReplica,
+          replicationFactor: node.replicationFactor,
+          activeConcurrentRequests: lambda * (baseP50 / 1000),
+        });
+        ttftMs = llm.ttftMs + penalty.latencyMs;
+        kvCachePct = llm.kvCachePct;
+        if (llm.preempted) {
+          p50 *= llm.latencyPenalty;
+          p95 *= llm.latencyPenalty;
+          p99 *= llm.latencyPenalty;
+        }
       }
     }
 
     // Little's-Law in-service estimate: RPS currently occupying service slots,
     // bounded by the tier's total concurrency (max in flight x replicas).
     const concurrentInFlight =
-      lambda > 0 && lat.p50Ms > 0
+      lambda > 0 && baseP50 > 0
         ? Math.min(
             Math.max(1, node.replicationFactor) * Math.max(1, node.maxConcurrency),
-            lambda * (lat.p50Ms / 1000),
+            lambda * (baseP50 / 1000),
           )
         : 0;
 
@@ -548,14 +617,14 @@ export function stepSimulationTick(
       arrivalRps: lambda,
       outputRps,
       capacityRps: capacity,
-      utilization: utilization(lambda, capacity),
+      utilization: rho,
       p50Ms: p50,
       p95Ms: p95,
       p99Ms: p99,
-      queueDepth: queue.queueDepth,
+      queueDepth,
       concurrentInFlight,
       errorRate: combinedError,
-      cpuPct: cpuPercent(utilization(lambda, capacity), queue.queueDepth, capacity),
+      cpuPct: wasmOutput ? wasmOutput[nodeSlot + 9] : cpuPercent(rho, queueDepth, capacity),
       cacheHitPct,
       ttftMs,
       kvCachePct,

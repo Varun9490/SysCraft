@@ -35,14 +35,6 @@ interface Props {
   onMarkComplete?: () => void;
 }
 
-const TONE_DOT: Record<LessonBlog["diagramFlow"][number]["tone"], string> = {
-  emerald: "bg-emerald-400",
-  sky: "bg-sky-400",
-  amber: "bg-amber-400",
-  violet: "bg-violet-400",
-  rose: "bg-rose-400",
-};
-
 const TONE_RING: Record<LessonBlog["diagramFlow"][number]["tone"], string> = {
   emerald: "border-emerald-400/60 bg-emerald-500/10 text-emerald-200",
   sky: "border-sky-400/60 bg-sky-500/10 text-sky-200",

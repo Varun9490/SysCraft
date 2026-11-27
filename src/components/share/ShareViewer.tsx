@@ -99,6 +99,7 @@ export function ShareViewer() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only read of the initial URL hash; later changes arrive via the listener.
     readHash();
     window.addEventListener('hashchange', readHash);
     return () => window.removeEventListener('hashchange', readHash);

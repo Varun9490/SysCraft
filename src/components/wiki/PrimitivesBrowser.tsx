@@ -85,6 +85,7 @@ export function PrimitivesBrowser({ primitives = SEED_RESOURCES }: { primitives?
     const params = new URLSearchParams(window.location.search);
     const id = params.get('resource');
     if (id && primitives.some((p) => p.id === id)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only deep-link selection from the query string.
       setSelectedId(id);
       setDeepLinkId(id);
     }

@@ -409,7 +409,7 @@ export function compileExcalidraw(topology: GraphTopology): string {
   const doc = {
     type: "excalidraw",
     version: 2,
-    source: "https://sys-craft-3vzz.vercel.app",
+    source: "https://sys-craft.vercel.app",
     elements,
     appState: { gridSize: null, viewBackgroundColor: "#0a0a0a" },
     files: {},

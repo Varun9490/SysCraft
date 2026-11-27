@@ -167,6 +167,10 @@ export function PluginsPageContent() {
   const enabledSet = useMemo(() => new Set(enabledPluginIds), [enabledPluginIds]);
 
   const findings = useMemo<DoctorFinding[]>(() => {
+    // The evaluator reads both plugin collections from the store; these reads
+    // keep the memo sensitive to plugin edits as well as topology edits.
+    void enabledPluginIds;
+    void customPlugins;
     const doctorNodes = nodes.map((node) => ({
       id: node.id,
       resourceId: String(node.data.resourceId ?? "rest_service"),

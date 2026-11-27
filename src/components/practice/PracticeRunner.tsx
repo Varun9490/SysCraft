@@ -103,6 +103,7 @@ export function PracticeRunner() {
   }, [hydrateFromDb]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only hydration of browser storage into SSR-safe defaults.
     setSettings(loadPracticeSettings());
     setHistory(loadPracticeHistory());
   }, []);
@@ -117,7 +118,7 @@ export function PracticeRunner() {
     }
   }, [ensureCard, hydrated]);
 
-  const itemIndex = useMemo(buildItemIndex, []);
+  const itemIndex = useMemo(() => buildItemIndex(), []);
 
   const dueQueue = useMemo(() => {
     const nowMs = today.getTime();
@@ -182,6 +183,8 @@ export function PracticeRunner() {
     setChosen(null);
     setRevealed(false);
     if (index + 1 >= sessionQueue.length) {
+      // The clock is read inside this click handler, not during render.
+      // eslint-disable-next-line react-hooks/purity
       const seconds = Math.round((Date.now() - (sessionStats.startedAt || Date.now())) / 1000);
       setHistory(recordPracticeSession(nextStats.reviewed, nextStats.correct, seconds));
       setFinished(true);

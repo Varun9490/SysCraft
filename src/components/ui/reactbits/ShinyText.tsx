@@ -1,7 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
-
 /**
  * ReactBits-style ShinyText / GradientText shells. The shimmer + gradient
  * sweeps live in globals.css (`.shiny-text`, `.gradient-text-animated`) so

@@ -36,6 +36,7 @@ pids/
 
 # Frameworks
 .next/
+.vercel/
 .nuxt/
 .svelte-kit/
 
@@ -57,6 +58,9 @@ desktop.ini
 # TypeScript
 *.tsbuildinfo
 
+# Rust / WebAssembly build output (the embedded TS bytes are committed)
+wasm/sim-kernel/target/
+
 # Testing
 .nyc_output/
 
@@ -65,3 +69,5 @@ desktop.ini
 *.sqlite3
 
 shots/
+.vercel
+.env*

@@ -21,6 +21,7 @@ export function ConceptDiagram({ code }: ConceptDiagramProps) {
   const holderRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
   const dragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   useEffect(() => {
@@ -72,6 +73,7 @@ export function ConceptDiagram({ code }: ConceptDiagramProps) {
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     dragRef.current = { x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
+    setDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
@@ -83,6 +85,7 @@ export function ConceptDiagram({ code }: ConceptDiagramProps) {
 
   const endDrag = () => {
     dragRef.current = null;
+    setDragging(false);
   };
 
   const clampZoom = (next: number) => Math.min(2.4, Math.max(0.55, next));
@@ -138,7 +141,7 @@ export function ConceptDiagram({ code }: ConceptDiagramProps) {
             className="mermaid-svg flex justify-center py-3 px-4"
             style={{
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transition: dragRef.current ? "none" : "transform 0.18s ease-out",
+              transition: dragging ? "none" : "transform 0.18s ease-out",
             }}
             dangerouslySetInnerHTML={{ __html: svg }}
           />

@@ -1,24 +1,18 @@
-import { CTASection } from "@/components/landing/CTASection";
-import { Features } from "@/components/landing/Features";
 import { Hero } from "@/components/landing/Hero";
-import { HowItWorks } from "@/components/landing/HowItWorks";
-import { LabsPreview } from "@/components/landing/LabsPreview";
-import { PathPreview } from "@/components/landing/PathPreview";
-import { TopicsShowcase } from "@/components/landing/TopicsShowcase";
-import { TrustMarquee } from "@/components/landing/TrustMarquee";
+import { LessonAnatomy } from "@/components/landing/LessonAnatomy";
+import { LiveSystemStrip } from "@/components/landing/LiveSystemStrip";
+import { QuietLinks } from "@/components/landing/QuietLinks";
+import { TrackShowcase } from "@/components/landing/TrackShowcase";
 import { SiteChrome } from "@/components/nav/SiteChrome";
 
 export default function LandingPage() {
   return (
     <SiteChrome>
       <Hero />
-      <TrustMarquee />
-      <Features />
-      <TopicsShowcase />
-      <PathPreview />
-      <LabsPreview />
-      <HowItWorks />
-      <CTASection />
+      <LiveSystemStrip />
+      <TrackShowcase />
+      <QuietLinks />
+      <LessonAnatomy />
     </SiteChrome>
   );
 }

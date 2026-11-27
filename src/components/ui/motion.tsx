@@ -1,13 +1,7 @@
 'use client';
 
 import { useRef } from "react";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  type Variants,
-} from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
 export const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -42,16 +36,6 @@ export function Reveal({
     </motion.div>
   );
 }
-
-const groupVariants: Variants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.06 } },
-};
-
-const childVariants: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } },
-};
 
 export function StaggerGroup({
   children,

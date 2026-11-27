@@ -34,6 +34,7 @@ export function RoomLobby() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only hydration of browser storage and the invite hash.
     setExisting(loadRoomConfig());
     setName(loadStoredName());
     const hash = window.location.hash.replace(/^#/, '');

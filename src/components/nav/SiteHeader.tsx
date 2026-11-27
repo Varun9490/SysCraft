@@ -3,29 +3,26 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Collapsible } from "@/components/ui/Collapsible";
 import { ArrowRight, Menu, X } from "@/components/ui/icons";
 
-/**
- * Four verbs, four destinations — no mode-flavored word soup. Everything else
- * (practice, play, topics, flowchart, cloud drills, rooms) stays reachable
- * from the surfaces it serves and from the footer, not from the top bar.
- */
-const NAV_LINKS = [
-  { href: "/learn", label: "Learn" },
-  { href: "/case-studies", label: "Case studies" },
+/** Primary verbs. Everything else lives in the panel or the footer index. */
+const PRIMARY_LINKS = [
+  { href: "/paths", label: "Paths" },
+  { href: "/blogs", label: "Blogs" },
   { href: "/labs", label: "Labs" },
-  { href: "/cloud", label: "Cloud & K8s" },
-  { href: "/security", label: "Security & CVEs" },
-  { href: "/plugins", label: "Plugins" },
-  { href: "/enterprise", label: "Enterprise" },
+  { href: "/map", label: "Map" },
+  { href: "/tools", label: "Tools" },
+  { href: "/quiz", label: "Quiz" },
+] as const;
+
+const LIBRARY_LINKS = [
+  { href: "/encyclopedia", label: "Encyclopedia" },
+  { href: "/learn", label: "Learn" },
   { href: "/wiki", label: "Wiki" },
-];
+  { href: "/reference/numbers", label: "Numbers & claims" },
+] as const;
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/canvas") return pathname === "/canvas" || pathname.startsWith("/canvas/");
-  if (href === "/wiki") return pathname === "/wiki" || pathname.startsWith("/wiki/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -49,135 +46,129 @@ export function LogoMark({ size = 26 }: { size?: number }) {
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  // Keyed by pathname: navigating away closes the panel on the next render
+  // without needing a synchronous state reset in an effect.
+  const [menuState, setMenuState] = useState<{ pathname: string; open: boolean } | null>(null);
+  const menuOpen = menuState !== null && menuState.pathname === pathname && menuState.open;
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+    if (!menuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuState(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
 
   return (
-    <header
-      className={`sticky top-0 z-40 w-full border-b transition duration-300 ${
-        scrolled || mobileOpen
-          ? "border-zinc-800/70 bg-zinc-950/85 backdrop-blur-xl"
-          : "border-transparent bg-transparent"
-      }`}
-    >
+    <header className="sticky top-0 z-40 w-full border-b border-line/60 bg-ink/90 backdrop-blur-xl">
       <div className="section-container flex h-14 items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="SysCraft home">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="SysCraft home">
           <LogoMark />
-          <span className="text-[15px] font-semibold tracking-tight text-zinc-100">
+          <span className="text-[15px] font-medium tracking-tight text-content">
             Sys<span className="text-brass">Craft</span>
           </span>
         </Link>
 
-        <nav className="site-nav hidden min-w-0 items-center gap-0.5 lg:flex overflow-x-hidden" aria-label="Primary">
-          {NAV_LINKS.map((link) => {
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
+          {PRIMARY_LINKS.map((link) => {
             const active = isActive(pathname, link.href);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`relative rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors whitespace-nowrap ${
-                  active ? "text-zinc-100" : "text-zinc-400 hover:text-zinc-200"
+                aria-current={active ? "page" : undefined}
+                className={`rounded-md px-2.5 py-1.5 text-[12.5px] transition-colors ${
+                  active ? "text-content" : "text-content-tertiary hover:text-content"
                 }`}
               >
                 {link.label}
-                {active && (
-                  <motion.span
-                    layoutId="nav-underline"
-                    className="absolute inset-x-2.5 -bottom-0.5 h-px bg-brass"
-                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                  />
-                )}
               </Link>
             );
           })}
+          <Link
+            href="/encyclopedia"
+            aria-current={isActive(pathname, "/encyclopedia") ? "page" : undefined}
+            className={`rounded-md px-2.5 py-1.5 text-[12.5px] transition-colors ${
+              isActive(pathname, "/encyclopedia") ? "text-content" : "text-content-tertiary hover:text-content"
+            }`}
+          >
+            Library
+          </Link>
         </nav>
 
-        <div className="hidden items-center gap-2.5 lg:flex">
-          <Link
-            href="/pricing"
-            className="hidden text-[13px] font-medium text-zinc-400 transition-colors hover:text-zinc-200 lg:inline-flex"
-          >
-            Pricing
-          </Link>
+        <div className="hidden items-center gap-4 lg:flex">
           <Link
             href="/canvas"
-            className="group inline-flex items-center gap-1.5 rounded-full bg-brass px-4 py-1.5 text-[13px] font-semibold text-zinc-950 shadow-card transition-transform hover:scale-[1.03]"
+            className="group inline-flex items-center gap-1.5 text-[12.5px] font-medium text-content-secondary transition-colors hover:text-brass"
           >
-            Open Canvas
+            Open canvas
             <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
 
         <button
           type="button"
-          onClick={() => setMobileOpen((o) => !o)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 lg:hidden"
-          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMenuState({ pathname, open: !menuOpen })}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line/70 text-content-secondary transition-colors hover:border-brass/50 hover:text-content lg:hidden"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+          aria-controls="site-menu-panel"
         >
-          {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+          {menuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
       </div>
 
-      <Collapsible
-        open={mobileOpen}
-        durationMs={240}
-        outerClassName={`border-zinc-800/70 bg-zinc-950/95 backdrop-blur-xl lg:hidden ${
-          mobileOpen ? "border-t" : "border-transparent"
-        }`}
-      >
+      {menuOpen && (
         <nav
-          aria-label="Mobile"
-          className="overflow-hidden"
+          id="site-menu-panel"
+          aria-label="Site menu"
+          className="max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-t border-line/60 bg-ink/95 px-6 pb-7 pt-5 backdrop-blur-xl lg:hidden"
         >
-            <div className="section-container flex max-h-[70vh] flex-col gap-1 overflow-y-auto py-4">
-              {NAV_LINKS.map((link, index) => {
-                const active = isActive(pathname, link.href);
-                return (
-                  <motion.div
-                    key={link.href}
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05, duration: 0.25 }}
-                  >
-                    <Link
-                      href={link.href}
-                      className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                        active ? "bg-zinc-800/70 text-zinc-100" : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
-                      }`}
-                    >
-                      {link.label}
-                    </Link>
-                  </motion.div>
-                );
-              })}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: NAV_LINKS.length * 0.05, duration: 0.25 }}
-                className="mt-2"
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-content-tertiary">Explore</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {PRIMARY_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`rounded-lg border px-3 py-2.5 text-[13px] transition-colors ${
+                  isActive(pathname, link.href)
+                    ? "border-brass/40 text-content"
+                    : "border-line/60 text-content-secondary hover:border-line-strong hover:text-content"
+                }`}
               >
-                <Link
-                  href="/canvas"
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-brass px-4 py-2.5 text-sm font-semibold text-zinc-950 shadow-card"
-                >
-                  Open Canvas
-                  <ArrowRight size={14} />
-                </Link>
-              </motion.div>
-            </div>
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <p className="mt-7 font-mono text-[10px] uppercase tracking-[0.2em] text-content-tertiary">Library</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {LIBRARY_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`rounded-lg border px-3 py-2.5 text-[13px] transition-colors ${
+                  isActive(pathname, link.href)
+                    ? "border-brass/40 text-content"
+                    : "border-line/60 text-content-secondary hover:border-line-strong hover:text-content"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <p className="mt-7 font-mono text-[10px] uppercase tracking-[0.2em] text-content-tertiary">Workspace</p>
+          <Link
+            href="/canvas"
+            className="mt-3 flex items-center justify-between rounded-lg border border-brass/40 bg-brass/[0.06] px-3 py-2.5 text-[13px] font-medium text-content transition-colors hover:bg-brass/[0.1]"
+          >
+            Open canvas
+            <ArrowRight size={14} className="text-brass" />
+          </Link>
         </nav>
-      </Collapsible>
+      )}
     </header>
   );
 }

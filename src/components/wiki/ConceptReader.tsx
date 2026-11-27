@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Download, HelpCircle, ListChecks, RotateCcw, Sparkles } from '@/components/ui/icons';
 import { FocusBlurResolve, MaskRevealUp, SoftBlurIn } from '@/components/ui/reactbits/remocn';
@@ -33,7 +33,7 @@ function FlashcardDeck({ cards, moduleId }: { cards: Flashcard[]; moduleId: stri
   const [flipped, setFlipped] = useState(false);
   const [known, setKnown] = useState<Set<string>>(new Set());
   const loadFlashcardsForModule = useLearningStore((s) => s.loadFlashcardsForModule);
-  const sentToReview = useRef(false);
+  const [sentToReview, setSentToReview] = useState(false);
 
   const advance = (cardId?: string) => {
     if (cardId) setKnown((prev) => new Set(prev).add(cardId));
@@ -56,11 +56,11 @@ function FlashcardDeck({ cards, moduleId }: { cards: Flashcard[]; moduleId: stri
             type="button"
             onClick={() => {
               loadFlashcardsForModule(moduleId, cards);
-              sentToReview.current = true;
+              setSentToReview(true);
             }}
             className="inline-flex items-center gap-1.5 rounded-md bg-brass px-3 py-1.5 text-[12px] font-semibold text-zinc-950 hover:bg-brass-bright"
           >
-            <Sparkles size={13} /> {sentToReview.current ? 'Sent — open review queue' : `Add all ${cards.length} to FSRS deck`}
+            <Sparkles size={13} /> {sentToReview ? 'Sent — open review queue' : `Add all ${cards.length} to FSRS deck`}
           </button>
           <Link href="/practice" className="inline-flex items-center gap-1.5 text-[12px] text-sky-300 hover:text-sky-200">
             Practice spaced review <ArrowRight size={12} />

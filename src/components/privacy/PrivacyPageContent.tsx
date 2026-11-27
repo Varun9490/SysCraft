@@ -24,6 +24,11 @@ const STAYS_LOCAL: Array<{ title: string; detail: string }> = [
       "FSRS scheduling state, review history, and game scores live in localStorage under the syscraft.* namespace, visible in devtools and covered by export.",
   },
   {
+    title: "Learning progress and preferences",
+    detail:
+      "Completed lessons, read blogs, visited topics, recall history, notes, bookmarks, reading mode, theme, ambient motion, cursor, and break settings live in localStorage under syscraft.learner.v1. Settings can export or import this state as JSON.",
+  },
+  {
     title: "Accounts and analytics",
     detail:
       "There are no accounts, no tracking pixels, and no analytics beacons. The static site requests no cookie beyond what the browser needs to function.",
@@ -68,7 +73,7 @@ const CONTROLS: Array<{ title: string; detail: string; href?: string; linkLabel?
   {
     title: "Delete everything",
     detail:
-      "Settings → Reset deletes every SysCraft-owned byte in this browser — all IndexedDB tables and all syscraft.* localStorage keys. Nothing survives; nothing was on a server to survive.",
+      "Settings → Reset deletes the IndexedDB tables and the syscraft.* localStorage keys owned by the existing canvas and practice tools. The learner-data reset is a separate confirmed action for syscraft.learner.v1. Nothing was on a server to survive.",
     href: "/settings",
     linkLabel: "Open settings",
   },

@@ -1,115 +1,107 @@
 'use client';
 
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, PlayCircle } from "@/components/ui/icons";
-import { Counter, Magnetic, StaggerChild, StaggerGroup } from "@/components/ui/motion";
-import { IsometricArchitecture } from "@/components/diagrams/IsometricArchitecture";
-import { ShinyText } from "@/components/ui/reactbits/ShinyText";
-import { CONTENT_COUNTS, HERO_STATS } from "@/data/contentManifest";
+import { ArrowRight } from "@/components/ui/icons";
+import {
+  AnimatedBeam,
+  MagneticLink,
+  ScrollReveal,
+  SpotlightGrid,
+  TextReveal,
+} from "@/components/ui/interactive";
+import { HeroMiniCanvas } from "@/components/platform/hero/HeroMiniCanvas";
+import { ResumePill } from "./ResumePill";
 
-const STATS = HERO_STATS;
+const HEADLINE =
+  "Learn system design by watching a small architecture run, then read the idea in a story and in engineer language.";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="dot-grid absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_78%_68%_at_64%_38%,black,transparent)]" />
-        <div className="absolute -top-28 right-[4%] h-[440px] w-[440px] rounded-full bg-brass/[0.08] blur-[150px]" />
-      </div>
+    <section className="relative overflow-hidden border-b border-line/60">
+      <SpotlightGrid grid="dot" color="rgb(var(--accent) / 0.13)" radius={420} className="opacity-70" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-40 top-24 h-72 w-72 rounded-full bg-brass/[0.06] blur-3xl"
+      />
 
-      <div className="section-container relative grid items-center gap-12 pb-16 pt-14 md:pb-24 md:pt-20 lg:grid-cols-12 lg:gap-6">
-        <StaggerGroup className="lg:col-span-6">
-          <StaggerChild>
-            <span className="eyebrow">
-              <span className="h-1.5 w-1.5 rounded-full bg-brass" />
-              Interactive system design platform
+      <div className="section-container relative grid items-center gap-12 py-16 md:py-24 lg:grid-cols-12 lg:gap-14 lg:py-28">
+        <div className="lg:col-span-6">
+          <ScrollReveal y={12} blur={0} duration={0.5}>
+            <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-brass">
+              <span className="h-px w-6 bg-brass/70" aria-hidden="true" />
+              A quiet place to learn systems
             </span>
-          </StaggerChild>
+          </ScrollReveal>
 
-          <StaggerChild>
-            <h1 className="mt-6 text-balance text-4xl font-semibold leading-[1.04] tracking-tighter text-content sm:text-5xl lg:text-[3.5rem]">
-              Learn system design
-              <span className="block text-brass">
-                <ShinyText text="by running it." />
-              </span>
-            </h1>
-          </StaggerChild>
+          <TextReveal
+            as="h1"
+            text={HEADLINE}
+            className="mt-6 max-w-2xl text-balance text-4xl font-medium leading-[1.08] tracking-tight text-content sm:text-5xl lg:text-[3.25rem]"
+            mode="word"
+            stagger={0.045}
+            duration={0.65}
+          />
 
-          <StaggerChild>
+          <ScrollReveal delay={0.22} y={18}>
             <p className="mt-6 max-w-xl text-pretty text-[15px] leading-relaxed text-content-secondary">
-              Design real systems on an infinite canvas, then run them under load. Watch queues form, caches melt,
-              and replicas fail — from a single server to globally distributed architectures.
+              Free in your browser, no account. Every lesson is a system you can touch, break, and put back together — at your own pace.
             </p>
-          </StaggerChild>
+          </ScrollReveal>
 
-          <StaggerChild>
-            <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <Magnetic strength={0.3}>
-                <Link
-                  href="/start"
-                  className="group inline-flex items-center gap-2 rounded-full bg-brass px-6 py-3 text-sm font-semibold text-ink shadow-card transition-transform hover:scale-[1.03]"
-                >
-                  Start the guided path
-                  <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              </Magnetic>
-              <Link
-                href="/labs"
-                className="group inline-flex items-center gap-2 rounded-full border border-line-strong bg-app-raised/60 px-6 py-3 text-sm font-medium text-content-secondary transition-colors hover:border-brass/50 hover:text-content"
+          <ScrollReveal delay={0.32} y={18}>
+            <div className="mt-9 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <MagneticLink
+                href="/paths/foundations/single-server"
+                className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-brass px-5 py-2.5 text-[13px] font-semibold text-ink shadow-[0_14px_32px_-18px_rgb(var(--accent)/0.9)] transition-colors hover:bg-brass-bright"
               >
-                <PlayCircle size={15} className="text-brass" />
-                Explore all {CONTENT_COUNTS.labs} labs
-              </Link>
+                <span className="relative z-10 inline-flex items-center gap-2">
+                  Start the learning path
+                  <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1" />
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 -translate-x-full bg-brass-sheen transition-transform duration-700 ease-out group-hover:translate-x-full"
+                />
+              </MagneticLink>
+              <MagneticLink
+                href="/labs"
+                className="group inline-flex items-center gap-2 rounded-full border border-line-strong bg-app-raised/30 px-5 py-2.5 text-[13px] font-medium text-content-secondary transition-colors hover:border-brass/60 hover:text-content"
+              >
+                Open the interactive lab
+                <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </MagneticLink>
             </div>
-          </StaggerChild>
+          </ScrollReveal>
 
-          <StaggerChild>
-            <dl className="mt-10 grid max-w-lg grid-cols-2 gap-x-6 gap-y-5 border-t border-line pt-6 sm:grid-cols-4">
-              {STATS.map((stat) => (
-                <div key={stat.label}>
-                  <dt className="text-[10px] uppercase tracking-[0.16em] text-content-tertiary">{stat.label}</dt>
-                  <dd className="mt-1 text-2xl font-semibold tabular-nums text-content">
-                    <Counter to={stat.value} />
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </StaggerChild>
-        </StaggerGroup>
+          <div className="mt-5 min-h-[30px]">
+            <ResumePill />
+          </div>
+        </div>
 
         <div className="relative lg:col-span-6">
-          <motion.div
-            initial={{ opacity: 0, y: 26, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <IsometricArchitecture className="mx-auto w-full max-w-[560px]" />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.5 }}
-            className="absolute left-0 top-8 hidden md:block"
-          >
-            <div className="animate-float-slow rounded-xl border border-line bg-app-raised/85 px-3.5 py-2 shadow-card backdrop-blur">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-content-tertiary">p99 latency (illustrative)</p>
-              <p className="mt-0.5 text-sm font-semibold tabular-nums text-brass">84 ms</p>
+          <ScrollReveal y={28} delay={0.12} duration={0.8}>
+            <div className="group/canvas relative rounded-2xl p-px">
+              {/* Aceternity-style moving border, drawn locally with a conic sweep. */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl opacity-40 transition-opacity duration-500 group-hover/canvas:opacity-100"
+              >
+                <span className="absolute left-1/2 top-1/2 h-[190%] w-[190%] -translate-x-1/2 -translate-y-1/2 animate-[spin_9s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0deg,rgb(var(--accent)/0.5)_52deg,transparent_110deg,transparent_196deg,rgb(var(--accent-bright)/0.42)_248deg,transparent_312deg)]" />
+              </span>
+              <span aria-hidden="true" className="pointer-events-none absolute inset-px rounded-2xl bg-ink" />
+              <div className="relative">
+                <HeroMiniCanvas />
+              </div>
             </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9, duration: 0.5 }}
-            className="absolute bottom-10 right-0 hidden md:block"
-          >
-            <div className="animate-float-slow rounded-xl border border-line bg-app-raised/85 px-3.5 py-2 shadow-card backdrop-blur" style={{ animationDelay: "1.4s" }}>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-content-tertiary">throughput (illustrative)</p>
-              <p className="mt-0.5 text-sm font-semibold tabular-nums text-content">12.4k rps</p>
-            </div>
-          </motion.div>
+          </ScrollReveal>
+          <div className="mt-4 h-6" aria-hidden="true">
+            <AnimatedBeam
+              path="M 0 10 C 180 10 300 10 580 10"
+              viewBox="0 0 580 20"
+              duration={3.2}
+              color="rgb(var(--accent))"
+              className="h-6 w-full opacity-60"
+            />
+          </div>
         </div>
       </div>
     </section>

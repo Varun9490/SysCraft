@@ -88,7 +88,10 @@ export function GuidedLabRunner({ open, onClose }: GuidedLabRunnerProps) {
   const [nonce, setNonce] = useState(0);
   const stageIndex = Math.min(labProgress?.currentStage ?? 0, (lab?.stages.length ?? 1) - 1);
   const stage = lab?.stages[stageIndex];
-  const grading = useMemo(() => gradeRules(stage?.gradingRules ?? []), [stage, labId, stageIndex, nonce]);
+  const grading = useMemo(() => {
+    void nonce; // Re-grade trigger after canvas edits.
+    return gradeRules(stage?.gradingRules ?? []);
+  }, [stage, nonce]);
 
   if (!open || !lab || !stage) return null;
 

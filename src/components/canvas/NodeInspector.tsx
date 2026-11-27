@@ -266,6 +266,7 @@ export function NodeInspector({ onClose }: { onClose: () => void }) {
           className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
           style={{ backgroundColor: `${strokeColor}22`, color: strokeColor }}
         >
+          {/* eslint-disable-next-line react-hooks/static-components -- stable module-level icon lookup, not a component made during render */}
           <Icon size={16} weight="bold" />
         </span>
         <div className="min-w-0 flex-1">

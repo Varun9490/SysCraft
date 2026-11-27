@@ -150,7 +150,6 @@ export function TrafficParticleLayer() {
           if (!edgeId) continue;
           const flow = snapshot.edges[edgeId];
           let rps = flow?.rps ?? 0;
-          let errorRate = flow?.errorRate ?? 0;
           let dashed = false;
 
           // Flowchart-condition routing: reshape which traffic rides this edge.
@@ -168,7 +167,6 @@ export function TrafficParticleLayer() {
             switch (decor.condition) {
               case "cache_hit":
                 rps *= hitRatio;
-                if (rps > 0.5) errorRate = 0;
                 break;
               case "cache_miss":
                 rps *= 1 - hitRatio;
@@ -181,11 +179,9 @@ export function TrafficParticleLayer() {
                 break;
               case "rate_limited":
                 rps = sourceTelem?.droppedRps ?? 0;
-                errorRate = 1;
                 break;
               case "error":
                 rps *= errRatio;
-                errorRate = 1;
                 break;
               case "async":
                 dashed = true;

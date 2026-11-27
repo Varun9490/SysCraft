@@ -66,12 +66,21 @@ export function ConnectionInspector() {
   // Reset the dismissal whenever the inspected edge changes (a dismissed
   // panel must come back for the NEXT edge, not stay dead for the session).
   useEffect(() => {
+    // Edge selection lives in the store, so these flags must be reset whenever
+    // a different link is inspected. Keeping them tied to the edge (rather than
+    // remounting the panel) preserves the two-click delete confirmation and the
+    // custom-hex draft for the edge currently on screen.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync panel flags to externally owned edge selection
     setDismissed(false);
     setConfirmDelete(false);
   }, [selectedEdge?.id]);
 
   // Re-seed the hex draft whenever the inspected edge changes.
   useEffect(() => {
+    // The hexadecimal field is seeded from store-owned edge data: palette and
+    // reset actions write colour through updateEdgeData, and the draft must
+    // follow those writes without being clobbered on unrelated re-renders.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync draft from store-owned edge colour
     setHexDraft(((selectedEdge?.data as CanvasEdgeData | undefined)?.color ?? "").replace("#", ""));
   }, [selectedEdge?.id, selectedEdge?.data]);
 

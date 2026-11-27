@@ -5,7 +5,7 @@ import typescript from "eslint-config-next/typescript";
  * Next 16 removed `next lint`; ESLint runs directly against this flat config.
  * Build output and generated scripts are not source, so they stay out of scope.
  */
-export default [
+const config = [
   {
     ignores: [
       ".next/**",
@@ -38,3 +38,5 @@ export default [
     },
   },
 ];
+
+export default config;

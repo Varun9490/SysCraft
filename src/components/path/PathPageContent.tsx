@@ -18,7 +18,7 @@ import { Markdown } from "@/components/Markdown";
 import { ENCYCLOPEDIA_MAP } from "@/data/encyclopediaData";
 import { GUIDED_LABS } from "@/data/guidedLabs";
 import { labCleanTitle } from "@/data/labMeta";
-import { PATH_PARTS, TOTAL_LESSONS, TOTAL_MODULES } from "@/data/pathData";
+import { PATH_PARTS, TOTAL_LESSONS } from "@/data/pathData";
 import { getLessonBlog } from "@/data/lessonBlogs";
 import { getLessonRoute, LESSON_ROUTES } from "@/lib/lessonRoutes";
 import { LessonBlogViewer } from "@/components/path/LessonBlogViewer";
@@ -57,6 +57,7 @@ export function PathPageContent() {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only hydration of localStorage progress into an SSR-safe empty set.
           setCompletedLessons(new Set(parsed.filter((x): x is string => typeof x === "string")));
         }
       }

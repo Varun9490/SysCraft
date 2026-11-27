@@ -145,6 +145,7 @@ export function PlayArena() {
   const [countdown, setCountdown] = useState<string | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only hydration of browser storage and the client clock.
     setBestScores(loadPlayScores());
     setCountdown(formatCountdown(nextUtcMidnight() - Date.now()));
     const timer = window.setInterval(() => {

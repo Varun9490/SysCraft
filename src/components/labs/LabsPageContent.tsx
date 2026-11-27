@@ -11,6 +11,9 @@ import { GUIDED_LABS } from "@/data/guidedLabs";
 import { getCompanyBrand } from "@/data/companyBrands";
 import { formatRps, labCleanTitle, labExcerpt } from "@/data/labMeta";
 import { useLearningStore } from "@/store/useLearningStore";
+import { PLATFORM_LABS } from "@/learning/platform/labCatalog";
+
+const PLATFORM_LAB_BY_ID = new Map(PLATFORM_LABS.map((lab) => [lab.labId, lab]));
 
 type Filter = "all" | LabDifficulty;
 
@@ -90,6 +93,7 @@ export function LabsPageContent() {
         <StaggerContainer key={filter} className="grid gap-5 md:grid-cols-2">
           {labs.map((lab) => {
             const brand = getCompanyBrand(lab.id);
+            const challenge = PLATFORM_LAB_BY_ID.get(lab.id);
             const progress = labProgress[lab.id];
             const completed = Boolean(progress && progress.bestScore > 0);
             const stageCount = lab.stages.length;
@@ -115,6 +119,15 @@ export function LabsPageContent() {
 
                     <h2 className="mt-3 text-lg font-semibold tracking-tight text-zinc-100">{labCleanTitle(lab)}</h2>
                     <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-zinc-400">{labExcerpt(lab)}</p>
+                    {challenge ? (
+                      <div className="mt-4 rounded-xl border border-line bg-app/60 p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brass">Challenge focus</p>
+                        <p className="mt-1.5 text-[12px] leading-relaxed text-content-secondary">{challenge.goal}</p>
+                        <p className="mt-2 text-[11px] leading-relaxed text-content-tertiary">
+                          <span className="font-medium text-content-secondary">Hardening:</span> {challenge.securityAngle}
+                        </p>
+                      </div>
+                    ) : null}
 
                     <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                       <span className="inline-flex items-center gap-1.5 text-[11.5px] tabular-nums text-zinc-400">

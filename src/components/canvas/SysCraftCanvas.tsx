@@ -95,7 +95,6 @@ function CanvasInner({ className }: { className: string }) {
 
   useEffect(() => {
     useCanvasStore.getState().setEdgeStyle(prefs.edgeStyle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply on hydrate + changes only
   }, [prefs.edgeStyle, prefs.hydrated]);
 
   useEffect(() => {

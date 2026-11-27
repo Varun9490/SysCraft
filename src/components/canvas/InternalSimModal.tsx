@@ -974,12 +974,6 @@ function EdgeIsolateSim() {
 /* ---------------- Modal shell ---------------- */
 
 export function InternalSimModal({ open, initialTab, onClose }: InternalSimModalProps) {
-  const [tab, setTab] = useState<SimTab>(() => resolveTab(initialTab));
-
-  useEffect(() => {
-    if (open) setTab(resolveTab(initialTab));
-  }, [open, initialTab]);
-
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
@@ -990,6 +984,14 @@ export function InternalSimModal({ open, initialTab, onClose }: InternalSimModal
   }, [open, onClose]);
 
   if (!open) return null;
+
+  // Mounting on open seeds the active tab from the request; keying by the
+  // resolved tab re-seeds it if a different simulator is requested mid-open.
+  return <InternalSimModalBody key={resolveTab(initialTab)} initialTab={initialTab} onClose={onClose} />;
+}
+
+function InternalSimModalBody({ initialTab, onClose }: Omit<InternalSimModalProps, "open">) {
+  const [tab, setTab] = useState<SimTab>(() => resolveTab(initialTab));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/75 p-3" onClick={onClose}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Flame, Trophy, X } from "@/components/ui/icons";
 import { CHAOS_SCENARIOS } from "@/data/chaosScenarios";
 import type { ChaosKind } from "@/types/simulation";
@@ -66,6 +66,7 @@ export function IncidentArena({ open, onClose }: IncidentArenaProps) {
   const [finished, setFinished] = useState<IncidentScore | null>(null);
   const [scores, setScores] = useState<IncidentScore[]>(() => loadScores());
   const peaks = useRef({ err: 0, p99: 0, cost: 0 });
+  const [peakCost, setPeakCost] = useState(0);
 
   const scenario = useMemo(
     () => CHAOS_SCENARIOS.find((s) => s.id === scenarioId) ?? CHAOS_SCENARIOS[0],
@@ -75,55 +76,9 @@ export function IncidentArena({ open, onClose }: IncidentArenaProps) {
   const globalErrorRate = useSimStore((s) => s.globalErrorRate);
   const totalCostPerHourUsd = useSimStore((s) => s.totalCostPerHourUsd);
 
-  useEffect(() => {
-    if (!running) return;
-    peaks.current.err = Math.max(peaks.current.err, globalErrorRate);
-    peaks.current.p99 = Math.max(peaks.current.p99, globalP99Ms);
-    peaks.current.cost += (totalCostPerHourUsd / 3600) * 0.5;
-  }, [running, globalErrorRate, globalP99Ms, totalCostPerHourUsd]);
-
-  useEffect(() => {
-    if (!running || !scenario) return;
-    if (secondsLeft <= 0) {
-      finish(true);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setSecondsLeft((s) => s - 1);
-      setElapsed((e) => e + 1);
-    }, 1000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, secondsLeft, scenario]);
-
-  if (!open || !scenario) return null;
-
-  const start = () => {
-    const defaults = KIND_DEFAULTS[scenario.chaosKind];
-    peaks.current = { err: 0, p99: 0, cost: 0 };
-    setElapsed(0);
-    setFinished(null);
-    setSecondsLeft(scenario.durationSeconds);
-    setRunning(true);
-    const sim = useSimStore.getState();
-    if (!sim.running) {
-      sim.startSimulation(() => useCanvasStore.getState().toGraphTopology());
-    } else {
-      sim.syncTopology();
-    }
-    sim.setChaos({
-      active: true,
-      kind: scenario.chaosKind,
-      capacityPenalty: defaults.capacityPenalty,
-      latencyPenaltyMs: defaults.latencyPenaltyMs,
-      targetNodeIds: [],
-      targetRegion: null,
-      startedAtTick: sim.tick,
-    });
-  };
-
-  const finish = (timeUp: boolean) => {
+  const finish = useCallback((timeUp: boolean) => {
     void timeUp;
+    if (!scenario) return;
     const sim = useSimStore.getState();
     sim.clearChaos();
     setRunning(false);
@@ -144,6 +99,55 @@ export function IncidentArena({ open, onClose }: IncidentArenaProps) {
     };
     setFinished(score);
     setScores(persistScore(score));
+  }, [scenario, elapsed]);
+
+  useEffect(() => {
+    if (!running) return;
+    peaks.current.err = Math.max(peaks.current.err, globalErrorRate);
+    peaks.current.p99 = Math.max(peaks.current.p99, globalP99Ms);
+    peaks.current.cost += (totalCostPerHourUsd / 3600) * 0.5;
+    setPeakCost(peaks.current.cost);
+  }, [running, globalErrorRate, globalP99Ms, totalCostPerHourUsd]);
+
+  useEffect(() => {
+    if (!running || !scenario) return;
+    if (secondsLeft <= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- timer expiry intentionally finalizes the drill from this effect.
+      finish(true);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setSecondsLeft((s) => s - 1);
+      setElapsed((e) => e + 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [running, secondsLeft, scenario, finish]);
+
+  if (!open || !scenario) return null;
+
+  const start = () => {
+    const defaults = KIND_DEFAULTS[scenario.chaosKind];
+    peaks.current = { err: 0, p99: 0, cost: 0 };
+    setPeakCost(0);
+    setElapsed(0);
+    setFinished(null);
+    setSecondsLeft(scenario.durationSeconds);
+    setRunning(true);
+    const sim = useSimStore.getState();
+    if (!sim.running) {
+      sim.startSimulation(() => useCanvasStore.getState().toGraphTopology());
+    } else {
+      sim.syncTopology();
+    }
+    sim.setChaos({
+      active: true,
+      kind: scenario.chaosKind,
+      capacityPenalty: defaults.capacityPenalty,
+      latencyPenaltyMs: defaults.latencyPenaltyMs,
+      targetNodeIds: [],
+      targetRegion: null,
+      startedAtTick: sim.tick,
+    });
   };
 
   const best = scores.find((s) => s.scenarioId === scenario.id);
@@ -182,7 +186,7 @@ export function IncidentArena({ open, onClose }: IncidentArenaProps) {
               ["Clock", running ? mmss : `${Math.floor(scenario.durationSeconds / 60)}m drill`],
               [`p99 (SLO ${scenario.sloP99Ms}ms)`, `${globalP99Ms.toFixed(0)}ms`],
               [`err (≤ ${(scenario.maxErrorRate * 100).toFixed(0)}%)`, `${(globalErrorRate * 100).toFixed(2)}%`],
-              [`spend ($${scenario.budgetUsd})`, `$${peaks.current.cost.toFixed(2)}`],
+              [`spend ($${scenario.budgetUsd})`, `$${peakCost.toFixed(2)}`],
             ].map(([k, v]) => (
               <div key={k} className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
                 <p className="text-zinc-500">{k}</p>

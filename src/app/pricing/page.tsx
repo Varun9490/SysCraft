@@ -3,11 +3,13 @@ import { SiteChrome } from "@/components/nav/SiteChrome";
 import { PricingPageContent } from "@/components/pricing/PricingPageContent";
 
 export const metadata: Metadata = {
-  title: "Pricing",
-  description: "Simple plans. Your designs stay in this browser.",
+  title: "Free",
+  description:
+    "Everything on SysCraft is free, local-first, and usable without an account. Progress lives in your browser and can be exported from the study dock.",
   openGraph: {
-    title: "Pricing — SysCraft",
-    description: "Simple plans. Your designs stay in this browser.",
+    title: "Free — SysCraft",
+    description:
+      "Everything on SysCraft is free, local-first, and usable without an account.",
     type: "website",
     url: "/pricing",
   },

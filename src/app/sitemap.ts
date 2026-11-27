@@ -4,11 +4,12 @@ import { GUIDED_LABS } from "@/data/guidedLabs";
 import { ENCYCLOPEDIA_MODULES } from "@/data/encyclopediaData";
 import { TOPICS } from "@/data/topics";
 import { LESSON_ROUTES } from "@/lib/lessonRoutes";
+import { BLOGS, TRACKS } from "@/content/platform/registry";
 
 /**
  * Honest sitemap: reading surfaces and interactive surfaces get listed;
  * utility-only pages (room, settings, progress, raw tool pages) and redirect
- * stubs (/path, /workspace, /encyclopedia) are deliberately absent.
+ * stubs (/path, /workspace, /encyclopedia, /signin, /signup) are absent.
  */
 export const dynamic = "force-static";
 
@@ -24,6 +25,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     page("/", 1),
+    page("/paths", 0.9),
+    ...TRACKS.map((track) => page(`/paths/${track.slug}`, 0.85)),
+    ...TRACKS.flatMap((track) =>
+      track.lessons.map((lesson) => page(`/paths/${track.slug}/${lesson.slug}`, 0.75)),
+    ),
+    page("/blogs", 0.85),
+    ...BLOGS.map((blog) => page(`/blogs/${blog.slug}`, 0.75)),
+    page("/map", 0.8),
+    page("/tools", 0.8),
+    page("/quiz", 0.8),
     page("/learn", 0.9),
     ...LESSON_ROUTES.map((lesson) => page(lesson.href, 0.7)),
     page("/case-studies", 0.85),

@@ -120,6 +120,7 @@ export function SocraticInterviewer() {
   useEffect(() => {
     const saved = getByokConfig();
     if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only hydration of browser-stored BYOK settings into SSR-safe defaults.
       setByokProvider(saved.provider);
       setByokKey(saved.apiKey);
     }

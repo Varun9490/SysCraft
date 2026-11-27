@@ -55,3 +55,59 @@
   - [x] `src/app/page.tsx` & `src/app/layout.tsx` (Client-only dynamic shell + `Cmd+K` Command Palette)
   - [x] `src/engine/__tests__/queuingMath.test.ts` & `simulationCore.test.ts`
   - [x] Final Verification: `npm run typecheck && npm run test && npm run build` exits with code `0`.
+
+---
+
+# SysCraft Learning Platform Redesign
+
+## Phase 1 — Audit and blueprint
+- [x] Audited 36 routes, 234 legacy lessons, 16 labs, 24 topics, 43 encyclopedia articles, and 48 primitives.
+- [x] Wrote `docs/redesign-blueprint.md`.
+- [x] Preserved the simulation core, worker split, React Flow telemetry separation, and static export.
+
+## Phase 2 — Shell, motion, and local learner state
+- [x] Added dark/light/system themes, responsive navigation, command palette, utility dock, custom cursor, ambient field, and break reminder.
+- [x] Added versioned `syscraft.learner.v1` persistence, notes, bookmarks, resume pointers, preferences, quiz history, and JSON import/export.
+- [x] Removed Supabase auth surfaces and Vercel Analytics; rewrote pricing as a free-product explanation.
+
+## Phase 3 — Scrollytelling and visual library
+- [x] Added Story / Engineer / Both lesson and blog readers with scroll and click/keyboard stepping.
+- [x] Added 21 code-generated visualizers and defensive security panels.
+- [x] Restored saved reading steps and automatic blog read tracking.
+
+## Phase 4 — Curriculum
+- [x] Added 7 complete tracks with 53 lessons and 8 engineering blogs.
+- [x] Every lesson/blog has 4–5 dual-mode steps, at least 3 security practices, and at least 4 quiz questions.
+- [x] Added curriculum contract tests for depth, IDs, visuals, prerequisites, security, and quiz shape.
+
+## Phase 5 — Hero, labs, map, tools, and recall
+- [x] Added the interactive hero mini-canvas with traffic spike, node failure, and defensive attack toggle.
+- [x] Surfaced challenge goals and hardening focus across all 16 existing labs.
+- [x] Added the knowledge map with track, blog, and lab navigation.
+- [x] Added capacity, KV-cache, SLA/error-budget, notation, and security-checklist tools.
+- [x] Added read-topic-only randomized recall with FSRS-weighted review history.
+
+## WebAssembly acceleration
+- [x] Added a fixed-memory Rust/WASM physics kernel with a 64 KiB memory cap.
+- [x] Batched per-node queue, latency, CPU, error-rate, and LLM physics without per-node JS result objects.
+- [x] Kept the pure TypeScript fallback and added formula-parity tests.
+- [x] Throttled ambient drawing to 12fps at a 1x backing store and stopped the custom cursor loop when settled.
+
+## Production polish pass
+- [x] Rebuilt the hero as a complete request/response flow with animated beams, node halos, lifecycle state, and defensive attack controls.
+- [x] Added reusable magnetic links, tilt cards, scroll/text reveals, spotlight grids, bento cards, animated beams, and counters.
+- [x] Redesigned the landing narrative, track showcase, quick links, and lesson-anatomy walkthrough.
+- [x] Compacted the utility dock to a 44–48px animated launcher with a focused popover.
+- [x] Made Story/Engineer/Both progressive: Story first, Engineer on demand, one text layer at a time.
+- [x] Fixed reader mode step stability, canonical lesson/lab bookmark URLs, and stable dock launcher targeting.
+- [x] Added a 36-check weighted production QA scorecard.
+
+## Verification
+- [x] `npx tsc --noEmit`
+- [x] `npm test` — 271 tests passing
+- [x] `npm run wasm:test`
+- [x] `npm run lint` — 0 errors, 0 warnings
+- [x] `npm run build` — 513 static pages generated
+- [x] Desktop/mobile Playwright QA — all checks passed with no console errors
+- [x] Production QA scorecard — 100/100 across 36 checks
+- [x] Steady-state browser frame timing — 17.22ms average, 16.70ms p95 in headless Chromium

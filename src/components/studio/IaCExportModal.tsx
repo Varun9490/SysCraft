@@ -47,7 +47,7 @@ export function IaCExportModal({ open, onClose }: IaCExportModalProps) {
       title: useWorkbenchStore.getState().highLevelNotes.split("\n")[0]?.replace(/^#+\s*/, "") || "Untitled system",
       targetRps: boeResult ? Math.round(boeResult.readQpsPeak + boeResult.writeQpsPeak) : undefined,
     });
-  }, [topology, boeResult, open ]);
+  }, [topology, boeResult]);
 
   const dslText = useMemo(() => {
     if (!topology) return "";

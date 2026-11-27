@@ -39,6 +39,7 @@ export function CountUp({ to, duration = 1.6, className, prefix = '', suffix = '
 
     if (reduced || !inView) {
       spring.jump(to);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional final-value sync under reduced motion or before scroll-in.
       setDisplay(to);
       return undefined;
     }

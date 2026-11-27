@@ -64,7 +64,6 @@ const TABS: Array<{ id: TabId; label: string; hint: string; icon: LucideIcon }> 
 ];
 
 const MINUTES_PER_MONTH = 43_200;
-const SECONDS_PER_MONTH = MINUTES_PER_MONTH * 60;
 const HOURS_PER_MONTH = 730;
 const HOURS_PER_YEAR = 8_760;
 const REFERENCE_IDS = ["cdn_edge", "api_gateway", "rest_service", "postgres_db"] as const;
@@ -93,10 +92,6 @@ function formatUsdPrecise(value: number): string {
 
 function formatPct(fraction: number, digits = 3): string {
   return `${(fraction * 100).toFixed(digits)}%`;
-}
-
-function formatScore(score: number): string {
-  return `${Math.round(score)}%`;
 }
 
 function formatDowntime(minutes: number): string {
@@ -769,11 +764,6 @@ export function EnterpriseHubContent() {
       2,
     );
 
-  const buildCertificateMarkdown = () => {
-    const issuedAt = new Date().toISOString().slice(0, 10);
-    return certificateMarkdown.replace("**Issued by:**", `**Issued:** ${issuedAt}\n**Issued by:**`);
-  };
-
   const certificateMarkdown = useMemo(() => {
     const moduleLines = activeTrack.moduleIds
       .map((moduleId) => {
@@ -834,6 +824,11 @@ export function EnterpriseHubContent() {
     moduleMastery,
     labProgress,
   ]);
+
+  const buildCertificateMarkdown = () => {
+    const issuedAt = new Date().toISOString().slice(0, 10);
+    return certificateMarkdown.replace("**Issued by:**", `**Issued:** ${issuedAt}\n**Issued by:**`);
+  };
 
   /* ---------------- availability ---------------- */
 

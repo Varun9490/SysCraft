@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next";
 import { BootRunner } from "@/components/shell/BootRunner";
 import { ThemeBridge } from "@/components/shell/ThemeBridge";
+import PlatformRuntime from "@/components/platform/shell/PlatformRuntime";
 import { SITE_NAME, SITE_URL } from "@/data/contentManifest";
 
 const outfit = Outfit({
@@ -57,8 +57,8 @@ export default function RootLayout({
         </a>
         <BootRunner />
         <ThemeBridge />
+        <PlatformRuntime />
         <div id="main-content">{children}</div>
-        <Analytics />
       </body>
     </html>
   );

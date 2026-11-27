@@ -232,7 +232,7 @@ export function renderOgCard(card: OgCard): ImageResponse {
               </div>
             ))}
           </div>
-          <div style={{ display: "flex", fontSize: 21, color: TERTIARY }}>sys-craft-3vzz.vercel.app</div>
+          <div style={{ display: "flex", fontSize: 21, color: TERTIARY }}>sys-craft.vercel.app</div>
         </div>
       </div>
     ),

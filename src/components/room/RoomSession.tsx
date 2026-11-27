@@ -53,12 +53,14 @@ export function RoomSession() {
   const awarenessRef = useRef<unknown>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only hydration of the stored room configuration.
     setConfig(loadRoomConfig());
   }, []);
 
   useEffect(() => {
     if (!config) return;
     if (typeof window === 'undefined' || typeof RTCPeerConnection === 'undefined') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- surface the unsupported-browser state before bailing out.
       setStatus('error');
       return;
     }

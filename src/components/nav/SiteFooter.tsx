@@ -4,47 +4,28 @@ import Link from "next/link";
 import { LogoMark } from "./SiteHeader";
 import { CONTENT_COUNTS } from "@/data/contentManifest";
 
-/**
- * Footer = the honest index. Four visibility tiers:
- *  1. The four verbs (same as the header).
- *  2. Practice & play surfaces (mode-based discovery lives here, not in nav).
- *  3. Reference racks (wiki, topics, numbers, primitives).
- *  4. Privacy & data — what actually leaves your browser (see /privacy).
- */
-
 const LEARN_LINKS = [
-  { href: "/learn", label: "Learning path" },
-  { href: "/roadmap", label: "Roadmap" },
-  { href: "/case-studies", label: "Case studies" },
-  { href: "/start", label: "Start here" },
-  { href: "/progress", label: "Progress" },
-];
+  { href: "/paths", label: "Learning paths" },
+  { href: "/blogs", label: "Engineering blogs" },
+  { href: "/quiz", label: "Recall quiz" },
+  { href: "/encyclopedia", label: "Encyclopedia" },
+  { href: "/progress", label: "Your progress" },
+] as const;
 
 const BUILD_LINKS = [
   { href: "/canvas", label: "Canvas workspace" },
   { href: "/labs", label: "Guided labs" },
-  { href: "/flowchart", label: "Design flowchart" },
-  { href: "/room", label: "Live rooms" },
-  { href: "/cloud", label: "AWS, Cloudflare & K8s" },
-  { href: "/plugins", label: "Architecture Plugins" },
-  { href: "/enterprise", label: "Enterprise & Architect Hub" },
-  { href: "/pricing", label: "Pricing & plans" },
-];
-
-const PRACTICE_LINKS = [
-  { href: "/practice", label: "Spaced review" },
-  { href: "/play", label: "Game modes" },
-  { href: "/topics", label: "Interactive topics" },
-  { href: "/security", label: "Security & Live CVEs" },
-];
+  { href: "/map", label: "Topic map" },
+  { href: "/tools", label: "Tools" },
+  { href: "/wiki/primitives", label: "Primitive library" },
+] as const;
 
 const REFERENCE_LINKS = [
-  { href: "/wiki", label: "Concept wiki" },
-  { href: "/wiki/primitives", label: "Primitive library" },
   { href: "/reference/numbers", label: "Numbers & claims" },
-  { href: "/resources/new", label: "Custom resource studio" },
+  { href: "/learn", label: "Read the path" },
   { href: "/settings", label: "Settings" },
-];
+  { href: "/pricing", label: "Free" },
+] as const;
 
 export function SiteFooter() {
   return (
@@ -54,22 +35,20 @@ export function SiteFooter() {
           <div>
             <span className="flex items-center gap-2.5">
               <LogoMark size={22} />
-              <span className="text-[15px] font-semibold tracking-tight text-content">
+              <span className="text-[15px] font-medium tracking-tight text-content">
                 Sys<span className="text-brass">Craft</span>
               </span>
             </span>
-            <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-content-tertiary">
-              Learn system design by doing it. Design real architectures on an infinite canvas, run them under load,
-              and watch what breaks.
+            <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-content-secondary">
+              Learn system design by watching a small architecture run, then reading the idea in a story and in engineer language.
             </p>
-            <p className="mt-3 max-w-xs text-[11.5px] leading-relaxed text-content-tertiary">
-              {CONTENT_COUNTS.modules} modules · {CONTENT_COUNTS.lessons} lessons · {CONTENT_COUNTS.labs} labs ·{" "}
-              {CONTENT_COUNTS.primitives} primitives
+            <p className="mt-3 font-mono text-[11px] leading-relaxed text-content-tertiary">
+              {CONTENT_COUNTS.lessons} lessons · {CONTENT_COUNTS.labs} labs · {CONTENT_COUNTS.primitives} primitives
             </p>
           </div>
 
           <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">Learn & track</h3>
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-content-tertiary">Learn</h3>
             <ul className="mt-4 space-y-2.5">
               {LEARN_LINKS.map((link) => (
                 <li key={link.href}>
@@ -82,18 +61,9 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">Build & practice</h3>
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-content-tertiary">Build</h3>
             <ul className="mt-4 space-y-2.5">
               {BUILD_LINKS.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-[13px] text-content-secondary transition-colors hover:text-content">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <ul className="mt-2.5 space-y-2.5 border-t border-line/60 pt-2.5">
-              {PRACTICE_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-[13px] text-content-secondary transition-colors hover:text-content">
                     {link.label}
@@ -104,7 +74,7 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">Reference</h3>
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-content-tertiary">Reference</h3>
             <ul className="mt-4 space-y-2.5">
               {REFERENCE_LINKS.map((link) => (
                 <li key={link.href}>
@@ -117,10 +87,12 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-line/70 pt-6 sm:flex-row">
-          <p className="text-xs text-content-tertiary">© 2026 SysCraft. Built for engineers who learn by building.</p>
-          <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-content-tertiary sm:justify-end">
-            <span>Your design data stays in this browser</span>
+        <div className="mt-12 grid gap-4 border-t border-line/70 pt-6 md:grid-cols-2">
+          <p className="text-[12px] leading-relaxed text-content-tertiary">
+            Your progress stays in this browser. Export lives in the workspace dock — there is no account or server-side copy.
+          </p>
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-content-tertiary md:justify-end">
+            <span>© 2026 SysCraft</span>
             <a
               href="https://github.com/Varun9490/SysCraft"
               target="_blank"

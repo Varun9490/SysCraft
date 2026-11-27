@@ -14,8 +14,13 @@ describe("sitemap", () => {
     const expected = [
       "/",
       "/learn",
+      "/paths",
+      "/blogs",
       "/labs",
       "/topics",
+      "/map",
+      "/tools",
+      "/quiz",
       "/wiki",
       "/case-studies",
       "/roadmap",

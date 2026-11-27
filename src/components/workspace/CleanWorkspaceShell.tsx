@@ -333,7 +333,9 @@ export default function CleanWorkspaceShell() {
   const [tab, setTab] = useState<TabId>("resources");
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [soundOn, setSoundOn] = useState(true);
+  const [soundOn, setSoundOn] = useState(() =>
+    typeof window === 'undefined' ? true : isSoundEnabled(),
+  );
   // Client-only component (dynamic ssr:false): reading matchMedia in the lazy
   // initializer avoids a one-frame flash of the 300px rail on phones.
   const [railOpen, setRailOpen] = useState(() => {
@@ -358,6 +360,7 @@ export default function CleanWorkspaceShell() {
     const query = window.matchMedia("(max-width: 1023px)");
     const apply = () => setIsCompact(query.matches);
     apply();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time compact-viewport rail collapse; later resizes keep the user's rail state.
     if (query.matches) setRailOpen(false);
     query.addEventListener("change", apply);
     return () => query.removeEventListener("change", apply);
@@ -373,9 +376,6 @@ export default function CleanWorkspaceShell() {
     return () => window.removeEventListener("syscraft:node-added", onAdded);
   }, []);
 
-  useEffect(() => {
-    setSoundOn(isSoundEnabled());
-  }, []);
   useEffect(() => {
     try {
       window.localStorage?.setItem("syscraft.railWidth", String(railWidth));
@@ -448,6 +448,7 @@ export default function CleanWorkspaceShell() {
   useEffect(() => {
     // On compact viewports the inspector is an on-demand drawer; auto-opening
     // it over the canvas after every tap would hide the thing just edited.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- selection is owned by the store; the drawer follow is an intentional sync for wide layouts.
     if (selectedNodeId && !isCompact) setInspectorOpen(true);
   }, [selectedNodeId, isCompact]);
 

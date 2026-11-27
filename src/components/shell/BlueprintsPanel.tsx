@@ -21,6 +21,7 @@ export function BlueprintsPanel() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only load of IndexedDB blueprints into SSR-safe empty state.
     void refresh();
   }, [refresh]);
 

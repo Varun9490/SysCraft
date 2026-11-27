@@ -83,6 +83,7 @@ export function ProgressDashboard() {
       await hydrateFromDb();
       if (!cancelled) setHydrated(true);
     })();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only hydration of browser storage into SSR-safe defaults.
     setHistory(loadPracticeHistory());
     setScores(loadPlayScores());
     setDailyCap(loadPracticeSettings().dailyCap);

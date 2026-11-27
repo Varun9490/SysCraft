@@ -25,6 +25,7 @@ export function RoadmapPageContent() {
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only hydration of localStorage progress into an SSR-safe empty set.
     setCompleted(readCompleted());
     const onStorage = () => setCompleted(readCompleted());
     window.addEventListener("storage", onStorage);

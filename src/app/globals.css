@@ -772,3 +772,86 @@ aside .overflow-y-auto::-webkit-scrollbar-track {
     scroll-behavior: auto;
   }
 }
+
+/* ==========================================================================
+   Platform shell — light theme, dock surface, custom cursor, motion extras.
+   Appended only; the warm charcoal tokens above remain authoritative in dark.
+   ========================================================================== */
+html.theme-light {
+  color-scheme: light;
+
+  --ink: 246 242 234;
+  --surface: 252 249 243;
+  --surface-raised: 240 234 223;
+  --surface-overlay: 231 223 209;
+  --line: 213 203 185;
+  --line-strong: 178 165 142;
+
+  --content: 34 30 24;
+  --content-secondary: 88 80 66;
+  --content-tertiary: 126 116 98;
+
+  /* Brass stays brass, deepened so it reads on paper. */
+  --accent: 138 101 48;
+  --accent-bright: 116 84 38;
+  --accent-deep: 96 70 34;
+
+  --success: 58 104 62;
+  --warning: 146 84 28;
+  --danger: 158 52 48;
+  --info: 52 92 116;
+
+  --platform-accent-ink: 122 88 40;
+}
+
+html.theme-light .text-brass,
+html.theme-light .text-brass-bright {
+  color: rgb(var(--platform-accent-ink));
+}
+
+html.theme-light :focus-visible {
+  outline-color: rgb(var(--platform-accent-ink));
+}
+
+/* The native pointer returns as soon as the custom cursor is not drawing. */
+html.cursor-custom,
+html.cursor-custom * {
+  cursor: none !important;
+}
+
+.platform-card {
+  border: 1px solid rgb(var(--line));
+  border-radius: 1rem;
+  background-color: rgb(var(--surface-raised));
+}
+
+@keyframes breakBreathe {
+  0%,
+  100% {
+    transform: scale(0.78);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+.break-breathe {
+  animation: breakBreathe 4s ease-in-out infinite;
+}
+
+/* cmdk: quiet group headings and a brass-tinted selection row. */
+[cmdk-group-heading] {
+  padding: 0.5rem 0.75rem 0.25rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--content-tertiary));
+}
+
+[cmdk-item][data-selected='true'] {
+  background-color: rgb(var(--surface-overlay));
+  color: rgb(var(--accent));
+}

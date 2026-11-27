@@ -139,10 +139,10 @@ export function LabWorkspace({ labId }: { labId: string }) {
   const stageIndex = Math.min(labProgress?.currentStage ?? 0, (lab?.stages.length ?? 1) - 1);
   const stage = lab?.stages[stageIndex];
 
-  const grading = useMemo(
-    () => gradeRules(stage?.gradingRules ?? []),
-    [stage, labId, stageIndex, nonce],
-  );
+  const grading = useMemo(() => {
+    void nonce; // Re-grade trigger after canvas edits.
+    return gradeRules(stage?.gradingRules ?? []);
+  }, [stage, nonce]);
 
   useEffect(() => {
     // Each lab owns a separate autosave scope. It starts empty on first open
@@ -156,6 +156,7 @@ export function LabWorkspace({ labId }: { labId: string }) {
     useCanvasStore.getState().setSceneName(saved?.sceneName ?? `Lab: ${lab?.title ?? ""}`);
     useCanvasStore.getState().setHydrated(true);
     void useLearningStore.getState().hydrateFromDb();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only sound preference read from localStorage; the canvas gate must open in this effect.
     setSoundOn(isSoundEnabled());
     setCanvasReady(true);
 

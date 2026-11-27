@@ -5,17 +5,19 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build && node scripts/fix-segment-paths.js",
+    "wasm:build": "cargo build --release --manifest-path wasm/sim-kernel/Cargo.toml --target wasm32-unknown-unknown && node scripts/embed-sim-kernel.mjs",
+    "wasm:test": "cargo test --manifest-path wasm/sim-kernel/Cargo.toml",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "ai": "node server/opencode-ai-bridge.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "qa:ui": "node scripts/qa-ui.mjs",
+    "qa:production": "node scripts/qa-production.mjs"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.86",
     "@phosphor-icons/react": "^2.1.10",
-    "@supabase/supabase-js": "^2.118.0",
-    "@vercel/analytics": "^2.0.1",
     "@xyflow/react": "^12.4.4",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.4",

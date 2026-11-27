@@ -7,6 +7,7 @@ import type {
 } from "@/types/simulation";
 import { createInitialEngineState, stepSimulationTick, type SimulationEngineState } from "@/engine/simulationCore";
 import { generateTraceWaterfall } from "@/engine/traceGenerator";
+import { warmSimKernel } from "@/engine/wasm/simKernel";
 
 /**
  * 20Hz discrete-event simulation Web Worker.
@@ -155,4 +156,7 @@ scope.onmessage = (event: MessageEvent<SimulationWorkerRequest>): void => {
   }
 };
 
+// Instantiate before announcing readiness so the first 50 ms tick does not pay
+// the validation/compilation cost. Failure silently keeps the JS fallback.
+warmSimKernel();
 scope.postMessage({ type: "ready" });

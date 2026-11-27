@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Lock, Map as MapIcon } from "@/components/ui/icons";
 import { useLearningStore } from "@/store/useLearningStore";
 
@@ -47,8 +47,15 @@ export function SkillConstellation({ onSelectModule }: SkillConstellationProps) 
 
   const unlocked = useMemo(() => new Set(unlockedSkills), [unlockedSkills]);
 
+  // SSR-safe starting point (0 means no card is due). The real clock is only
+  // available after mount, so refresh it there rather than during render.
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only clock read; a stable SSR value is intentional.
+    setNow(Date.now());
+  }, []);
+
   const dueBySkill = useMemo(() => {
-    const now = Date.now();
     const counts = new Map<string, number>();
     for (const skill of SKILLS) counts.set(skill.id, 0);
     const moduleToSkill = new Map<string, string>();
@@ -64,7 +71,7 @@ export function SkillConstellation({ onSelectModule }: SkillConstellationProps) 
       }
     }
     return counts;
-  }, [cards, cardModule]);
+  }, [cards, cardModule, now]);
 
   const edges = useMemo(() => {
     const byId = new Map(SKILLS.map((s) => [s.id, s]));
