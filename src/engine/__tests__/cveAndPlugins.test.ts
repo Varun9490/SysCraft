@@ -17,8 +17,8 @@ function edge(source: string, target: string): DoctorEdgeInput {
 }
 
 describe("cveAndPlugins", () => {
-  it("curated CVE feed has twenty-one items with valid primitives", () => {
-    expect(CURATED_CVE_FEED).toHaveLength(23);
+  it("curated CVE feed has every item with valid primitives", () => {
+    expect(CURATED_CVE_FEED).toHaveLength(24);
     for (const cve of CURATED_CVE_FEED) {
       for (const primitive of cve.affectedPrimitives) {
         expect(SEED_RESOURCE_MAP[primitive], `${cve.id} affected ${primitive}`).toBeTruthy();
@@ -166,6 +166,25 @@ describe("cveAndPlugins", () => {
     expect(cve!.cwe).toBe("CWE-400");
     expect(cve!.stride).toBe("Denial of Service");
     expect(cve!.ecosystem).toBe("Kubernetes");
+    for (const primitive of cve!.affectedPrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();
+    }
+    for (const primitive of cve!.recommendedDefensePrimitives) {
+      expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} defense ${primitive}`).toBeTruthy();
+    }
+  });
+
+  it("CVE-2025-31324 is an unauthenticated upload RCE in the web framework ecosystem", () => {
+    const cve = CURATED_CVE_FEED.find((entry) => entry.id === "CVE-2025-31324");
+    expect(cve).toBeDefined();
+    expect(cve!.cvss).toBe(9.8);
+    expect(cve!.severity).toBe("CRITICAL");
+    expect(cve!.cwe).toBe("CWE-434");
+    expect(cve!.stride).toBe("Elevation of Privilege");
+    expect(cve!.ecosystem).toBe("Web Frameworks & Runtime");
+    expect(cve!.exploitedInWild).toBe(true);
+    expect(cve!.affectedPrimitives).toContain("rest_service");
+    expect(cve!.recommendedDefensePrimitives).toContain("web_application_firewall");
     for (const primitive of cve!.affectedPrimitives) {
       expect(SEED_RESOURCE_MAP[primitive], `${cve!.id} affected ${primitive}`).toBeTruthy();
     }

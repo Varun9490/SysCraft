@@ -566,6 +566,26 @@ export const CURATED_CVE_FEED: CveIntelligenceItem[] = [
     exploitedInWild: false,
     sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2024-3094",
   },
+  {
+    id: "CVE-2025-31324",
+    title: "SAP NetWeaver Visual Composer Unauthenticated File Upload RCE",
+    published: "2025-04-24",
+    cvss: 9.8,
+    severity: "CRITICAL",
+    cwe: "CWE-434",
+    stride: "Elevation of Privilege",
+    ecosystem: "Web Frameworks & Runtime",
+    affectedPrimitives: ["rest_service", "api_gateway"],
+    summary:
+      "The Metadata Uploader servlet in SAP NetWeaver Application Server Java (Visual Composer) performed no authorization or file-type check, so an unauthenticated attacker could POST arbitrary files into a writable web-accessible directory. Attackers exploited it in the wild to drop JSP web shells and gain persistent remote code execution on internet-facing NetWeaver systems.",
+    architecturalRootCause:
+      "The upload endpoint treated network reachability as authorization: it exposed a write primitive on a public servlet with no authentication, no allowlist of extensions, and no separation between the upload directory and an executable web root. That combination let input bytes become server-side code.",
+    mitigationPattern:
+      "Apply SAP Security Note 3594142 and patch NetWeaver AS Java; block /developmentserver/metadatauploader at the edge, and disable Visual Composer where it is unused. Hunt the app server's upload and work directories for unexpected JSP or script files, remove any found, rotate credentials reachable from the host, and put upload endpoints behind authentication, extension allowlists, and storage outside the executable web root.",
+    recommendedDefensePrimitives: ["web_application_firewall", "api_gateway", "identity_provider", "observability_stack"],
+    exploitedInWild: true,
+    sourceUrl: "https://nvd.nist.gov/vuln/detail/CVE-2025-31324",
+  },
 ];
 
 /** Fast lookup used by the hub's canvas-exposure annotations. */
