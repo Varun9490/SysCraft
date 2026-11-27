@@ -1,6 +1,6 @@
 # SysCraft production QA scorecard
 
-- Generated (UTC): 2026-11-27T14:00:14.334Z
+- Generated (UTC): 2026-11-27T14:17:03.901Z
 - BASE_URL: `http://127.0.0.1:4173`
 - Overall score: **100 / 100**
 - Checks: 36/36 passed (0 failed)
@@ -20,7 +20,7 @@
 
 ## Frame timing
 
-- Steady-state 90 rAF frames after entrance reveals: average **17.22 ms**, p95 **16.70 ms**.
+- Steady-state 90 rAF frames after fonts and entrance reveals have settled: average **22.59 ms**, p95 **33.40 ms**.
 - Thresholds: average <= 34 ms, p95 <= 50 ms (headless vsync is not treated as a hard failure).
 
 ## Failures
@@ -33,7 +33,7 @@
 - Hydration warnings: 0
 - Uncaught page errors: 0
 - HTTP >= 400 (same-origin): 0
-- Failed requests (all origins): 265
+- Failed requests (all origins): 247
 
 ## Check log
 

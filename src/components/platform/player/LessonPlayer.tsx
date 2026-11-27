@@ -198,7 +198,13 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
           {lesson.storyHook}
         </p>
 
-        <div className="mt-7">
+      </header>
+
+      {/* Sticky so the mode switch stays reachable without scrolling back to the
+          header, which would change the active step. z-30 is above page content
+          but below the z-40 site header and z-[60] utility dock. */}
+      <div className="sticky top-14 z-30 -mx-5 mt-6 flex h-11 items-center overflow-x-auto border-y border-line/60 bg-ink/90 px-5 backdrop-blur-xl sm:-mx-8 sm:px-8">
+        <div className="w-max">
           <ModeSwitch
             mode={mode}
             onChange={(nextMode) => {
@@ -207,7 +213,7 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
             }}
           />
         </div>
-      </header>
+      </div>
 
       <div className="mt-10 grid grid-cols-12 gap-6 lg:gap-10">
         <aside className="order-1 col-span-12 lg:order-2 lg:col-span-5">
@@ -278,7 +284,7 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
               ref={(element) => {
                 sectionRefs.current[index] = element;
               }}
-              className="min-h-[70vh] scroll-mt-24 border-b border-line/60 py-12"
+              className="min-h-[70vh] scroll-mt-32 border-b border-line/60 py-12"
               aria-labelledby={`step-title-${index}`}
             >
               <motion.div

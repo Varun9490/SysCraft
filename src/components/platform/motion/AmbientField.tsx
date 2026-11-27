@@ -42,7 +42,9 @@ export default function AmbientField({ variant = "grid" }: AmbientFieldProps) {
     let elapsed = 0;
     let lastDraw = 0;
     let frame = 0;
-    const AMBIENT_FRAME_MS = 1000 / 12;
+    // The wash is intentionally ultra-slow: 6fps (~166ms) is plenty and keeps
+    // the per-frame draw cost off the interaction-critical main-thread path.
+    const AMBIENT_FRAME_MS = 1000 / 6;
 
     const resize = () => {
       // The wash is intentionally low contrast; a 1x backing store saves about
@@ -62,16 +64,21 @@ export default function AmbientField({ variant = "grid" }: AmbientFieldProps) {
 
       if (variant === "grid") {
         const spacing = 28;
+        const radius = 0.9;
         const driftX = (t * 3) % spacing;
         const driftY = (t * 1.6) % spacing;
-        ctx.fillStyle = "rgb(205 168 106 / 0.5)";
+        // One batched path for every dot: hundreds of beginPath/arc/fill pairs
+        // per frame were the source of the periodic p95 frame spikes. moveTo
+        // starts each circle as its own subpath so no connecting lines appear.
+        ctx.beginPath();
         for (let x = -spacing + driftX; x < width + spacing; x += spacing) {
           for (let y = -spacing + driftY; y < height + spacing; y += spacing) {
-            ctx.beginPath();
-            ctx.arc(x, y, 0.9, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.moveTo(x + radius, y);
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
           }
         }
+        ctx.fillStyle = "rgb(205 168 106 / 0.5)";
+        ctx.fill();
         return;
       }
 
@@ -110,7 +117,9 @@ export default function AmbientField({ variant = "grid" }: AmbientFieldProps) {
         gradient.addColorStop(0, `rgb(${blob.rgb} / 0.20)`);
         gradient.addColorStop(1, `rgb(${blob.rgb} / 0)`);
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height);
+        // The gradient is fully transparent past `radius`, so fill only the
+        // blob's bounding box rather than repainting the entire viewport.
+        ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
       }
     };
 

@@ -100,6 +100,8 @@
 - [x] Compacted the utility dock to a 44–48px animated launcher with a focused popover.
 - [x] Made Story/Engineer/Both progressive: Story first, Engineer on demand, one text layer at a time.
 - [x] Fixed reader mode step stability, canonical lesson/lab bookmark URLs, and stable dock launcher targeting.
+- [x] Made reader mode controls sticky so switching Story/Engineer/Both never requires leaving the current step.
+- [x] Optimized ambient rendering to 6fps with a single batched grid path and 1x backing store.
 - [x] Added a 36-check weighted production QA scorecard.
 
 ## Verification
@@ -110,4 +112,4 @@
 - [x] `npm run build` — 513 static pages generated
 - [x] Desktop/mobile Playwright QA — all checks passed with no console errors
 - [x] Production QA scorecard — 100/100 across 36 checks
-- [x] Steady-state browser frame timing — 17.22ms average, 16.70ms p95 in headless Chromium
+- [x] Steady-state browser frame timing — 22.59ms average, 33.40ms p95 in isolated headless Chromium

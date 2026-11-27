@@ -205,7 +205,13 @@ export function BlogReader({ post }: { post: BlogPost }) {
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-content sm:text-4xl">{post.title}</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-content-secondary" data-cursor="read">{post.dek}</p>
 
-        <div className="mt-7">
+      </header>
+
+      {/* Sticky so the mode switch stays reachable without scrolling back to the
+          header, which would change the active step. z-30 is above page content
+          but below the z-40 site header and z-[60] utility dock. */}
+      <div className="sticky top-14 z-30 -mx-5 mt-6 flex h-11 items-center overflow-x-auto border-y border-line/60 bg-ink/90 px-5 backdrop-blur-xl sm:-mx-8 sm:px-8">
+        <div className="w-max">
           <ModeSwitch
             mode={mode}
             onChange={(nextMode) => {
@@ -214,7 +220,7 @@ export function BlogReader({ post }: { post: BlogPost }) {
             }}
           />
         </div>
-      </header>
+      </div>
 
       <div className="mt-10 grid grid-cols-12 gap-6 lg:gap-10">
         <aside className="order-1 col-span-12 lg:order-2 lg:col-span-5">
@@ -278,7 +284,7 @@ export function BlogReader({ post }: { post: BlogPost }) {
               ref={(element) => {
                 sectionRefs.current[index] = element;
               }}
-              className="min-h-[70vh] scroll-mt-24 border-b border-line/60 py-12"
+              className="min-h-[70vh] scroll-mt-32 border-b border-line/60 py-12"
               aria-labelledby={`post-step-title-${index}`}
             >
               <motion.div

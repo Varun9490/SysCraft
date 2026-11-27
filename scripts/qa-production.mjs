@@ -364,7 +364,7 @@ function writeScorecard(score) {
   lines.push("## Frame timing");
   lines.push("");
   if (frameTiming) {
-    lines.push(`- Steady-state 90 rAF frames after entrance reveals: average **${frameTiming.average.toFixed(2)} ms**, p95 **${frameTiming.p95.toFixed(2)} ms**.`);
+    lines.push(`- Steady-state 90 rAF frames after fonts and entrance reveals have settled: average **${frameTiming.average.toFixed(2)} ms**, p95 **${frameTiming.p95.toFixed(2)} ms**.`);
     lines.push("- Thresholds: average <= 34 ms, p95 <= 50 ms (headless vsync is not treated as a hard failure).");
   } else {
     lines.push("- Not measured (landing motion check did not complete).");
@@ -749,6 +749,21 @@ try {
           response: active.filter((node) => node.getAttribute("r") !== "3").map(at),
         };
       });
+    await landingPage.waitForFunction(
+      (selector) => {
+        const hero = document.querySelector(selector);
+        if (!hero) return false;
+        const active = Array.from(hero.querySelectorAll("circle")).filter(
+          (node) => (node.getAttribute("opacity") ?? "0") !== "0",
+        );
+        return (
+          active.filter((node) => node.getAttribute("r") === "3").length >= 5 &&
+          active.filter((node) => node.getAttribute("r") !== "3").length >= 3
+        );
+      },
+      SELECTORS.heroModel,
+      { timeout: 8000 },
+    );
     const before = await lanes();
     assert.ok(before.request.length >= 5, `expected request packet lane, found ${before.request.length} packets`);
     assert.ok(
@@ -792,30 +807,41 @@ try {
   });
 
   await check("landing", "90 rAF frames measured within performance thresholds", false, async () => {
-    // Measure steady-state rendering after the entrance reveals settle. The
-    // preceding checks still verify that the entrance animation completes.
-    await landingPage.waitForTimeout(1200);
-    const stats = await landingPage.evaluate(
-      () =>
-        new Promise((resolve) => {
-          const samples = [];
-          let previous = 0;
-          const frame = (time) => {
-            if (previous !== 0) samples.push(time - previous);
-            previous = time;
-            if (samples.length >= 90) {
-              const sorted = [...samples].sort((a, b) => a - b);
-              resolve({
-                average: samples.reduce((sum, value) => sum + value, 0) / samples.length,
-                p95: sorted[Math.floor(sorted.length * 0.95)],
-              });
-            } else {
-              requestAnimationFrame(frame);
-            }
-          };
-          requestAnimationFrame(frame);
-        }),
-    );
+    // Use a fresh context so earlier route/interaction checks cannot leave
+    // background work that distorts the landing page's frame budget.
+    const perfContext = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+    let stats;
+    try {
+      const perfPage = await newPage(perfContext, "landing-performance");
+      await perfPage.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
+      await perfPage.evaluate(async () => {
+        await document.fonts.ready;
+      });
+      await perfPage.waitForTimeout(2500);
+      stats = await perfPage.evaluate(
+        () =>
+          new Promise((resolve) => {
+            const samples = [];
+            let previous = 0;
+            const frame = (time) => {
+              if (previous !== 0) samples.push(time - previous);
+              previous = time;
+              if (samples.length >= 90) {
+                const sorted = [...samples].sort((a, b) => a - b);
+                resolve({
+                  average: samples.reduce((sum, value) => sum + value, 0) / samples.length,
+                  p95: sorted[Math.floor(sorted.length * 0.95)],
+                });
+              } else {
+                requestAnimationFrame(frame);
+              }
+            };
+            requestAnimationFrame(frame);
+          }),
+      );
+    } finally {
+      await perfContext.close();
+    }
     frameTiming = stats;
     console.log(`      frame timing: avg ${stats.average.toFixed(2)} ms, p95 ${stats.p95.toFixed(2)} ms`);
     assert.ok(stats.average <= 34, `average frame time ${stats.average.toFixed(2)} ms exceeds 34 ms`);
