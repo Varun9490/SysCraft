@@ -112,11 +112,11 @@ export const trackDistributed: Track = {
       security: [
         practice({
           threat:
-            "A partitioned or demoted replica continues accepting writes and creates a second authoritative history after failover.",
+            "A partitioned minority replica accepts authoritative writes or serves reads without a quorum, producing a divergent history.",
           control:
-            "Use quorum-based leadership, external fencing tokens, and network policy that removes write access from demoted nodes before promotion.",
+            "Require quorum reads and writes for authoritative operations, compare term and log positions, and make replicas reject stale leaders and step down when they cannot reach a majority.",
           verify:
-            "Run a controlled partition and failover exercise, confirming that the former leader rejects writes and emits an attributable fencing event.",
+            "Partition a controlled minority replica, confirm it stops accepting authoritative operations, then replay delayed old-term entries and verify they cannot change committed state.",
         }),
         practice({
           threat:
@@ -143,9 +143,9 @@ export const trackDistributed: Track = {
             "A product can display a follower count that is several seconds old but must never lose a confirmed payment. Which replication choice best matches those needs?",
           choices: [
             "Use asynchronous reads for the count and a durably coordinated write path for payments",
-            "Serve both from any asynchronous replica",
-            "Make every operation wait for all replicas worldwide",
-            "Remove versioning from payment records",
+            "Use synchronous replication only for follower counts to eliminate stale reads",
+            "Route payments to the replica with the lowest reported lag",
+            "Cache payment confirmations on the client and treat them as committed",
           ],
           answerIndex: 0,
           explanation:
@@ -157,10 +157,10 @@ export const trackDistributed: Track = {
           prompt:
             "Why is fencing required when promoting a new primary?",
           choices: [
-            "To make replication asynchronous",
+            "To increase replica lag before promotion",
             "To stop the old primary from issuing conflicting writes after losing leadership",
-            "To increase DNS caching",
-            "To remove the need for authentication",
+            "To rotate client certificates after the failover completes",
+            "To make all replicas writable during a partition",
           ],
           answerIndex: 1,
           explanation:
@@ -172,12 +172,12 @@ export const trackDistributed: Track = {
           prompt:
             "What does PACELC add beyond CAP?",
           choices: [
-            "It describes only hardware failures",
+            "It describes only network partitions and ignores normal operation",
+            "It requires every system to choose consistency during every failure",
             "It includes the normal-operation tradeoff between latency and consistency when there is no partition",
-            "It guarantees availability during every partition",
-            "It replaces versioned replication",
+            "It eliminates the need to compare record versions",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "PACELC addresses the else case: even without a partition, stronger coordination usually costs latency.",
         }),
@@ -187,12 +187,12 @@ export const trackDistributed: Track = {
           prompt:
             "In the courthouse story, what do matching page numbers on two signed responses provide?",
           choices: [
+            "A promise that all replicas have acknowledged every future write",
+            "Proof that a response came from an authenticated node",
+            "A rule for expiring old catalog entries",
             "Proof that both offices are discussing the same version",
-            "A guarantee that every future write is instantaneous",
-            "A replacement for node authentication",
-            "A cache eviction policy",
           ],
-          answerIndex: 0,
+          answerIndex: 3,
           explanation:
             "Quorum responses must refer to comparable versions; counting unrelated signatures does not establish agreement.",
         }),
@@ -281,10 +281,10 @@ export const trackDistributed: Track = {
           prompt:
             "A table is evenly sharded by user ID, but one public figure's timeline receives most reads. What is the most direct response?",
           choices: [
-            "Add unrelated shards and assume the key spreads itself",
+            "Split the celebrity's writes across shards without defining ownership",
             "Use bounded caching or dedicated read capacity for that key while preserving its write authority",
-            "Remove the shard key",
-            "Route every read to every shard",
+            "Move all reads to the primary without limiting write traffic",
+            "Increase the shard count until every key has its own shard",
           ],
           answerIndex: 1,
           explanation:
@@ -296,12 +296,12 @@ export const trackDistributed: Track = {
           prompt:
             "Why should shard routing enforce tenant authorization rather than only mapping a key?",
           choices: [
+            "It removes the need to encrypt data in transit",
+            "It makes the hash function an authorization mechanism",
             "A correct physical route can still target another tenant's data",
-            "Routing metadata removes the need for encryption",
-            "Hash functions authenticate users",
-            "Every shard must be public",
+            "It lets routing metadata replace tenant quotas",
           ],
-          answerIndex: 0,
+          answerIndex: 2,
           explanation:
             "Placement and permission are separate concerns; a router must not become a way to bypass tenant isolation.",
         }),
@@ -311,12 +311,12 @@ export const trackDistributed: Track = {
           prompt:
             "What is a common drawback of hash partitioning compared with range partitioning?",
           choices: [
-            "It cannot use primary keys",
+            "It prevents use of primary keys",
+            "It guarantees every shard has identical size",
+            "It removes the need for a routing layer entirely",
             "It makes natural range scans and ordered access require scatter-gather work",
-            "It always creates one giant shard",
-            "It eliminates the need for routing metadata",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "Hashing improves distribution but scatters related ranges, so range queries may touch many shards.",
         }),
@@ -327,9 +327,9 @@ export const trackDistributed: Track = {
             "In the warehouse story, why does one celebrity title overload a room despite many available rooms?",
           choices: [
             "The title is a hot key whose requests still map to one owner",
-            "The floor plan has no versions",
-            "Every book uses range partitioning",
-            "The building has no clerks",
+            "The celebrity title is assigned a new shard for every request",
+            "The warehouse uses only range partitioning, so every popular title fills a room",
+            "Adding rooms changes the title's shard key",
           ],
           answerIndex: 0,
           explanation:
@@ -420,12 +420,12 @@ export const trackDistributed: Track = {
           prompt:
             "What is the main advantage of consistent hashing over simple modulo assignment when one node leaves?",
           choices: [
+            "Every key is reassigned whenever membership changes",
+            "Membership changes provide durability automatically",
             "Only keys in the departed node's interval need reassignment",
-            "No keys ever need reassignment",
-            "Every key becomes immediately durable",
-            "Replication is no longer required",
+            "The ring makes replication unnecessary during node failure",
           ],
-          answerIndex: 0,
+          answerIndex: 2,
           explanation:
             "The ring localizes ownership changes to the affected interval instead of reshuffling the whole keyspace.",
         }),
@@ -435,12 +435,12 @@ export const trackDistributed: Track = {
           prompt:
             "Why must ring membership updates be authenticated?",
           choices: [
-            "Hashing encrypts the node's storage",
+            "Hash functions provide confidentiality for stored keys",
+            "Authenticating members increases the number of ring intervals",
+            "Only the first node on the ring needs authentication",
             "An unapproved token change can redirect ownership and data to an unauthorized node",
-            "Authentication increases key entropy",
-            "The ring otherwise becomes a cache",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "Topology controls data placement, so unauthorized changes are a control-plane integrity risk.",
         }),
@@ -450,12 +450,12 @@ export const trackDistributed: Track = {
           prompt:
             "Why use virtual nodes?",
           choices: [
-            "They guarantee that no key can ever be hot",
             "They smooth key distribution across physical nodes at the cost of more ring metadata",
-            "They eliminate replication",
-            "They make all range queries local",
+            "They guarantee a single hot key is spread across nodes",
+            "They remove the need for replica placement across failure domains",
+            "They make ordered range queries local to one node",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "More tokens reduce ownership variance and movement imbalance but increase metadata and routing complexity.",
         }),
@@ -465,12 +465,12 @@ export const trackDistributed: Track = {
           prompt:
             "In the locker story, what keeps bags assigned to other lockers from moving?",
           choices: [
+            "Every bag is reassigned after a locker fails",
             "The clockwise ring order changes only the broken locker's interval",
-            "Every bag is assigned randomly after each change",
-            "All lockers share one bag",
-            "The station deletes the ring",
+            "The bag label is changed to match each new locker",
+            "Replicas are deleted whenever a locker breaks",
           ],
-          answerIndex: 0,
+          answerIndex: 1,
           explanation:
             "Consistent hashing limits reassignment to keys whose ownership interval changed.",
         }),
@@ -559,12 +559,12 @@ export const trackDistributed: Track = {
           prompt:
             "A five-node Raft cluster loses two nodes. What is required for the remaining cluster to continue committing writes?",
           choices: [
-            "One available node",
+            "A majority of the remaining nodes, which is two",
+            "One leader and one follower",
+            "Two candidates that have not received votes",
             "A majority of the full five-node membership, which is three nodes",
-            "All five original nodes",
-            "Two candidates without a leader",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "Raft needs a majority of the configured membership, so three of five nodes must participate for elections and commits.",
         }),
@@ -574,12 +574,12 @@ export const trackDistributed: Track = {
           prompt:
             "Why authenticate every Raft peer?",
           choices: [
-            "To make log entries smaller",
             "To prevent outsiders from forging votes, heartbeats, or replicated entries",
-            "To eliminate leader election",
-            "To guarantee exactly-once client side effects",
+            "To compress log entries before replication",
+            "To eliminate the need for majority elections",
+            "To guarantee exactly-once external side effects",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "Consensus messages determine authority and history, so peer identity must be verified before accepting them.",
         }),
@@ -589,10 +589,10 @@ export const trackDistributed: Track = {
           prompt:
             "What is a central safety condition that prevents committed history from being overwritten?",
           choices: [
-            "Always choosing the node with the longest log",
+            "Choosing the candidate with the longest log regardless of term",
             "Restricting elections and using log-matching rules so a leader contains every committed entry",
-            "Allowing every node to write independently",
-            "Using wall-clock timestamps as the only version",
+            "Electing a new leader whenever the current one is slow",
+            "Using wall-clock timestamps to order all log entries",
           ],
           answerIndex: 1,
           explanation:
@@ -604,12 +604,12 @@ export const trackDistributed: Track = {
           prompt:
             "In the ship story, what does the isolated captain's longer notebook represent?",
           choices: [
+            "A committed suffix because it has more pages",
+            "A new election term because it was written later",
             "An uncommitted suffix that must be discarded when it conflicts with majority history",
-            "A valid majority commit",
-            "A new election term",
-            "A durable client acknowledgment",
+            "A durable acknowledgment because it was stored locally",
           ],
-          answerIndex: 0,
+          answerIndex: 2,
           explanation:
             "Local log length does not establish authority; entries not committed by a majority cannot override accepted history.",
         }),
@@ -650,7 +650,7 @@ export const trackDistributed: Track = {
             "A workshop tool repeatedly overheats. At first, mechanics keep trying it and burn out other equipment while waiting. The manager installs a breaker that counts recent failures and opens after a threshold, redirecting mechanics to a safe manual process. While open, a small number of trial jobs test whether the tool has recovered. If trials succeed, the breaker closes gradually; if they fail, it stays open and waits longer. The breaker does not repair the tool, but it prevents one broken dependency from consuming every worker and hiding the original problem.",
           engineer:
             "A circuit breaker wraps calls to a dependency and moves among closed, open, and half-open states. In the closed state, calls pass and failures are measured over a window or count. The open state rejects calls quickly for a cooldown period. Half-open admits limited probes before deciding whether to close or reopen. Choose thresholds from normal failure rates and recovery behavior, and separate dependency failures from client errors. A frequent failure is opening breakers for expected validation rejections or keeping them open forever after recovery. Emit state-transition metrics and preserve a fallback with defined freshness and functionality limits.",
-          visualId: visual("threat-defense"),
+          visualId: visual("circuit-breaker"),
           visualCaption:
             "A circuit breaker stops repeated dependency calls, tests recovery with probes, and gradually resumes traffic.",
         }),
@@ -698,12 +698,12 @@ export const trackDistributed: Track = {
           prompt:
             "A worker acquires a lease, pauses past its expiry, and resumes while another worker owns the resource. What protects the resource?",
           choices: [
-            "The original key's appearance",
             "A fencing token check that rejects the older owner's operation",
-            "A longer client timeout",
-            "A circuit breaker only",
+            "The original key's appearance",
+            "A client-side retry with a longer deadline",
+            "A circuit breaker around the resource",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "Lease expiry can let two clients believe they own a lock; resource-side fencing rejects the stale owner.",
         }),
@@ -713,10 +713,10 @@ export const trackDistributed: Track = {
           prompt:
             "Why should protected resources enforce fencing tokens rather than relying only on the lock service?",
           choices: [
-            "The lock service cannot experience network delays",
+            "The lock service guarantees zero network delays",
             "A client may still perform a side effect after losing its lease, so the resource must reject stale authority",
-            "Fencing tokens encrypt the payload",
-            "Locks eliminate all concurrency",
+            "Fencing tokens encrypt the protected resource's payload",
+            "Lock acquisition eliminates all concurrent work",
           ],
           answerIndex: 1,
           explanation:
@@ -729,11 +729,11 @@ export const trackDistributed: Track = {
             "What is the main benefit of a circuit breaker?",
           choices: [
             "It repairs the failing dependency automatically",
+            "It guarantees fallback data is fresh",
             "It fails fast and limits repeated calls while a dependency recovers",
-            "It guarantees every fallback has fresh data",
-            "It removes the need for timeouts",
+            "It removes the need for request timeouts",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "A breaker contains failure and reduces wasted work; it does not fix the dependency or make fallbacks correct.",
         }),
@@ -743,12 +743,12 @@ export const trackDistributed: Track = {
           prompt:
             "In the workshop story, why does the breaker redirect mechanics to a capped manual process?",
           choices: [
+            "To restore the powered tool without maintenance",
+            "To eliminate all fallback capacity limits",
+            "To let every mechanic run the fallback concurrently",
             "To provide controlled degradation without letting one broken tool consume all capacity",
-            "To make the powered tool work again",
-            "To remove the need for maintenance",
-            "To give every mechanic unlimited access",
           ],
-          answerIndex: 0,
+          answerIndex: 3,
           explanation:
             "The fallback keeps essential work moving with explicit limits while the dependency remains unavailable.",
         }),
@@ -837,12 +837,12 @@ export const trackDistributed: Track = {
           prompt:
             "An LSM database has fast writes but progressively slower reads. What should operators inspect first?",
           choices: [
+            "Only the database connection pool size",
             "Compaction lag, number of sorted runs, and stale version buildup",
-            "The color of the dashboard",
-            "Only the client request timeout",
-            "The number of primary key columns",
+            "Only the client retry count",
+            "Only the number of columns in the primary key",
           ],
-          answerIndex: 0,
+          answerIndex: 1,
           explanation:
             "Read amplification grows when compaction falls behind or too many versions and runs remain visible.",
         }),
@@ -852,12 +852,12 @@ export const trackDistributed: Track = {
           prompt:
             "Why should WAL and snapshot storage be encrypted and tightly restricted?",
           choices: [
+            "Log encryption replaces the need for backup access controls",
+            "Snapshot permissions matter only for the live database",
             "They contain durable records and may reveal sensitive changes even when the live database is protected",
-            "Encryption makes writes sequential",
-            "Snapshots replace authentication",
-            "WAL files are always public",
+            "WAL files can be public because they contain no row data",
           ],
-          answerIndex: 0,
+          answerIndex: 2,
           explanation:
             "Logs and snapshots are full data copies and require the same confidentiality and integrity protection as primary storage.",
         }),
@@ -867,12 +867,12 @@ export const trackDistributed: Track = {
           prompt:
             "What is a central LSM-tree tradeoff?",
           choices: [
-            "Perfectly free reads in exchange for expensive hashing",
+            "Instant reads with no maintenance work",
+            "Lower write latency by skipping durability guarantees",
+            "Simpler transactions because old versions are never retained",
             "Efficient sequential writes in exchange for compaction work and possible read amplification",
-            "No durability in exchange for lower latency",
-            "No indexes in exchange for simpler transactions",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "LSM engines optimize append and merge patterns, but background compaction and multi-run reads add cost.",
         }),
@@ -883,9 +883,9 @@ export const trackDistributed: Track = {
             "In the library story, what does a researcher's dated snapshot model?",
           choices: [
             "An MVCC snapshot that sees a consistent historical version",
-            "A WAL flush",
-            "A B-tree page split",
-            "An LSM compaction trigger",
+            "A WAL record awaiting fsync",
+            "A B-tree page split during insertion",
+            "An LSM compaction that deletes old versions",
           ],
           answerIndex: 0,
           explanation:
@@ -954,19 +954,19 @@ export const trackDistributed: Track = {
         }),
         practice({
           threat:
-            "Malformed or repeatedly failing poison events block partitions, trigger unsafe retries, or overload downstream services.",
+            "A poison event repeatedly fails around offset commits or a rebalance assigns a partition to overlapping consumers, losing progress or duplicating effects.",
           control:
-            "Validate schemas at ingestion, bound retries with jitter, route permanent failures to an access-controlled dead-letter topic, and alert on dead-letter growth.",
+            "Commit offsets only after durable idempotent processing, bound in-flight work and poll intervals so heartbeats remain healthy, and use cooperative rebalances plus a dead-letter topic for permanent failures.",
           verify:
-            "Process a controlled invalid event and confirm attempt limits, isolation, alerting, and continued progress for valid records in the same partition.",
+            "Inject an invalid record, force a controlled rebalance, and confirm the new owner resumes from the last safe offset without skipping valid records or applying the failed event twice.",
         }),
         practice({
           threat:
             "Sensitive event payloads remain readable in retained topics, dead letters, or backups after their business purpose ends.",
           control:
-            "Minimize payload data, encrypt topics and backups, restrict replay and dead-letter access, and enforce retention aligned with privacy and recovery requirements.",
+            "Set per-topic time and size retention, use compaction only where keyed latest-state semantics fit, encrypt topics and backups, and enforce ACLs on topic, consumer-group, and dead-letter replay access.",
           verify:
-            "Inspect retention and encryption across primary, dead-letter, and backup storage, and test that expired topics are no longer readable through ordinary consumer roles.",
+            "Advance a test topic past retention and confirm ordinary consumers can no longer read expired records, inspect encryption and ACL settings, and prove a replay-only role cannot alter offsets or consume unapproved topics.",
         }),
       ],
       quiz: [
@@ -976,12 +976,12 @@ export const trackDistributed: Track = {
           prompt:
             "A consumer performs a non-idempotent side effect, then crashes before committing its offset. What is the likely result?",
           choices: [
-            "The event is lost because Kafka removes it",
+            "The offset is committed automatically before processing",
+            "The consumer group skips the event after a crash",
             "The event is processed again, so the side effect must be made idempotent",
-            "All partitions stop permanently",
-            "The producer is automatically rolled back",
+            "The producer is rolled back with the consumer",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "Committing after work creates at-least-once redelivery, which can repeat a side effect unless the consumer deduplicates safely.",
         }),
@@ -991,12 +991,12 @@ export const trackDistributed: Track = {
           prompt:
             "Why separate Kafka producer, consumer, and administrator permissions?",
           choices: [
-            "To make every topic public",
+            "To make topic access uniform across all services",
+            "To eliminate ordering within each partition",
+            "To replace TLS with authorization checks",
             "To limit a compromised identity to the smallest set of publish, consume, or configuration actions",
-            "To eliminate partition ordering",
-            "To remove the need for TLS",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "Separate least-privilege roles reduce the blast radius of compromised credentials and make access auditable.",
         }),
@@ -1007,9 +1007,9 @@ export const trackDistributed: Track = {
             "What happens when related events are spread across many partitions?",
           choices: [
             "They gain greater parallelism but lose a single cross-partition ordering guarantee",
-            "They automatically become globally ordered",
-            "Consumer lag disappears",
-            "Retention becomes infinite",
+            "They automatically gain one global ordering",
+            "They eliminate consumer lag without capacity changes",
+            "They make retention infinite by default",
           ],
           answerIndex: 0,
           explanation:
@@ -1021,12 +1021,12 @@ export const trackDistributed: Track = {
           prompt:
             "In the mail-slot story, what does remembering the last slot number represent?",
           choices: [
+            "A producer idempotency key",
             "A committed consumer offset used to resume an ordered partition",
-            "A Raft election term",
-            "A cache TTL",
-            "A shard range boundary",
+            "A consumer-group rebalance timeout",
+            "A topic retention timestamp",
           ],
-          answerIndex: 0,
+          answerIndex: 1,
           explanation:
             "The resident's position models the offset that lets a consumer resume without rereading the entire partition.",
         }),
@@ -1115,12 +1115,12 @@ export const trackDistributed: Track = {
           prompt:
             "A service commits an order to its database, then crashes before publishing an event. Which pattern best prevents the event from being lost?",
           choices: [
-            "Write the event to a separate broker first and hope",
+            "Publish first and write the database only after broker acknowledgment",
+            "Wrap the database and broker in a client-side retry loop",
+            "Increase the client timeout until publication succeeds",
             "Store the event in an outbox row within the same database transaction and publish it through a reliable relay",
-            "Remove all retries",
-            "Use a longer client timeout only",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "The transactional outbox makes event intent atomic with local state and provides durable retryable publication.",
         }),
@@ -1130,12 +1130,12 @@ export const trackDistributed: Track = {
           prompt:
             "Why are idempotency keys important for saga steps and compensations?",
           choices: [
-            "They encrypt the message body",
             "They prevent repeated execution of the same business operation after retries or replays",
-            "They replace authorization",
-            "They guarantee zero network latency",
+            "They encrypt saga receipts in transit",
+            "They replace per-command authorization checks",
+            "They eliminate network latency between services",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "Sagas and relays can deliver commands more than once, so stable operation identities protect against duplicate side effects.",
         }),
@@ -1145,9 +1145,9 @@ export const trackDistributed: Track = {
           prompt:
             "What is a central tradeoff of sagas compared with two-phase commit?",
           choices: [
-            "Sagas provide strict global isolation with no intermediate states",
+            "Sagas provide strict global isolation without intermediate states",
             "Sagas avoid long distributed locks but require visible intermediate states and compensating actions",
-            "Sagas cannot use local transactions",
+            "Sagas cannot use local database transactions",
             "Sagas eliminate the need for idempotency",
           ],
           answerIndex: 1,
@@ -1160,12 +1160,12 @@ export const trackDistributed: Track = {
           prompt:
             "In the travel story, what does writing the booking and outbox receipt in one drawer model?",
           choices: [
+            "Two independent writes coordinated only by client timing",
+            "A global Raft election for every booking",
             "An atomic local database transaction containing both state and event intent",
-            "A two independent writes with no recovery",
-            "A global Raft election",
-            "A cache eviction policy",
+            "A cache invalidation after publication",
           ],
-          answerIndex: 0,
+          answerIndex: 2,
           explanation:
             "The shared drawer represents the single local transaction that makes state and outbox event commit together.",
         }),
@@ -1178,7 +1178,7 @@ export const trackDistributed: Track = {
       summary:
         "Use compact approximate structures for membership checks and cardinality estimates while respecting false positives, error bounds, and privacy limits.",
       minutes: 10,
-      prerequisites: ["consistent-hashing"],
+      prerequisites: ["sharding-hot-keys"],
       steps: [
         step({
           title: "A wall of switches checks club guests",
@@ -1254,12 +1254,12 @@ export const trackDistributed: Track = {
           prompt:
             "A Bloom filter reports possibly present for a username. What should an authorization service do?",
           choices: [
-            "Grant access immediately",
-            "Deny every positive result",
             "Treat it as a hint and perform the authoritative exact check",
-            "Store the username in every bit",
+            "Grant access because Bloom filters have no false negatives",
+            "Deny access because every positive is a false positive",
+            "Treat the filter as an exact user database",
           ],
-          answerIndex: 2,
+          answerIndex: 0,
           explanation:
             "Bloom filters can have false positives, so a positive result cannot establish identity or permission by itself.",
         }),
@@ -1269,10 +1269,10 @@ export const trackDistributed: Track = {
           prompt:
             "Why should raw Bloom filters usually remain private?",
           choices: [
-            "They contain no useful information",
+            "They contain no information once hashed",
             "They can support membership guesses about known candidates and leak presence",
-            "They always decrypt data",
-            "They replace network authentication",
+            "They decrypt stored user identifiers",
+            "They replace authorization at the query layer",
           ],
           answerIndex: 1,
           explanation:
@@ -1285,11 +1285,11 @@ export const trackDistributed: Track = {
             "Why might a team choose HyperLogLog instead of an exact set of user IDs?",
           choices: [
             "It provides exact membership and deletion",
+            "It guarantees zero estimation error",
             "It estimates distinct cardinality with bounded memory and avoids storing raw IDs",
-            "It guarantees zero error",
-            "It requires no hash functions",
+            "It avoids hashing by storing raw IDs",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "HyperLogLog is designed for approximate cardinality with fixed memory, not exact membership or identity tracking.",
         }),
@@ -1299,12 +1299,12 @@ export const trackDistributed: Track = {
           prompt:
             "In the club story, why can all switches be on for an unregistered name?",
           choices: [
-            "Other names may have set the same shared bits, creating a false positive",
             "The filter guarantees exact membership",
-            "The bouncer deleted the name",
-            "The switch wall has infinite capacity",
+            "The bouncer deleted the unregistered name",
+            "The wall allocates unlimited bits on demand",
+            "Other names may have set the same shared bits, creating a false positive",
           ],
-          answerIndex: 0,
+          answerIndex: 3,
           explanation:
             "Bloom-filter hash collisions can set all relevant bits through unrelated insertions, so positives require confirmation.",
         }),
@@ -1324,8 +1324,8 @@ export const trackDistributed: Track = {
           story:
             "A hospital director is proud that doctors worked longer hours, but patients still wait too long for urgent care. The director changes the dashboard to measure the patient's experience: time from arrival to treatment, percentage treated within the promised window, and outcomes for the sickest group. Staff effort remains useful for diagnosis, but it is not the promise made to patients. The hospital chooses a target it can measure consistently, then reviews every missed week against that target. Averages alone would hide the longest waits that matter most. The director reviews both the target and its measurement every quarter.",
           engineer:
-            "A service-level indicator is a quantitative measure of user-visible behavior, such as the fraction of successful requests served within a latency threshold. A service-level objective sets a target over a time window. Define the population, exclusions, measurement method, and ownership before choosing a number. Availability and latency objectives should reflect critical user journeys rather than infrastructure uptime alone. A common failure is targeting average CPU or server health while users experience failed requests. The director reviews both the target and its measurement every quarter. Use percentiles and event-based measures where appropriate, and validate that synthetic and production measurements agree on the same promise.",
-          visualId: visual("traffic-flow"),
+            "A service-level indicator is a quantitative measure of user-visible behavior, such as the fraction of successful requests served within a latency threshold. A service-level objective sets a target over a time window. Define the population, exclusions, measurement method, and ownership before choosing a number. Availability and latency objectives should reflect critical user journeys rather than infrastructure uptime alone. A common failure is targeting average CPU or server health while users experience failed requests. Assign an accountable service owner, version the SLI query and SLO target, review exclusions and telemetry completeness, and require approved changes whenever the measurement definition changes. Use percentiles and event-based measures where appropriate, and validate that synthetic and production measurements agree on the same promise.",
+          visualId: visual("observability-sli"),
           visualCaption:
             "User-journey measurements roll requests into an SLI and compare them with a time-bound SLO target.",
         }),
@@ -1335,7 +1335,7 @@ export const trackDistributed: Track = {
             "When a patient waits too long, the hospital uses three kinds of evidence. Counters show that triage volume rose and treatment capacity fell. Written notes explain that one scanner was offline. A trace follows one patient's path through registration, triage, imaging, and treatment, revealing where the minutes accumulated. No single lens is sufficient. Counters find patterns, logs preserve events, and traces connect work across services. The director insists that each record carries a shared visit identifier without copying the patient's full medical story into every system. These lenses share identifiers but retain different amounts of detail.",
           engineer:
             "Metrics provide low-cardinality aggregates for rates, durations, and resource use. Logs capture discrete events and context, while traces link spans across service boundaries. Together they support diagnosis at different scales. Use consistent service names, propagated trace context, structured fields, and exemplars that connect metrics to representative traces. A frequent failure is treating logs as the only observability tool or creating unlimited metric labels that explode storage cost. Bound cardinality and sample thoughtfully, retaining enough detail for rare failures. Measure telemetry drop rates and query latency so the observability system does not become an unmonitored dependency.",
-          visualId: visual("traffic-flow"),
+          visualId: visual("observability-sli"),
           visualCaption:
             "Metrics, logs, and linked trace spans provide aggregate, event, and request-level views of one journey.",
         }),
@@ -1345,7 +1345,7 @@ export const trackDistributed: Track = {
             "A nurse call light flickers once, while another remains dark for an hour. Paging a supervisor for every flicker creates noise and hides the serious failure. The hospital watches how quickly the promised treatment window is being consumed. A small sustained miss may warrant investigation, while a rapid miss across many patients triggers immediate response. Each alert names the affected promise, the evidence, and the first safe action. The team tests alerts by sending a controlled signal and confirming that the right person receives it with enough context to act.",
           engineer:
             "Multi-window burn-rate alerting compares recent error-budget consumption with longer-term behavior. Fast burns page promptly, while slower burns create tickets or planning work. Alert on symptoms tied to an SLO, then include diagnostic links rather than paging on every possible cause. A common failure is alerting on high CPU without a user impact, or setting thresholds so sensitive that normal deployment noise causes fatigue. Route alerts to an owner, define severity and escalation, and test delivery and runbooks. Use inhibition and grouping to avoid a storm while preserving distinct incidents. Record alert quality and review missed, false, and non-actionable pages.",
-          visualId: visual("threat-defense"),
+          visualId: visual("observability-sli"),
           visualCaption:
             "Burn-rate windows convert SLO consumption into actionable pages with severity and diagnostic context.",
         }),
@@ -1355,7 +1355,7 @@ export const trackDistributed: Track = {
             "The hospital reserves a small amount of treatment time outside the promised window for unexpected demand. If the reserve is nearly untouched, the team can test a faster admission process. If the reserve is exhausted, risky changes pause and effort shifts to reliability. The budget does not excuse avoidable harm; it makes the tradeoff visible and consistent. During an incident, the team tracks how much of the reserve remains and which patient groups are affected. After recovery, a review changes the process rather than simply asking staff to work harder.",
           engineer:
             "An error budget is the allowed amount of SLO miss over a window. It connects reliability work with product delivery: healthy budgets support faster change, while exhausted budgets prioritize stabilization. Budgets should be calculated from the same events as the SLI and accompanied by a policy for freezing risky releases or reducing scope. A common failure is treating the budget as a paperwork metric while alerts, deployment approvals, and incident reviews ignore it. Define who can declare budget exhaustion and how normal service resumes. Blameless reviews should identify systemic causes, improve detection, and track corrective actions to verified closure.",
-          visualId: visual("traffic-flow"),
+          visualId: visual("observability-sli"),
           visualCaption:
             "An error-budget gauge links observed reliability to release velocity, incident review, and remediation priorities.",
         }),
@@ -1393,10 +1393,10 @@ export const trackDistributed: Track = {
           prompt:
             "A service meets its SLO normally but suddenly consumes its error budget rapidly. Which response best matches burn-rate practice?",
           choices: [
-            "Ignore it until the monthly average changes",
+            "Wait for the monthly average to regress before acting",
             "Page the owner with the affected SLO and pause risky changes while investigating",
-            "Lower the SLO target retroactively",
-            "Disable telemetry",
+            "Rewrite the SLO target retroactively to match the outage",
+            "Reduce telemetry sampling until the alert clears",
           ],
           answerIndex: 1,
           explanation:
@@ -1408,12 +1408,12 @@ export const trackDistributed: Track = {
           prompt:
             "What is the safest default for request bodies in application logs?",
           choices: [
-            "Log every body indefinitely",
+            "Log every body indefinitely for faster diagnosis",
+            "Publish request logs to a shared public dashboard",
             "Avoid or redact bodies and retain only approved structured metadata",
-            "Publish logs to a public dashboard",
-            "Store credentials in labels",
+            "Move credentials into metric labels",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "Request bodies often contain sensitive data, so minimization and redaction reduce exposure without losing essential diagnostics.",
         }),
@@ -1423,12 +1423,12 @@ export const trackDistributed: Track = {
           prompt:
             "Why limit metric-label cardinality?",
           choices: [
-            "It guarantees exact traces",
+            "It guarantees every trace is complete",
+            "It removes the need to define SLOs",
+            "It prevents incidents by reducing metric volume",
             "It controls storage cost and query complexity while preserving useful aggregate signals",
-            "It removes the need for SLOs",
-            "It prevents all incidents",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "Unbounded labels create excessive time series and cost; useful dimensions should be deliberate and bounded.",
         }),
@@ -1438,12 +1438,12 @@ export const trackDistributed: Track = {
           prompt:
             "In the hospital story, why replace staff-hours dashboards with treatment-wait measurements?",
           choices: [
-            "Staff effort is never useful",
             "SLOs should measure the user-visible promise rather than an internal activity",
-            "Averages are always more important than percentiles",
-            "Logs cannot contain timestamps",
+            "Staff effort is never useful for diagnosis",
+            "Percentiles matter less than monthly averages",
+            "Logs cannot support service-level measurements",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "Service-level objectives track outcomes users experience, while internal activity is diagnostic rather than the promise itself.",
         }),

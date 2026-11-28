@@ -1,12 +1,19 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 
 export type VisualProps = {
   stepIndex: number;
   active?: boolean;
 };
+
+/**
+ * Monotonic navigation version supplied by TopicVisual. Frames read it through
+ * context so every registered visual replays its step transition without each
+ * of them having to forward a prop explicitly.
+ */
+export const VisualTransitionContext = createContext<number>(0);
 
 export const C = {
   ink: '#141310',
@@ -20,9 +27,15 @@ export const C = {
   fg: '#CFC6B2',
 } as const;
 
-/** 0..3 for any integer step, including negative values. */
+/**
+ * 0..4 for any integer step, including negative values.
+ *
+ * Five-step case studies and blogs need a distinct final (synthesis/defense)
+ * state, so the visual cycle is five states rather than four. Every visual
+ * treats `s === 4` as that concluding state; no visual may alias it to `s === 0`.
+ */
 export function useStep(stepIndex: number): number {
-  return ((stepIndex % 4) + 4) % 4;
+  return ((stepIndex % 5) + 5) % 5;
 }
 
 /**
@@ -57,6 +70,9 @@ export function Frame({
   active?: boolean;
   children: ReactNode;
 }) {
+  const transitionKey = useContext(VisualTransitionContext);
+  const reduce = useReducedMotion();
+
   return (
     <div
       className="w-full aspect-[16/10] rounded-2xl overflow-hidden"
@@ -89,7 +105,18 @@ export function Frame({
             {`STEP ${step + 1}`}
           </text>
         ) : null}
-        {children}
+        {/* Remount only the visual body (never the reader) whenever a step is
+            committed. The keyed group restarts the entrance transition and any
+            nested looping dots for scroll, buttons, dots, resume and arrow keys
+            alike. Under reduced motion it renders at rest, with no motion. */}
+        <motion.g
+          key={transitionKey}
+          initial={reduce ? false : { opacity: 0.55, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduce ? 0 : 0.3, ease: 'easeOut' }}
+        >
+          {children}
+        </motion.g>
         {active ? (
           <rect
             x="2.5"

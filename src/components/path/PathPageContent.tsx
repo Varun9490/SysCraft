@@ -19,7 +19,8 @@ import { ENCYCLOPEDIA_MAP } from "@/data/encyclopediaData";
 import { GUIDED_LABS } from "@/data/guidedLabs";
 import { labCleanTitle } from "@/data/labMeta";
 import { PATH_PARTS, TOTAL_LESSONS } from "@/data/pathData";
-import { getLessonBlog } from "@/data/lessonBlogs";
+import type { LessonBlog } from "@/data/lessonBlogs";
+import { LESSON_BLOG_SUMMARY_BY_ID } from "@/data/lessonBlogSummary";
 import { getLessonRoute, LESSON_ROUTES } from "@/lib/lessonRoutes";
 import { LessonBlogViewer } from "@/components/path/LessonBlogViewer";
 import { useLearningStore } from "@/store/useLearningStore";
@@ -27,6 +28,79 @@ import { useLearningStore } from "@/store/useLearningStore";
 function useLabIndex() {
   const byId = new Map(GUIDED_LABS.map((lab) => [lab.id, lab]));
   return byId;
+}
+
+function LegacyLessonBlogPanel({
+  moduleId,
+  lessonIndex,
+  onPrev,
+  onNext,
+  hasPrev,
+  hasNext,
+  completed,
+  onToggleComplete,
+  onMarkComplete,
+}: {
+  moduleId: string;
+  lessonIndex: number;
+  onPrev?: () => void;
+  onNext?: () => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
+  completed?: boolean;
+  onToggleComplete?: () => void;
+  onMarkComplete?: () => void;
+}) {
+  const requestKey = `${moduleId}::${lessonIndex}`;
+  const [loaded, setLoaded] = useState<{
+    key: string;
+    blog: LessonBlog | null;
+    error: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void import("@/data/lessonBlogs")
+      .then(({ getLessonBlog }) => {
+        if (cancelled) return;
+        setLoaded({ key: requestKey, blog: getLessonBlog(moduleId, lessonIndex), error: false });
+      })
+      .catch(() => {
+        if (!cancelled) setLoaded({ key: requestKey, blog: null, error: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [moduleId, lessonIndex, requestKey]);
+
+  const current = loaded?.key === requestKey ? loaded : null;
+  if (!current) {
+    return (
+      <div className="rounded-xl border border-line bg-app/60 px-4 py-8 text-center text-[13px] text-content-secondary">
+        Loading this lesson…
+      </div>
+    );
+  }
+  if (current.error || !current.blog) {
+    return (
+      <div className="rounded-xl border border-warning/40 bg-app/60 px-4 py-6 text-[13px] text-content-secondary">
+        This lesson could not be loaded. Choose another lesson or open the full page.
+      </div>
+    );
+  }
+
+  return (
+    <LessonBlogViewer
+      blog={current.blog}
+      onPrev={onPrev}
+      onNext={onNext}
+      hasPrev={hasPrev}
+      hasNext={hasNext}
+      completed={completed}
+      onToggleComplete={onToggleComplete}
+      onMarkComplete={onMarkComplete}
+    />
+  );
 }
 
 export function PathPageContent() {
@@ -267,9 +341,10 @@ export function PathPageContent() {
                               </p>
                               <div className="grid gap-2 sm:grid-cols-2">
                                 {module.lessonTitles.map((lesson, lessonIndex) => {
-                                  const blog = getLessonBlog(module.id, lessonIndex);
+                                  const blogId = `${module.id}::${lessonIndex}`;
+                                  const summary = LESSON_BLOG_SUMMARY_BY_ID.get(blogId);
                                   const selected = (selectedLessonByModule[module.id] ?? 0) === lessonIndex;
-                                  const done = completedLessons.has(blog.id);
+                                  const done = completedLessons.has(blogId);
                                   const lessonRoute = getLessonRoute(module.id, lessonIndex);
                                   return (
                                     <div
@@ -296,7 +371,7 @@ export function PathPageContent() {
                                         <span className="min-w-0 flex-1">
                                           <span className="block leading-snug">{lesson}</span>
                                           <span className="mt-0.5 block text-[10.5px] text-content-tertiary">
-                                            {blog.readMinutes} min read - read blog and try sandbox
+                                            {summary?.readMinutes ?? 8} min read - read blog and try sandbox
                                           </span>
                                         </span>
                                       </button>
@@ -316,8 +391,9 @@ export function PathPageContent() {
                             </div>
 
                             {(viewModeByModule[module.id] ?? "blog") === "blog" ? (
-                              <LessonBlogViewer
-                                blog={getLessonBlog(module.id, selectedLessonByModule[module.id] ?? 0)}
+                              <LegacyLessonBlogPanel
+                                moduleId={module.id}
+                                lessonIndex={selectedLessonByModule[module.id] ?? 0}
                                 onPrev={() =>
                                   setSelectedLessonByModule((prev) => ({
                                     ...prev,
@@ -336,13 +412,13 @@ export function PathPageContent() {
                                 hasPrev={(selectedLessonByModule[module.id] ?? 0) > 0}
                                 hasNext={(selectedLessonByModule[module.id] ?? 0) < module.lessonTitles.length - 1}
                                 completed={completedLessons.has(
-                                  getLessonBlog(module.id, selectedLessonByModule[module.id] ?? 0).id,
+                                  `${module.id}::${selectedLessonByModule[module.id] ?? 0}`,
                                 )}
                                 onToggleComplete={() =>
-                                  toggleComplete(getLessonBlog(module.id, selectedLessonByModule[module.id] ?? 0).id)
+                                  toggleComplete(`${module.id}::${selectedLessonByModule[module.id] ?? 0}`)
                                 }
                                 onMarkComplete={() =>
-                                  markComplete(getLessonBlog(module.id, selectedLessonByModule[module.id] ?? 0).id)
+                                  markComplete(`${module.id}::${selectedLessonByModule[module.id] ?? 0}`)
                                 }
                               />
                             ) : (

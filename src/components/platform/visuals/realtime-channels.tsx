@@ -13,6 +13,8 @@ export function RealtimeChannelsVisual({ stepIndex, active }: VisualProps) {
   const ticks = 4 + s;
   const top = 118;
   const bottom = 326;
+  // s === 4 is the final hardened state: persistent channel with revoked stale connections.
+  const final = s === 4;
 
   return (
     <Frame title="realtime channels" step={s} active={active}>
@@ -25,8 +27,8 @@ export function RealtimeChannelsVisual({ stepIndex, active }: VisualProps) {
             height="252"
             rx="8"
             fill={col.color}
-            fillOpacity="0.05"
-            stroke={C.border}
+            fillOpacity={final && col.gap === 1 ? 0.12 : 0.05}
+            stroke={final && col.gap === 1 ? col.color : C.border}
             strokeWidth="1"
           />
           <text x={col.x + 76} y={78} textAnchor="middle" fontSize="10" fill={col.color}>
@@ -65,6 +67,10 @@ export function RealtimeChannelsVisual({ stepIndex, active }: VisualProps) {
           })}
         </g>
       ))}
+
+      <text x="320" y="360" textAnchor="middle" fontSize="9" fill={final ? C.healthy : C.border}>
+        {final ? 'persistent channel · stale connections revoked' : 'repeated delivery over time'}
+      </text>
     </Frame>
   );
 }

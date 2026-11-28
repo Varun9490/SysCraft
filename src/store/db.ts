@@ -1,87 +1,50 @@
-import Dexie, { type Table } from "dexie";
-import type { FsrsCardMemory } from "@/engine/fsrsScheduler";
-import type { LabProgress } from "@/types/challenges";
+import {
+  discardPendingCanvasWrite,
+  flushPendingCanvasWrite,
+} from "./canvasPersistence";
+import {
+  BACKUP_FORMAT,
+  emptyIndexedDbTables,
+  isSysCraftBackupStorageKey,
+  isSysCraftOwnedStorageKey,
+  SYSCRAFT_TABLE_NAMES,
+  type BlueprintRecord,
+  type CustomResourceRecord,
+  type FsrsCardRecord,
+  type LabProgressRecord,
+  type SysCraftBackup,
+} from "./backup/schema";
+import { validateBackupJson } from "./backup/validation";
+
+export { BACKUP_FORMAT, SYSCRAFT_DB_NAME } from "./backup/schema";
+export type {
+  BlueprintRecord,
+  CustomResourceRecord,
+  FsrsCardRecord,
+  LabProgressRecord,
+  SimRecordingRecord,
+  SysCraftBackup,
+} from "./backup/schema";
 
 /**
- * IndexedDB persistence via Dexie (SysCraft local-first contract).
- *
- * Tables mirror ARCHITECTURE.md §3 exactly: blueprints, customResources,
- * fsrsCards, labProgress — plus simRecordings for DVR capture export.
- * Every helper no-ops gracefully outside the browser (Vitest / SSR) instead
- * of throwing, so stores can call them unconditionally.
+ * IndexedDB persistence via a lazy browser-only Dexie module (SysCraft
+ * local-first contract). Importing this facade is safe in Node and during
+ * static prerender; no database is constructed until a browser helper runs.
  *
  * Database name is `syscraft_db_v1`. On first boot, `migrateLegacyDatabases()`
  * copies any tables from the pre-rebrand `syscanvas` database so learners who
  * built designs on the beta never lose data.
  */
 
-export const SYSCRAFT_DB_NAME = "syscraft_db_v1";
-const LEGACY_DB_NAME = "syscanvas";
+type BrowserDatabase = NonNullable<Awaited<ReturnType<typeof loadBrowserDatabase>>>;
 
-export interface BlueprintRecord {
-  id: string;
-  name: string;
-  updatedAt: string;
-  payload: string;
+async function loadBrowserDatabase() {
+  if (!isIndexedDbAvailable()) return null;
+  const { getSysCraftDatabase } = await import("./backup/browserDatabase");
+  return getSysCraftDatabase();
 }
 
-export interface CustomResourceRecord {
-  id: string;
-  name: string;
-  category: string;
-  schema: string;
-  updatedAt: string;
-}
-
-export interface FsrsCardRecord extends FsrsCardMemory {
-  moduleId: string;
-}
-
-export interface LabProgressRecord extends LabProgress {
-  updatedAt: string;
-}
-
-export interface SimRecordingRecord {
-  id: string;
-  name: string;
-  startedAt: string;
-  tickCount: number;
-  payload: string;
-}
-
-class SysCraftDatabase extends Dexie {
-  blueprints!: Table<BlueprintRecord, string>;
-  customResources!: Table<CustomResourceRecord, string>;
-  fsrsCards!: Table<FsrsCardRecord, string>;
-  labProgress!: Table<LabProgressRecord, string>;
-  simRecordings!: Table<SimRecordingRecord, string>;
-
-  constructor() {
-    super(SYSCRAFT_DB_NAME);
-    this.version(1).stores({
-      blueprints: "id, updatedAt",
-      customResources: "id, category, updatedAt",
-      fsrsCards: "cardId, moduleId, due",
-      labProgress: "labId, updatedAt",
-      simRecordings: "id, startedAt",
-    });
-  }
-}
-
-export const db = new SysCraftDatabase();
-
-interface LegacyTablePair {
-  name: "blueprints" | "customResources" | "fsrsCards" | "labProgress" | "simRecordings";
-  key: string;
-}
-
-const LEGACY_TABLES: LegacyTablePair[] = [
-  { name: "blueprints", key: "id" },
-  { name: "customResources", key: "id" },
-  { name: "fsrsCards", key: "cardId" },
-  { name: "labProgress", key: "labId" },
-  { name: "simRecordings", key: "id" },
-];
+const LEGACY_PREFIXES = ["syscanvas.", "systemcanvas.", "syscanvas_", "systemcanvas_"];
 
 let legacyMigrationRan = false;
 
@@ -95,39 +58,14 @@ export async function migrateLegacyDatabases(): Promise<number> {
   if (!isIndexedDbAvailable() || legacyMigrationRan) return 0;
   legacyMigrationRan = true;
   try {
-    const exists = await Dexie.exists(LEGACY_DB_NAME);
-    if (!exists) return 0;
-    const legacy = new Dexie(LEGACY_DB_NAME);
-    legacy.version(1).stores({
-      blueprints: "id, updatedAt",
-      customResources: "id, category, updatedAt",
-      fsrsCards: "cardId, moduleId, due",
-      labProgress: "labId, updatedAt",
-      simRecordings: "id, startedAt",
-    });
-    let copied = 0;
-    for (const table of LEGACY_TABLES) {
-      try {
-        const rows = await legacy.table(table.name).toArray();
-        if (rows.length === 0) continue;
-        const target = db.table(table.name);
-        await target.bulkPut(rows);
-        copied += rows.length;
-      } catch {
-        /* table missing in the legacy schema — skip */
-      }
-    }
-    legacy.close();
-    if (copied > 0) {
-      await runLocalStorageMigrations();
-    }
+    const { migrateLegacyDatabases: migrateBrowserDatabase } = await import("./backup/browserDatabase");
+    const copied = await migrateBrowserDatabase();
+    if (copied > 0) await runLocalStorageMigrations();
     return copied;
   } catch {
     return 0;
   }
 }
-
-const LEGACY_PREFIXES = ["syscanvas.", "systemcanvas.", "syscanvas_", "systemcanvas_"];
 
 /**
  * Copies legacy localStorage keys (`syscanvas.*`, `systemcanvas*`) onto the
@@ -143,7 +81,7 @@ export async function runLocalStorageMigrations(): Promise<number> {
       if (key) keys.push(key);
     }
     for (const key of keys) {
-      const prefix = LEGACY_PREFIXES.find((p) => key.startsWith(p));
+      const prefix = LEGACY_PREFIXES.find((candidate) => key.startsWith(candidate));
       if (!prefix) continue;
       const suffix = key.slice(prefix.length);
       const nextKey = `syscraft.${suffix}`;
@@ -177,15 +115,16 @@ function safeId(prefix: string): string {
 }
 
 export async function saveBlueprint(name: string, payload: string): Promise<BlueprintRecord | null> {
-  if (!isIndexedDbAvailable()) return null;
   try {
+    const database = await loadBrowserDatabase();
+    if (!database) return null;
     const record: BlueprintRecord = {
       id: safeId("bp"),
       name,
       updatedAt: new Date().toISOString(),
       payload,
     };
-    await db.blueprints.put(record);
+    await database.blueprints.put(record);
     return record;
   } catch {
     return null;
@@ -193,27 +132,30 @@ export async function saveBlueprint(name: string, payload: string): Promise<Blue
 }
 
 export async function listBlueprints(): Promise<BlueprintRecord[]> {
-  if (!isIndexedDbAvailable()) return [];
   try {
-    return await db.blueprints.orderBy("updatedAt").reverse().toArray();
+    const database = await loadBrowserDatabase();
+    if (!database) return [];
+    return await database.blueprints.orderBy("updatedAt").reverse().toArray();
   } catch {
     return [];
   }
 }
 
 export async function loadBlueprint(id: string): Promise<BlueprintRecord | null> {
-  if (!isIndexedDbAvailable()) return null;
   try {
-    return (await db.blueprints.get(id)) ?? null;
+    const database = await loadBrowserDatabase();
+    if (!database) return null;
+    return (await database.blueprints.get(id)) ?? null;
   } catch {
     return null;
   }
 }
 
 export async function deleteBlueprint(id: string): Promise<boolean> {
-  if (!isIndexedDbAvailable()) return false;
   try {
-    await db.blueprints.delete(id);
+    const database = await loadBrowserDatabase();
+    if (!database) return false;
+    await database.blueprints.delete(id);
     return true;
   } catch {
     return false;
@@ -223,9 +165,10 @@ export async function deleteBlueprint(id: string): Promise<boolean> {
 export async function saveCustomResource(
   record: Omit<CustomResourceRecord, "updatedAt">,
 ): Promise<boolean> {
-  if (!isIndexedDbAvailable()) return false;
   try {
-    await db.customResources.put({ ...record, updatedAt: new Date().toISOString() });
+    const database = await loadBrowserDatabase();
+    if (!database) return false;
+    await database.customResources.put({ ...record, updatedAt: new Date().toISOString() });
     return true;
   } catch {
     return false;
@@ -233,18 +176,20 @@ export async function saveCustomResource(
 }
 
 export async function listCustomResources(): Promise<CustomResourceRecord[]> {
-  if (!isIndexedDbAvailable()) return [];
   try {
-    return await db.customResources.orderBy("updatedAt").reverse().toArray();
+    const database = await loadBrowserDatabase();
+    if (!database) return [];
+    return await database.customResources.orderBy("updatedAt").reverse().toArray();
   } catch {
     return [];
   }
 }
 
 export async function putFsrsCards(cards: FsrsCardRecord[]): Promise<boolean> {
-  if (!isIndexedDbAvailable() || cards.length === 0) return false;
   try {
-    await db.fsrsCards.bulkPut(cards);
+    const database = await loadBrowserDatabase();
+    if (!database || cards.length === 0) return false;
+    await database.fsrsCards.bulkPut(cards);
     return true;
   } catch {
     return false;
@@ -252,18 +197,20 @@ export async function putFsrsCards(cards: FsrsCardRecord[]): Promise<boolean> {
 }
 
 export async function loadFsrsCards(): Promise<FsrsCardRecord[]> {
-  if (!isIndexedDbAvailable()) return [];
   try {
-    return await db.fsrsCards.toArray();
+    const database = await loadBrowserDatabase();
+    if (!database) return [];
+    return await database.fsrsCards.toArray();
   } catch {
     return [];
   }
 }
 
 export async function putLabProgress(progress: LabProgressRecord): Promise<boolean> {
-  if (!isIndexedDbAvailable()) return false;
   try {
-    await db.labProgress.put(progress);
+    const database = await loadBrowserDatabase();
+    if (!database) return false;
+    await database.labProgress.put(progress);
     return true;
   } catch {
     return false;
@@ -271,18 +218,20 @@ export async function putLabProgress(progress: LabProgressRecord): Promise<boole
 }
 
 export async function loadLabProgress(): Promise<LabProgressRecord[]> {
-  if (!isIndexedDbAvailable()) return [];
   try {
-    return await db.labProgress.toArray();
+    const database = await loadBrowserDatabase();
+    if (!database) return [];
+    return await database.labProgress.toArray();
   } catch {
     return [];
   }
 }
 
 export async function saveSimRecording(name: string, payload: string, tickCount: number): Promise<boolean> {
-  if (!isIndexedDbAvailable()) return false;
   try {
-    await db.simRecordings.put({
+    const database = await loadBrowserDatabase();
+    if (!database) return false;
+    await database.simRecordings.put({
       id: safeId("rec"),
       name,
       startedAt: new Date().toISOString(),
@@ -297,59 +246,6 @@ export async function saveSimRecording(name: string, payload: string, tickCount:
 
 /* ------------------------- backup export / import ------------------------- */
 
-export const BACKUP_FORMAT = "syscraft.backup/1";
-const SYSCRAFT_LS_PREFIX = "syscraft.";
-
-export interface SysCraftBackup {
-  format: string;
-  exportedAt: string;
-  indexedDb: {
-    blueprints: BlueprintRecord[];
-    customResources: CustomResourceRecord[];
-    fsrsCards: FsrsCardRecord[];
-    labProgress: LabProgressRecord[];
-    simRecordings: SimRecordingRecord[];
-  };
-  localStorage: Record<string, string>;
-}
-
-/**
- * Snapshot every SysCraft-owned byte: all five IndexedDB tables plus the
- * `syscraft.*` localStorage keys (practice history, play scores, BYOK config,
- * canvas autosave). Never touches unrelated origin data.
- */
-export async function exportBackup(): Promise<SysCraftBackup> {
-  const empty: SysCraftBackup = {
-    format: BACKUP_FORMAT,
-    exportedAt: new Date().toISOString(),
-    indexedDb: { blueprints: [], customResources: [], fsrsCards: [], labProgress: [], simRecordings: [] },
-    localStorage: {},
-  };
-  try {
-    if (isIndexedDbAvailable()) {
-      const [blueprints, customResources, fsrsCards, labProgress, simRecordings] = await Promise.all([
-        db.blueprints.toArray(),
-        db.customResources.toArray(),
-        db.fsrsCards.toArray(),
-        db.labProgress.toArray(),
-        db.simRecordings.toArray(),
-      ]);
-      empty.indexedDb = { blueprints, customResources, fsrsCards, labProgress, simRecordings };
-    }
-    if (typeof window !== "undefined") {
-      for (let i = 0; i < window.localStorage.length; i += 1) {
-        const key = window.localStorage.key(i);
-        if (!key || !key.startsWith(SYSCRAFT_LS_PREFIX)) continue;
-        const value = window.localStorage.getItem(key);
-        if (value !== null) empty.localStorage[key] = value;
-      }
-    }
-    return empty;
-  } catch {
-    return empty;
-  }
-}
-
 export interface ImportResult {
   ok: boolean;
   error?: string;
@@ -357,70 +253,193 @@ export interface ImportResult {
   keys: number;
 }
 
+function emptyBackup(): SysCraftBackup {
+  return {
+    format: BACKUP_FORMAT,
+    exportedAt: new Date().toISOString(),
+    indexedDb: emptyIndexedDbTables(),
+    localStorage: {},
+  };
+}
+
 /**
- * Restore a backup produced by `exportBackup()`. Merges (bulkPut) instead of
- * replacing, so importing into a used browser never destroys newer local
- * data. Validates the format marker before writing anything.
+ * Snapshot every SysCraft-owned byte: all five IndexedDB tables plus
+ * session-independent `syscraft.*` and canvas autosave keys. BYOK credentials
+ * are deliberately excluded from normal backups.
+ */
+export async function exportBackup(): Promise<SysCraftBackup> {
+  // Include trailing canvas edits rather than exporting the previous debounce.
+  flushPendingCanvasWrite();
+  const backup = emptyBackup();
+  const database = await loadBrowserDatabase();
+  if (database) {
+    backup.indexedDb = await database.transaction("r", [...SYSCRAFT_TABLE_NAMES], async () => {
+      const [blueprints, customResources, fsrsCards, labProgress, simRecordings] = await Promise.all([
+        database.blueprints.toArray(),
+        database.customResources.toArray(),
+        database.fsrsCards.toArray(),
+        database.labProgress.toArray(),
+        database.simRecordings.toArray(),
+      ]);
+      return { blueprints, customResources, fsrsCards, labProgress, simRecordings };
+    });
+  }
+
+  if (typeof window !== "undefined") {
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (!key || !isSysCraftBackupStorageKey(key)) continue;
+      const value = window.localStorage.getItem(key);
+      if (value !== null) backup.localStorage[key] = value;
+    }
+  }
+  return backup;
+}
+
+function snapshotLocalStorage(storage: Storage, keys: Iterable<string>): Map<string, string | null> {
+  const previous = new Map<string, string | null>();
+  for (const key of keys) previous.set(key, storage.getItem(key));
+  return previous;
+}
+
+function restoreLocalStorage(storage: Storage, previous: Map<string, string | null>): boolean {
+  let restored = true;
+  // Remove new values first so quota pressure does not block restoring old ones.
+  for (const key of previous.keys()) {
+    try {
+      storage.removeItem(key);
+    } catch {
+      restored = false;
+    }
+  }
+  for (const [key, value] of previous) {
+    if (value === null) continue;
+    try {
+      storage.setItem(key, value);
+    } catch {
+      restored = false;
+    }
+  }
+  return restored;
+}
+
+function writeLocalStorage(storage: Storage, entries: Record<string, string>): void {
+  for (const [key, value] of Object.entries(entries)) storage.setItem(key, value);
+}
+
+function failedImport(error: string): ImportResult {
+  return { ok: false, error, rows: 0, keys: 0 };
+}
+
+/**
+ * Validate and stage the entire v1 backup before mutation. IndexedDB tables
+ * commit in one transaction; localStorage is snapshotted and rolled back if
+ * either store fails, so a rejected import leaves the prior state intact.
  */
 export async function importBackup(json: string): Promise<ImportResult> {
+  const validated = validateBackupJson(json);
+  if (!validated.ok) return failedImport(validated.error);
+
+  let database: BrowserDatabase | null;
   try {
-    const parsed = JSON.parse(json) as Partial<SysCraftBackup>;
-    if (parsed.format !== BACKUP_FORMAT || typeof parsed.indexedDb !== "object" || parsed.indexedDb === null) {
-      return { ok: false, error: "Not a SysCraft backup file (missing format marker).", rows: 0, keys: 0 };
-    }
-    let rows = 0;
-    let keys = 0;
-    if (isIndexedDbAvailable()) {
-      const tables: Array<keyof SysCraftBackup["indexedDb"]> = [
-        "blueprints",
-        "customResources",
-        "fsrsCards",
-        "labProgress",
-        "simRecordings",
-      ];
-      for (const name of tables) {
-        const list = parsed.indexedDb[name];
-        if (!Array.isArray(list) || list.length === 0) continue;
-        await db.table(name).bulkPut(list);
-        rows += list.length;
-      }
-    }
-    const ls = parsed.localStorage;
-    if (typeof window !== "undefined" && ls && typeof ls === "object") {
-      for (const [key, value] of Object.entries(ls)) {
-        if (!key.startsWith(SYSCRAFT_LS_PREFIX) || typeof value !== "string") continue;
-        window.localStorage.setItem(key, value);
-        keys += 1;
-      }
-    }
-    return { ok: true, rows, keys };
+    database = (await loadBrowserDatabase()) ?? null;
   } catch {
-    return { ok: false, error: "Could not parse the backup file — is it valid JSON?", rows: 0, keys: 0 };
+    return failedImport("IndexedDB is unavailable; no backup data was changed.");
+  }
+
+  let storage: Storage | null = null;
+  try {
+    storage = typeof window === "undefined" ? null : window.localStorage;
+  } catch {
+    return failedImport("Local storage is unavailable; no backup data was changed.");
+  }
+
+  const entries = Object.entries(validated.backup.localStorage);
+  let previous: Map<string, string | null> | null = null;
+  let storageTouched = false;
+  try {
+    if (storage) previous = snapshotLocalStorage(storage, entries.map(([key]) => key));
+    // A queued canvas autosave must not overwrite the restored canvas later.
+    discardPendingCanvasWrite();
+
+    if (database) {
+      await database.transaction("rw", [...SYSCRAFT_TABLE_NAMES], async () => {
+        if (storage) {
+          storageTouched = true;
+          writeLocalStorage(storage, validated.backup.localStorage);
+        }
+        for (const tableName of SYSCRAFT_TABLE_NAMES) {
+          await database.table(tableName).bulkPut(validated.backup.indexedDb[tableName]);
+        }
+      });
+    } else if (storage) {
+      storageTouched = true;
+      writeLocalStorage(storage, validated.backup.localStorage);
+    }
+
+    return {
+      ok: true,
+      rows: database ? validated.rows : 0,
+      keys: storage ? validated.keys : 0,
+    };
+  } catch {
+    const restored = !storageTouched || !storage || !previous || restoreLocalStorage(storage, previous);
+    return failedImport(
+      restored
+        ? "Could not commit the backup atomically; prior data was restored."
+        : "Could not commit the backup; IndexedDB rolled back, but localStorage rollback was incomplete.",
+    );
   }
 }
 
-/** Delete every SysCraft-owned byte (IndexedDB tables + `syscraft.*` keys). */
+/** Delete every SysCraft-owned byte, including BYOK, but no unrelated origin data. */
 export async function wipeLocalData(): Promise<boolean> {
+  let database: BrowserDatabase | null;
   try {
-    if (isIndexedDbAvailable()) {
-      await Promise.all([
-        db.blueprints.clear(),
-        db.customResources.clear(),
-        db.fsrsCards.clear(),
-        db.labProgress.clear(),
-        db.simRecordings.clear(),
-      ]);
-    }
-    if (typeof window !== "undefined") {
-      const doomed: string[] = [];
-      for (let i = 0; i < window.localStorage.length; i += 1) {
-        const key = window.localStorage.key(i);
-        if (key && key.startsWith(SYSCRAFT_LS_PREFIX)) doomed.push(key);
+    database = (await loadBrowserDatabase()) ?? null;
+  } catch {
+    return false;
+  }
+
+  let storage: Storage | null = null;
+  try {
+    storage = typeof window === "undefined" ? null : window.localStorage;
+  } catch {
+    return false;
+  }
+
+  let previous: Map<string, string | null> | null = null;
+  let storageTouched = false;
+  try {
+    const doomed: string[] = [];
+    if (storage) {
+      for (let i = 0; i < storage.length; i += 1) {
+        const key = storage.key(i);
+        if (key && isSysCraftOwnedStorageKey(key)) doomed.push(key);
       }
-      for (const key of doomed) window.localStorage.removeItem(key);
+      previous = snapshotLocalStorage(storage, doomed);
+    }
+
+    // Cancel queued autosaves only after storage access and snapshots succeed.
+    discardPendingCanvasWrite();
+
+    if (database) {
+      await database.transaction("rw", [...SYSCRAFT_TABLE_NAMES], async () => {
+        if (storage) {
+          storageTouched = true;
+          for (const key of doomed) storage.removeItem(key);
+        }
+        for (const tableName of SYSCRAFT_TABLE_NAMES) {
+          await database.table(tableName).clear();
+        }
+      });
+    } else if (storage) {
+      storageTouched = true;
+      for (const key of doomed) storage.removeItem(key);
     }
     return true;
   } catch {
+    if (storageTouched && storage && previous) restoreLocalStorage(storage, previous);
     return false;
   }
 }

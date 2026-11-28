@@ -9,8 +9,9 @@ import { ArrowRight } from "@/components/ui/icons";
 /**
  * Static-export-friendly redirect: real static HTML with an honest notice is
  * rendered for crawlers and no-JS visitors, then clients hop to the new
- * location. Production traffic gets a true 301 from vercel.json — this page
- * only matters for local dev and statically-hosted mirrors.
+ * location. On Vercel, vercel.json declares a true 301 before this page is
+ * reached; on plain static hosts (and in local dev) this fallback is the
+ * only redirect, so it carries an explicit cross-canonical in page metadata.
  */
 export function RedirectTo({
   href,

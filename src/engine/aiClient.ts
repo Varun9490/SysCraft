@@ -71,12 +71,18 @@ const BYOK_STORAGE_KEY = "syscraft.byok";
 
 export const OPENCODE_BRIDGE_URL = "http://127.0.0.1:8787";
 const OPENCODE_BRIDGE_STORAGE_KEY = "syscraft.opencodeBridge";
+const OPENCODE_BRIDGE_TOKEN_STORAGE_KEY = "syscraft.opencodeBridgeToken";
+const OPENCODE_BRIDGE_TOKEN_HEADER = "X-SysCraft-Bridge-Token";
+const BRIDGE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 export function setOpenCodeBridgeEnabled(on: boolean): void {
   try {
     if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
     if (on) window.localStorage.setItem(OPENCODE_BRIDGE_STORAGE_KEY, "1");
-    else window.localStorage.removeItem(OPENCODE_BRIDGE_STORAGE_KEY);
+    else {
+      window.localStorage.removeItem(OPENCODE_BRIDGE_STORAGE_KEY);
+      window.localStorage.removeItem(OPENCODE_BRIDGE_TOKEN_STORAGE_KEY);
+    }
   } catch {
     /* storage unavailable */
   }
@@ -88,6 +94,54 @@ export function isOpenCodeBridgeEnabled(): boolean {
     return window.localStorage.getItem(OPENCODE_BRIDGE_STORAGE_KEY) === "1";
   } catch {
     return false;
+  }
+}
+
+function readOpenCodeBridgeToken(): string | null {
+  try {
+    if (typeof window === "undefined" || typeof window.localStorage === "undefined") return null;
+    const token = window.localStorage.getItem(OPENCODE_BRIDGE_TOKEN_STORAGE_KEY);
+    return token && BRIDGE_TOKEN_PATTERN.test(token) ? token : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeOpenCodeBridgeToken(token: string): boolean {
+  try {
+    if (typeof window === "undefined" || typeof window.localStorage === "undefined") return false;
+    window.localStorage.setItem(OPENCODE_BRIDGE_TOKEN_STORAGE_KEY, token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearOpenCodeBridgeToken(): void {
+  try {
+    if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
+    window.localStorage.removeItem(OPENCODE_BRIDGE_TOKEN_STORAGE_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** Bootstrap the per-process bridge token through the existing health-check flow. */
+async function obtainOpenCodeBridgeToken(): Promise<string | null> {
+  try {
+    const res = await fetch(`${OPENCODE_BRIDGE_URL}/health`, {
+      method: "GET",
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as unknown;
+    if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+    const token = (data as Record<string, unknown>)["token"];
+    if (typeof token !== "string" || !BRIDGE_TOKEN_PATTERN.test(token)) return null;
+    return storeOpenCodeBridgeToken(token) ? token : null;
+  } catch {
+    return null;
   }
 }
 
@@ -455,10 +509,14 @@ async function fetchWithTimeout(url: string, init: RequestInit, ms = 20000): Pro
 async function reviewWithGemini(brief: TopologyBrief, config: ByokConfig): Promise<AiFinding[] | null> {
   const model = config.model ?? "gemini-2.0-flash";
   const res = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(config.apiKey)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        // Gemini supports header auth; URLs can be retained by proxies and logs.
+        "x-goog-api-key": config.apiKey,
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: briefToPrompt(brief) }] }],
         generationConfig: { response_mime_type: "application/json", maxOutputTokens: 2048 },
@@ -677,12 +735,28 @@ export function extractFindingsJson(text: string): AiFinding[] | null {
 
 export async function reviewWithOpenCodeBridge(brief: TopologyBrief): Promise<AiFinding[] | null> {
   try {
-    const res = await fetch(`${OPENCODE_BRIDGE_URL}/review`, {
+    let token = readOpenCodeBridgeToken();
+    if (!token) token = await obtainOpenCodeBridgeToken();
+    if (!token) return null;
+
+    const postReview = (bridgeToken: string) => fetch(`${OPENCODE_BRIDGE_URL}/review`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        [OPENCODE_BRIDGE_TOKEN_HEADER]: bridgeToken,
+      },
       body: JSON.stringify({ brief }),
       signal: AbortSignal.timeout(20000),
     });
+
+    let res = await postReview(token);
+    if (res.status === 401) {
+      // The bridge process restarted and rotated its token; refresh once.
+      clearOpenCodeBridgeToken();
+      token = await obtainOpenCodeBridgeToken();
+      if (!token) return null;
+      res = await postReview(token);
+    }
     if (!res.ok) return null;
     const data = (await res.json()) as unknown;
     let raw: unknown = data;

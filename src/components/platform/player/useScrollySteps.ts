@@ -9,11 +9,31 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * the next 600ms so the IntersectionObserver cannot pull the reader back to a
  * section it is still smooth-scrolling past. Reading-mode changes can hold that
  * suppression window open while their content-height animations settle.
+ *
+ * `stepVersion` is a monotonic counter bumped once per committed step change.
+ * It is the single transition signal handed to every visual so that arrow keys,
+ * buttons, dots, resume restores and scroll all replay the same animation.
  */
 export function useScrollySteps(count: number) {
   const [activeStep, setActiveStep] = useState(0);
+  const [stepVersion, setStepVersion] = useState(0);
+  const activeStepRef = useRef(0);
   const sectionRefs = useRef<Array<HTMLElement | null>>([]);
   const observerSuppressedUntilRef = useRef(0);
+
+  const commitStep = useCallback(
+    (index: number) => {
+      const target = Math.max(0, Math.min(count - 1, index));
+      // Guard against duplicate commits (repeated scroll observations or a
+      // held arrow key) so a single navigation replays exactly one animation.
+      if (target === activeStepRef.current) return target;
+      activeStepRef.current = target;
+      setActiveStep(target);
+      setStepVersion((version) => version + 1);
+      return target;
+    },
+    [count],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined" || count === 0) return;
@@ -30,7 +50,7 @@ export function useScrollySteps(count: number) {
             bestIndex = index;
           }
         }
-        if (bestIndex >= 0 && bestRatio >= 0.4) setActiveStep(bestIndex);
+        if (bestIndex >= 0 && bestRatio >= 0.4) commitStep(bestIndex);
       },
       { threshold: [0, 0.4, 0.6, 1] },
     );
@@ -38,23 +58,22 @@ export function useScrollySteps(count: number) {
       if (element) observer.observe(element);
     }
     return () => observer.disconnect();
-  }, [count]);
+  }, [count, commitStep]);
 
   const goToStep = useCallback(
     (index: number) => {
-      const target = Math.max(0, Math.min(count - 1, index));
+      const target = commitStep(index);
       observerSuppressedUntilRef.current = Math.max(
         observerSuppressedUntilRef.current,
         Date.now() + 600,
       );
-      setActiveStep(target);
       const element = sectionRefs.current[target];
       if (element && typeof window !== "undefined") {
         const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         element.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
       }
     },
-    [count],
+    [commitStep],
   );
 
   const holdStep = useCallback((durationMs = 1000) => {
@@ -77,17 +96,21 @@ export function useScrollySteps(count: number) {
       ) {
         return;
       }
+      // Read the live step from the ref instead of a render-scoped closure so a
+      // key repeat or a press during the smooth scroll cannot act on a stale
+      // index. Arrow keys therefore take the exact same goToStep path (and the
+      // same stepVersion bump) as the Previous/Next buttons and step dots.
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        goToStep(activeStep - 1);
+        goToStep(activeStepRef.current - 1);
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
-        goToStep(activeStep + 1);
+        goToStep(activeStepRef.current + 1);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeStep, goToStep]);
+  }, [goToStep]);
 
-  return { activeStep, sectionRefs, goToStep, holdStep };
+  return { activeStep, sectionRefs, goToStep, holdStep, stepVersion };
 }

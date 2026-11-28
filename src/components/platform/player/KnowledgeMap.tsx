@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Plus, RotateCcw, Search } from "@/components/ui/icons";
-import { BLOGS, TRACKS } from "@/content/platform/registry";
+import { BLOGS, TRACKS, getTrack } from "@/content/platform/registry";
 import { PLATFORM_LABS } from "@/learning/platform/labCatalog";
 import { useLearnerPlatformStore } from "@/store/useLearnerPlatformStore";
-import type { Track } from "@/learning/platform/types";
+import type { Lesson, Track } from "@/learning/platform/types";
 
 const STAGE_WIDTH = 920;
 const STAGE_HEIGHT = 560;
@@ -30,6 +30,18 @@ const ACCENT: Record<Track["accent"], { dot: string; chip: string; line: string 
   cyan: { dot: "bg-cyan-400", chip: "text-cyan-400 border-cyan-400/40", line: "#DBBB86" },
 };
 
+/**
+ * Canonical lesson route is /paths/<owning track slug>/<lesson slug>.
+ * The track comes from the lesson itself — the same rule used by the resume
+ * pill and blog reader — so a lesson listed under a selected node can never
+ * produce a mixed track/lesson URL. The selected slug is only a fallback for
+ * incomplete lesson metadata.
+ */
+function lessonHref(lesson: Lesson, selectedSlug: string): string {
+  const owner = getTrack(lesson.trackId);
+  return `/paths/${owner?.slug ?? selectedSlug}/${lesson.slug}`;
+}
+
 export function KnowledgeMap() {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
@@ -45,7 +57,9 @@ export function KnowledgeMap() {
     hydrate();
   }, [hydrate]);
 
-  const selected = TRACKS.find((track) => track.id === selectedId) ?? TRACKS[0];
+  // Resolve the selected node through the registry so the aside, its
+  // prerequisites and its Open links all describe the same track.
+  const selected = getTrack(selectedId) ?? TRACKS[0];
   const needle = query.trim().toLowerCase();
   const matches = (track: Track) =>
     !needle ||
@@ -245,7 +259,8 @@ export function KnowledgeMap() {
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <span className={`text-[11px] ${done ? "text-emerald-300" : "text-content-tertiary"}`}>{status}</span>
                       <Link
-                        href={`/paths/${selected.slug}/${lesson.slug}`}
+                        href={lessonHref(lesson, selected.slug)}
+                        aria-label={`Open ${lesson.title} in ${selected.title}`}
                         className="inline-flex items-center gap-1 text-[11px] text-brass hover:underline"
                       >
                         Open <ArrowRight size={12} />

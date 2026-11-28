@@ -208,21 +208,21 @@ export function SettingsPanel() {
   return (
     <div className="mx-auto max-w-3xl">
       <header className="mb-8">
-        <p className="text-[11px] font-semibold tracking-[0.2em] text-sky-400/80">SETTINGS</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-zinc-100">Tune your workshop</h1>
-        <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+        <p className="text-[11px] font-semibold tracking-[0.2em] text-brass">SETTINGS</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold text-content">Tune your workshop</h1>
+        <p className="mt-3 text-sm leading-relaxed text-content-secondary">
           Everything on this page lives on your device. No accounts, no telemetry, no server round-trips — export it,
           move it, or delete it whenever you want.
         </p>
       </header>
 
       {/* ------------------------------- AI engine ------------------------------- */}
-      <section aria-labelledby="ai-heading" className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-        <h2 id="ai-heading" className="flex items-center gap-2 text-[13px] font-semibold text-zinc-100">
-          <BrainCircuit className="h-4 w-4 text-sky-400" aria-hidden />
+      <section aria-labelledby="ai-heading" className="rounded-2xl border border-line bg-app-raised/60 p-5">
+        <h2 id="ai-heading" className="flex items-center gap-2 text-[13px] font-semibold text-content">
+          <BrainCircuit className="h-4 w-4 text-brass" aria-hidden />
           AI review engine
         </h2>
-        <p className="mt-2 text-[12.5px] leading-relaxed text-zinc-500">
+        <p className="mt-2 text-[12.5px] leading-relaxed text-content-secondary">
           The Design Doctor and topology reviewer run in three tiers. The deterministic offline architect is always
           active as the floor — the other tiers only add nuance when you opt in.
         </p>
@@ -248,19 +248,19 @@ export function SettingsPanel() {
           />
         </div>
 
-        <div className="mt-5 rounded-xl border border-zinc-800/80 bg-zinc-900/30 p-4">
-          <h3 className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.12em] text-zinc-400">
+        <div className="mt-5 rounded-xl border border-line bg-app/60 p-4">
+          <h3 className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.12em] text-content-secondary">
             <Cpu className="h-3.5 w-3.5" aria-hidden />
             OpenCode free plan
           </h3>
-          <p className="mt-2 text-[13px] leading-relaxed text-zinc-300">
+          <p className="mt-2 text-[13px] leading-relaxed text-content-secondary">
             Runs on your machine through the OpenCode CLI you already logged into. Nothing is sent to SysCraft.
           </p>
-          <p className="mt-2 text-[12px] leading-relaxed text-zinc-500">
-            Open a terminal in this project and run <code className="font-mono text-zinc-300">npm run ai</code>. Leave it running. Then turn this on and review a design.
+          <p className="mt-2 text-[12px] leading-relaxed text-content-secondary">
+            Open a terminal in this project and run <code className="font-mono text-content-secondary">npm run ai</code>. Leave it running. Then turn this on and review a design.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <label className="inline-flex items-center gap-2 text-[13px] text-zinc-200">
+            <label className="inline-flex items-center gap-2 text-[13px] text-content">
               <input
                 type="checkbox"
                 checked={opencodeEnabled}
@@ -269,7 +269,7 @@ export function SettingsPanel() {
                   setOpencodeEnabled(on);
                   setOpenCodeBridgeEnabled(on);
                 }}
-                className="h-4 w-4 rounded border-zinc-600 bg-zinc-900"
+                className="h-4 w-4 rounded border-line-strong bg-app"
               />
               Use local OpenCode free plan
             </label>
@@ -291,31 +291,31 @@ export function SettingsPanel() {
                   setBridgeChecking(false);
                 }
               }}
-              className="rounded-lg border border-zinc-700 px-3.5 py-2 text-[13px] text-zinc-300 transition hover:border-zinc-500"
+              className="rounded-lg border border-line-strong px-3.5 py-2 text-[13px] text-content-secondary transition hover:border-brass/50"
               disabled={bridgeChecking}
             >
               {bridgeChecking ? "Checking..." : "Check bridge"}
             </button>
             {bridgeStatus !== "unknown" && (
-              <span className="text-[12px] text-zinc-400">
+              <span className="text-[12px] text-content-secondary">
                 {bridgeStatus === "ready" ? "Ready" : "Not running"}
               </span>
             )}
           </div>
         </div>
 
-        <div className="mt-5 rounded-xl border border-zinc-800/80 bg-zinc-900/30 p-4">
-          <h3 className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.12em] text-zinc-400">
+        <div className="mt-5 rounded-xl border border-line bg-app/60 p-4">
+          <h3 className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.12em] text-content-secondary">
             <Key className="h-3.5 w-3.5" aria-hidden />
             BRING YOUR OWN KEY
           </h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="text-[11.5px] text-zinc-500">Provider</span>
+              <span className="text-[11.5px] text-content-secondary">Provider</span>
               <select
                 value={provider}
                 onChange={(e) => setProvider(e.target.value as Provider)}
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-sky-500 focus:outline-none"
+                className="mt-1 w-full rounded-lg border border-line-strong bg-app px-3 py-2 text-sm text-content focus:border-brass focus:outline-none"
               >
                 {PROVIDER_META.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -325,17 +325,17 @@ export function SettingsPanel() {
               </select>
             </label>
             <label className="block">
-              <span className="text-[11.5px] text-zinc-500">Model (optional)</span>
+              <span className="text-[11.5px] text-content-secondary">Model (optional)</span>
               <input
                 type="text"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder={PROVIDER_META.find((p) => p.id === provider)?.modelPlaceholder}
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-sky-500 focus:outline-none"
+                className="mt-1 w-full rounded-lg border border-line-strong bg-app px-3 py-2 text-sm text-content placeholder:text-content-secondary focus:border-brass focus:outline-none"
               />
             </label>
             <label className="block sm:col-span-2">
-              <span className="text-[11.5px] text-zinc-500">API key</span>
+              <span className="text-[11.5px] text-content-secondary">API key</span>
               <input
                 type="password"
                 value={apiKey}
@@ -345,7 +345,7 @@ export function SettingsPanel() {
                 }}
                 placeholder="Stored only in this browser's localStorage"
                 autoComplete="off"
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-sky-500 focus:outline-none"
+                className="mt-1 w-full rounded-lg border border-line-strong bg-app px-3 py-2 font-mono text-sm text-content placeholder:text-content-secondary focus:border-brass focus:outline-none"
               />
             </label>
           </div>
@@ -353,7 +353,7 @@ export function SettingsPanel() {
             <button
               type="button"
               onClick={saveByok}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-3.5 py-2 text-[13px] font-semibold text-zinc-950 transition hover:bg-sky-400"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brass px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-brass-bright"
             >
               {byokSaved ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Key className="h-3.5 w-3.5" aria-hidden />}
               {byokSaved ? 'Saved' : 'Save key'}
@@ -361,11 +361,11 @@ export function SettingsPanel() {
             <button
               type="button"
               onClick={clearByok}
-              className="rounded-lg border border-zinc-700 px-3.5 py-2 text-[13px] text-zinc-300 transition hover:border-zinc-500"
+              className="rounded-lg border border-line-strong px-3.5 py-2 text-[13px] text-content-secondary transition hover:border-brass/50"
             >
               Clear key
             </button>
-            <span className="inline-flex items-center gap-1 text-[11px] text-zinc-600">
+            <span className="inline-flex items-center gap-1 text-[11px] text-content-secondary">
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
               Never logged, never proxied — direct browser calls only.
             </span>
@@ -377,12 +377,12 @@ export function SettingsPanel() {
             type="button"
             onClick={() => void loadLocalModel()}
             disabled={llmState === 'loading'}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3.5 py-2 text-[13px] text-zinc-200 transition hover:border-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong px-3.5 py-2 text-[13px] text-content transition hover:border-brass/50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Brain className="h-3.5 w-3.5" aria-hidden />
             {llmState === 'loading' ? 'Loading local model…' : llmState === 'ready' ? 'Local model ready' : 'Load WebGPU model'}
           </button>
-          <span className="text-[11.5px] text-zinc-500">
+          <span className="text-[11.5px] text-content-secondary">
             {webgpuSupported
               ? llmProgress || 'WebGPU detected. The ~0.8 GB model downloads once and stays cached.'
               : 'WebGPU not available in this browser — tiers 1 and 3 still work.'}
@@ -391,18 +391,18 @@ export function SettingsPanel() {
       </section>
 
       {/* ------------------------------- Practice ------------------------------- */}
-      <section aria-labelledby="practice-heading" className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-        <h2 id="practice-heading" className="flex items-center gap-2 text-[13px] font-semibold text-zinc-100">
-          <ListChecks className="h-4 w-4 text-emerald-400" aria-hidden />
+      <section aria-labelledby="practice-heading" className="mt-6 rounded-2xl border border-line bg-app-raised/60 p-5">
+        <h2 id="practice-heading" className="flex items-center gap-2 text-[13px] font-semibold text-content">
+          <ListChecks className="h-4 w-4 text-success" aria-hidden />
           Practice scheduling
         </h2>
-        <p className="mt-2 text-[12.5px] leading-relaxed text-zinc-500">
+        <p className="mt-2 text-[12.5px] leading-relaxed text-content-secondary">
           The FSRS queue targets 90% retention. A daily cap keeps sessions honest — overflow waits quietly instead of
           turning into an overdue pile.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="text-[11.5px] text-zinc-500">Daily review cap (5–200)</span>
+            <span className="text-[11.5px] text-content-secondary">Daily review cap (5–200)</span>
             <input
               type="number"
               min={5}
@@ -412,9 +412,9 @@ export function SettingsPanel() {
                 setPractice((p) => ({ ...p, dailyCap: Number(e.target.value) || p.dailyCap }));
                 setPracticeSaved(false);
               }}
-              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-sky-500 focus:outline-none"
+              className="mt-1 w-full rounded-lg border border-line-strong bg-app px-3 py-2 text-sm text-content focus:border-brass focus:outline-none"
             />
-            <span className="mt-1 block text-[11px] text-zinc-600">
+            <span className="mt-1 block text-[11px] text-content-secondary">
               {todayCount} of {practice.dailyCap} reviewed today
             </span>
           </label>
@@ -429,18 +429,18 @@ export function SettingsPanel() {
                 setPracticeSaved(false);
               }}
               className={`relative mt-0.5 h-5 w-9 shrink-0 rounded-full border transition ${
-                practice.catchUpMode ? 'border-emerald-500/60 bg-emerald-500/30' : 'border-zinc-600 bg-zinc-800'
+                practice.catchUpMode ? 'border-success/60 bg-success/25' : 'border-line-strong bg-app-raised'
               }`}
             >
               <span
-                className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-zinc-100 transition-transform duration-200 ${
+                className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-content transition-transform duration-200 ${
                   practice.catchUpMode ? 'translate-x-[16px]' : 'translate-x-0'
                 }`}
               />
             </button>
             <div>
-              <p className="text-[12.5px] font-medium text-zinc-200">Catch-up mode</p>
-              <p className="text-[11.5px] leading-relaxed text-zinc-500">
+              <p className="text-[12.5px] font-medium text-content">Catch-up mode</p>
+              <p className="text-[11.5px] leading-relaxed text-content-secondary">
                 After a break, temporarily raises the cap so the backlog drains gently instead of camping forever.
               </p>
             </div>
@@ -450,28 +450,28 @@ export function SettingsPanel() {
           <button
             type="button"
             onClick={savePractice}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-3.5 py-2 text-[13px] font-semibold text-zinc-950 transition hover:bg-sky-400"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brass px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-brass-bright"
           >
             {practiceSaved ? <Check className="h-3.5 w-3.5" aria-hidden /> : <ListChecks className="h-3.5 w-3.5" aria-hidden />}
             {practiceSaved ? 'Saved' : 'Save schedule'}
           </button>
-          <Link href="/practice" className="text-[12px] text-sky-400 transition hover:text-sky-300">
+          <Link href="/practice" className="text-[12px] text-brass transition hover:text-brass">
             Open the review queue →
           </Link>
         </div>
       </section>
 
       {/* -------------------------- Canvas & accessibility ----------------------- */}
-      <section aria-labelledby="canvas-heading" className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-        <h2 id="canvas-heading" className="flex items-center gap-2 text-[13px] font-semibold text-zinc-100">
-          <SettingsIcon className="h-4 w-4 text-zinc-400" aria-hidden />
+      <section aria-labelledby="canvas-heading" className="mt-6 rounded-2xl border border-line bg-app-raised/60 p-5">
+        <h2 id="canvas-heading" className="flex items-center gap-2 text-[13px] font-semibold text-content">
+          <SettingsIcon className="h-4 w-4 text-content-secondary" aria-hidden />
           Canvas &amp; accessibility
         </h2>
         <div className="mt-4 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[12.5px] font-medium text-zinc-200">Sound effects</p>
-              <p className="mt-0.5 text-[11.5px] leading-relaxed text-zinc-500">
+              <p className="text-[12.5px] font-medium text-content">Sound effects</p>
+              <p className="mt-0.5 text-[11.5px] leading-relaxed text-content-secondary">
                 Simulation and UI feedback tones. All synthesized locally with the Web Audio API.
               </p>
             </div>
@@ -479,7 +479,7 @@ export function SettingsPanel() {
               type="button"
               onClick={toggleSound}
               aria-pressed={soundOn}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-[12px] text-zinc-200 transition hover:border-zinc-500"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong px-3 py-2 text-[12px] text-content transition hover:border-brass/50"
             >
               {soundOn ? <Volume2 className="h-3.5 w-3.5" aria-hidden /> : <VolumeX className="h-3.5 w-3.5" aria-hidden />}
               {soundOn ? 'On' : 'Muted'}
@@ -487,8 +487,8 @@ export function SettingsPanel() {
           </div>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[12.5px] font-medium text-zinc-200">Outline Mode</p>
-              <p className="mt-0.5 text-[11.5px] leading-relaxed text-zinc-500">
+              <p className="text-[12.5px] font-medium text-content">Outline Mode</p>
+              <p className="mt-0.5 text-[11.5px] leading-relaxed text-content-secondary">
                 A fully keyboard- and screen-reader-accessible table view of the canvas (WCAG 2.2 AA): add nodes,
                 connect them, and review findings without a single drag.
               </p>
@@ -496,7 +496,7 @@ export function SettingsPanel() {
             <button
               type="button"
               onClick={openOutlineCanvas}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-[12px] text-zinc-200 transition hover:border-zinc-500"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line-strong px-3 py-2 text-[12px] text-content transition hover:border-brass/50"
             >
               <ListChecks className="h-3.5 w-3.5" aria-hidden />
               Open in Outline Mode
@@ -506,18 +506,18 @@ export function SettingsPanel() {
       </section>
 
       {/* --------------------------------- Data --------------------------------- */}
-      <section aria-labelledby="data-heading" className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-        <h2 id="data-heading" className="flex items-center gap-2 text-[13px] font-semibold text-zinc-100">
-          <Database className="h-4 w-4 text-amber-400" aria-hidden />
+      <section aria-labelledby="data-heading" className="mt-6 rounded-2xl border border-line bg-app-raised/60 p-5">
+        <h2 id="data-heading" className="flex items-center gap-2 text-[13px] font-semibold text-content">
+          <Database className="h-4 w-4 text-warning" aria-hidden />
           Data &amp; storage
         </h2>
-        <p className="mt-2 text-[12.5px] leading-relaxed text-zinc-500">
-          Backup format <span className="font-mono text-zinc-400">{BACKUP_FORMAT}</span> bundles all five IndexedDB
+        <p className="mt-2 text-[12.5px] leading-relaxed text-content-secondary">
+          Backup format <span className="font-mono text-content-secondary">{BACKUP_FORMAT}</span> bundles all five IndexedDB
           tables (blueprints, custom resources, FSRS cards, lab progress, recordings) plus every{' '}
-          <span className="font-mono text-zinc-400">syscraft.*</span> preference key.
+          <span className="font-mono text-content-secondary">syscraft.*</span> preference key.
         </p>
         {usage && (
-          <p className="mt-1.5 text-[11.5px] text-zinc-600">
+          <p className="mt-1.5 text-[11.5px] text-content-secondary">
             Using {formatBytes(usage.usedBytes)}
             {usage.quotaBytes > 0 ? ` of ~${formatBytes(usage.quotaBytes)} available` : ''}
             {persisted !== null ? ` · ${persisted ? 'storage marked persistent' : 'storage not yet marked persistent'}` : ''}
@@ -527,12 +527,12 @@ export function SettingsPanel() {
           <button
             type="button"
             onClick={() => void downloadBackup()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-3.5 py-2 text-[13px] font-semibold text-zinc-950 transition hover:bg-sky-400"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brass px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-brass-bright"
           >
             <Download className="h-3.5 w-3.5" aria-hidden />
             Export backup (.json)
           </button>
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-700 px-3.5 py-2 text-[13px] text-zinc-200 transition hover:border-zinc-500">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line-strong px-3.5 py-2 text-[13px] text-content transition hover:border-brass/50">
             <Upload className="h-3.5 w-3.5" aria-hidden />
             Import backup
             <input
@@ -547,26 +547,26 @@ export function SettingsPanel() {
             onClick={() => void doWipe()}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[13px] transition ${
               wipeArmed
-                ? 'border-red-500/70 bg-red-500/15 text-red-300'
-                : 'border-zinc-700 text-zinc-400 hover:border-red-500/50 hover:text-red-300'
+                ? 'border-danger/70 bg-danger/15 text-danger'
+                : 'border-line-strong text-content-secondary hover:border-danger/50 hover:text-danger'
             }`}
           >
             {wipeArmed ? <RotateCcw className="h-3.5 w-3.5" aria-hidden /> : <Trash2 className="h-3.5 w-3.5" aria-hidden />}
             {wipeArmed ? 'Confirm delete' : 'Delete all local data'}
           </button>
         </div>
-        {dataMessage && <p className="mt-3 text-[11.5px] leading-relaxed text-zinc-400">{dataMessage}</p>}
+        {dataMessage && <p className="mt-3 text-[11.5px] leading-relaxed text-content-secondary">{dataMessage}</p>}
       </section>
 
       {/* -------------------------------- About --------------------------------- */}
-      <section aria-labelledby="about-heading" className="mt-6 rounded-2xl border border-zinc-800/70 bg-zinc-900/20 p-5">
-        <h2 id="about-heading" className="text-[13px] font-semibold text-zinc-300">
+      <section aria-labelledby="about-heading" className="mt-6 rounded-2xl border border-line bg-app/60 p-5">
+        <h2 id="about-heading" className="text-[13px] font-semibold text-content-secondary">
           About this build
         </h2>
-        <ul className="mt-3 space-y-1.5 text-[11.5px] leading-relaxed text-zinc-500">
+        <ul className="mt-3 space-y-1.5 text-[11.5px] leading-relaxed text-content-secondary">
           <li>
-            Design schema: <span className="font-mono text-zinc-400">syscraft.design/1</span> · database:{' '}
-            <span className="font-mono text-zinc-400">syscraft_db_v1</span>
+            Design schema: <span className="font-mono text-content-secondary">syscraft.design/1</span> · database:{' '}
+            <span className="font-mono text-content-secondary">syscraft_db_v1</span>
           </li>
           <li>Legacy SystemCanvas / ArchForge saves are migrated automatically on first boot — nothing is deleted.</li>
           <li>
@@ -580,13 +580,13 @@ export function SettingsPanel() {
 
 function TierCard({ icon, title, note, active }: { icon: React.ReactNode; title: string; note: string; active: boolean }) {
   return (
-    <div className={`rounded-xl border p-3.5 ${active ? 'border-sky-500/50 bg-sky-500/[0.07]' : 'border-zinc-800 bg-zinc-900/30'}`}>
-      <div className={`flex items-center gap-2 text-[12px] font-semibold ${active ? 'text-sky-300' : 'text-zinc-400'}`}>
+    <div className={`rounded-xl border p-3.5 ${active ? 'border-brass/50 bg-brass/[0.07]' : 'border-line bg-app/60'}`}>
+      <div className={`flex items-center gap-2 text-[12px] font-semibold ${active ? 'text-brass' : 'text-content-secondary'}`}>
         {icon}
         {title}
-        {active && <span className="ml-auto rounded-full bg-sky-500/20 px-2 py-0.5 text-[10px] text-sky-300">PRIMARY</span>}
+        {active && <span className="ml-auto rounded-full bg-brass/20 px-2 py-0.5 text-[10px] text-brass">PRIMARY</span>}
       </div>
-      <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">{note}</p>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-content-secondary">{note}</p>
     </div>
   );
 }

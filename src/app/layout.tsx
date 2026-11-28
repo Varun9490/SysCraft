@@ -20,7 +20,10 @@ const outfit = Outfit({
  */
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  alternates: { canonical: SITE_URL },
+  // No root canonical: a homepage `alternates.canonical` is inherited by every
+  // child that does not override it, which previously canonicalized 184 deep
+  // pages to "/". Each indexable route now declares its own canonical via
+  // `canonicalAlternates()` in src/lib/seo.ts.
   title: {
     default: `${SITE_NAME} — Learn system design by running it`,
     template: `%s — ${SITE_NAME}`,

@@ -14,13 +14,24 @@ function pos(i: number): readonly [number, number] {
 export function RaftElectionVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
   const term = 1 + s;
+  // s === 3 is the step-down case; s === 4 is the committed, all-in-sync final state.
+  const final = s === 4;
   const leader = s === 3 ? 0 : s % 5;
   const stepped = s === 3 ? 1 : -1;
   const candidate = s === 0 ? 4 : -1;
 
   const nodes = Array.from({ length: 5 }).map((_, i) => {
     const [x, y] = pos(i);
-    const state = i === stepped ? 'step down' : i === leader ? 'leader' : i === candidate ? 'candidate' : 'follower';
+    const state =
+      i === stepped
+        ? 'step down'
+        : i === leader
+          ? final
+            ? 'committed'
+            : 'leader'
+          : i === candidate
+            ? 'candidate'
+            : 'follower';
     const color = i === stepped ? C.warning : i === leader ? C.healthy : i === candidate ? C.focus : C.border;
     return { x, y, state, color, i };
   });
@@ -63,11 +74,15 @@ export function RaftElectionVisual({ stepIndex, active }: VisualProps) {
         </g>
       ))}
 
-      {s === 3 ? (
-        <text x="320" y="372" textAnchor="middle" fontSize="9" fill={C.warning}>
-          leader steps down
-        </text>
-      ) : null}
+      <text
+        x="320"
+        y="372"
+        textAnchor="middle"
+        fontSize="9"
+        fill={s === 3 ? C.warning : final ? C.healthy : C.border}
+      >
+        {s === 3 ? 'leader steps down' : final ? 'quorum committed · logs in sync' : 'term election in progress'}
+      </text>
     </Frame>
   );
 }

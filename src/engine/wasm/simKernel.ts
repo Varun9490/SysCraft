@@ -81,7 +81,7 @@ export function writePhysicsNode(
   isLlm: boolean,
 ): void {
   const input = tryLoadKernel()?.input;
-  if (!input || index < 0 || index >= FALLBACK_MAX_NODES) return;
+  if (!input || !Number.isInteger(index) || index < 0 || index >= FALLBACK_MAX_NODES) return;
   const offset = index * PHYSICS_STRIDE;
   input[offset] = capacityRps;
   input[offset + 1] = arrivalRps;
@@ -113,7 +113,7 @@ export function beginPhysicsBatch(): Float64Array | null {
 
 export function commitPhysicsBatch(count: number): Float64Array | null {
   const ready = tryLoadKernel();
-  if (!ready || count <= 0 || count > FALLBACK_MAX_NODES) return null;
+  if (!ready || !Number.isInteger(count) || count <= 0 || count > FALLBACK_MAX_NODES) return null;
   return ready.batch(count) === count ? ready.output : null;
 }
 

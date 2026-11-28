@@ -14,9 +14,10 @@ function pt(i: number): readonly [number, number] {
 
 export function CacheRingVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
-  const hit = (s * 3) % N;
-  const miss = (hit + 5) % N;
-  const mp = pt(miss);
+  const final = s === 4;
+  // Final step is the fully warm, steady cache: no cold miss, distinct from s0.
+  const hit = final ? 6 : (s * 3) % N;
+  const miss = final ? -1 : (hit + 5) % N;
 
   return (
     <Frame title="cache ring" step={s} active={active}>
@@ -56,11 +57,19 @@ export function CacheRingVisual({ stepIndex, active }: VisualProps) {
         cache
       </text>
       <text x={CX} y={CY + 13} textAnchor="middle" fontSize="9" fill={C.focus}>
-        {N - 2}/{N} warm
+        {final ? `${N}/${N} warm` : `${N - 2}/${N} warm`}
       </text>
 
-      <Arrow x1={mp[0]} y1={mp[1] + 6} x2={536} y2={304} color={C.warning} dashed />
-      <Panel x={486} y={304} w={116} h={44} label="disk" sub="cold read" color={C.warning} />
+      {!final ? (
+        <g>
+          <Arrow x1={pt(miss)[0]} y1={pt(miss)[1] + 6} x2={536} y2={304} color={C.warning} dashed />
+          <Panel x={486} y={304} w={116} h={44} label="disk" sub="cold read" color={C.warning} />
+        </g>
+      ) : (
+        <text x="320" y="356" textAnchor="middle" fontSize="9" fill={C.healthy}>
+          steady hit rate · no cold reads
+        </text>
+      )}
     </Frame>
   );
 }

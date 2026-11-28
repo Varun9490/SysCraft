@@ -1,3 +1,4 @@
+import { ClosingCTA } from "@/components/landing/ClosingCTA";
 import { Hero } from "@/components/landing/Hero";
 import { LessonAnatomy } from "@/components/landing/LessonAnatomy";
 import { LiveSystemStrip } from "@/components/landing/LiveSystemStrip";
@@ -13,6 +14,7 @@ export default function LandingPage() {
       <TrackShowcase />
       <QuietLinks />
       <LessonAnatomy />
+      <ClosingCTA />
     </SiteChrome>
   );
 }

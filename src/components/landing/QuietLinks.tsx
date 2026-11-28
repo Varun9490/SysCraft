@@ -115,7 +115,7 @@ export function QuietLinks() {
               delay={index * 0.08}
               y={18}
               blur={4}
-              className={index === 0 ? "sm:col-span-2 lg:col-span-2" : ""}
+              className={index === LINKS.length - 1 ? "sm:col-span-2 lg:col-span-1" : ""}
             >
               <BentoItem className="h-full">
                 <Link

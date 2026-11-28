@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { LogoMark } from "./SiteHeader";
-import { CONTENT_COUNTS } from "@/data/contentManifest";
+// Counts only — never import the derived manifest (or the registries it reads)
+// into the shared shell: every route renders this footer.
+import { CONTENT_SUMMARY } from "@/data/contentSummary";
 
 const LEARN_LINKS = [
-  { href: "/paths", label: "Learning paths" },
+  { href: "/paths", label: "Learning paths — start here" },
   { href: "/blogs", label: "Engineering blogs" },
   { href: "/quiz", label: "Recall quiz" },
   { href: "/encyclopedia", label: "Encyclopedia" },
@@ -22,7 +24,7 @@ const BUILD_LINKS = [
 
 const REFERENCE_LINKS = [
   { href: "/reference/numbers", label: "Numbers & claims" },
-  { href: "/learn", label: "Read the path" },
+  { href: "/learn", label: "Lesson archive (legacy)" },
   { href: "/settings", label: "Settings" },
   { href: "/pricing", label: "Free" },
 ] as const;
@@ -43,7 +45,11 @@ export function SiteFooter() {
               Learn system design by watching a small architecture run, then reading the idea in a story and in engineer language.
             </p>
             <p className="mt-3 font-mono text-[11px] leading-relaxed text-content-tertiary">
-              {CONTENT_COUNTS.lessons} lessons · {CONTENT_COUNTS.labs} labs · {CONTENT_COUNTS.primitives} primitives
+              {CONTENT_SUMMARY.tracks} guided paths · {CONTENT_SUMMARY.labs} labs · {CONTENT_SUMMARY.primitives} primitives
+            </p>
+            <p className="mt-2 text-[11px] leading-relaxed text-content-tertiary">
+              The {CONTENT_SUMMARY.tracks} paths are the current curriculum. The /learn library is a secondary archive of
+              earlier lessons, not an equal competing track.
             </p>
           </div>
 

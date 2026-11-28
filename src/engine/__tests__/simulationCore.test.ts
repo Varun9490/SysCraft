@@ -1,10 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computeBackEdges,
   createInitialEngineState,
   stepSimulationTick,
 } from "@/engine/simulationCore";
-import type { ChaosState, GraphTopology } from "@/types/simulation";
+import { MAX_SIM_VALUE } from "@/engine/queuingMath";
+import {
+  FALLBACK_TICK_MS,
+  HISTORY_CAP,
+  HISTORY_WINDOW_MS,
+  simSnapshotRef,
+  UI_SYNC_MS,
+  useSimStore,
+} from "@/store/useSimStore";
+import type { ChaosState, GraphTopology, SimTickSnapshot } from "@/types/simulation";
 
 const IDLE_CHAOS: ChaosState = {
   active: false,
@@ -45,6 +54,22 @@ function node(
 
 function edge(id: string, source: string, target: string) {
   return { id, source, target, weight: 1, circuit: "closed" as const, consecutiveErrorTicks: 0 };
+}
+
+function expectFiniteSnapshot(snapshot: SimTickSnapshot): void {
+  const records: object[] = [
+    snapshot,
+    ...Object.values(snapshot.nodes),
+    ...Object.values(snapshot.edges),
+  ];
+  for (const record of records) {
+    for (const [key, value] of Object.entries(record)) {
+      if (typeof value !== "number") continue;
+      expect(Number.isFinite(value), `${key} should be finite`).toBe(true);
+      expect(value, `${key} should be non-negative`).toBeGreaterThanOrEqual(0);
+      expect(value, `${key} should be capped`).toBeLessThanOrEqual(MAX_SIM_VALUE);
+    }
+  }
 }
 
 describe("empty and trivial topologies", () => {
@@ -118,6 +143,28 @@ describe("cycles and circuit breakers", () => {
       expect(Number.isFinite(tele.arrivalRps)).toBe(true);
       expect(tele.arrivalRps).toBeLessThan(5000);
     }
+  });
+
+  it("marks only the deterministic DFS closing edge, not every cycle edge", () => {
+    const topology: GraphTopology = {
+      nodes: [node("c", "rest_service"), node("a", "rest_service"), node("b", "rest_service")],
+      edges: [edge("e3", "c", "a"), edge("e1", "a", "b"), edge("e2", "b", "c")],
+    };
+    expect([...computeBackEdges(topology)]).toEqual(["e3"]);
+
+    const reordered: GraphTopology = {
+      nodes: [...topology.nodes].reverse(),
+      edges: [...topology.edges].reverse(),
+    };
+    expect([...computeBackEdges(reordered)]).toEqual(["e3"]);
+  });
+
+  it("detects self-loops but leaves acyclic cross edges undamped", () => {
+    const topology: GraphTopology = {
+      nodes: [node("a", "rest_service"), node("b", "rest_service"), node("c", "rest_service")],
+      edges: [edge("loop", "b", "b"), edge("ab", "a", "b"), edge("ac", "a", "c"), edge("cb", "c", "b")],
+    };
+    expect([...computeBackEdges(topology)]).toEqual(["loop"]);
   });
 
   it("opens circuits feeding sustained-failure nodes", () => {
@@ -214,6 +261,103 @@ describe("concurrency telemetry", () => {
   });
 });
 
+describe("hostile graph numeric totality", () => {
+  const hostileValues = [
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    -1,
+    0,
+    Number.MIN_VALUE,
+    Number.MAX_VALUE,
+  ];
+
+  it.each(hostileValues)("publishes only capped finite telemetry for scalar %s", (value) => {
+    const service = {
+      ...node("svc", "rest_service", { clientRps: value }),
+      replicationFactor: value,
+      baseThroughputRps: value,
+      maxConcurrency: value,
+      cacheHitRate: value,
+      rateLimitRps: value,
+      writeRatio: value,
+      vramGbPerReplica: value,
+      avgPromptTokens: value,
+      avgOutputTokens: value,
+      baseP50Ms: value,
+      baseP95Ms: value,
+      baseP99Ms: value,
+      costPerHourUsdOverride: value,
+    };
+    const llm = {
+      ...node("llm", "llm_inference", { clientRps: value }),
+      replicationFactor: value,
+      baseThroughputRps: value,
+      maxConcurrency: value,
+      writeRatio: value,
+      vramGbPerReplica: value,
+      avgPromptTokens: value,
+      avgOutputTokens: value,
+      baseP50Ms: value,
+      baseP95Ms: value,
+      baseP99Ms: value,
+      costPerHourUsdOverride: value,
+    };
+    const topology: GraphTopology = {
+      nodes: [service, llm],
+      edges: [{ ...edge("e1", "svc", "llm"), weight: value }],
+    };
+
+    const { snapshot, nextState } = stepSimulationTick(topology, IDLE_CHAOS, createInitialEngineState());
+    expectFiniteSnapshot(snapshot);
+    expect(Number.isFinite(nextState.elapsedSeconds)).toBe(true);
+    expect(Number.isFinite(nextState.queueDepths["llm"] ?? 0)).toBe(true);
+  });
+
+  it("does not turn MAX_VALUE latency or cost into zero or Infinity", () => {
+    const topology: GraphTopology = {
+      nodes: [{
+        ...node("max", "llm_inference", { clientRps: Number.MAX_VALUE }),
+        replicationFactor: Number.MAX_VALUE,
+        baseThroughputRps: Number.MAX_VALUE,
+        maxConcurrency: Number.MAX_VALUE,
+        baseP50Ms: Number.MAX_VALUE,
+        baseP95Ms: Number.MAX_VALUE,
+        baseP99Ms: Number.MAX_VALUE,
+        avgPromptTokens: Number.MAX_VALUE,
+        avgOutputTokens: Number.MAX_VALUE,
+        costPerHourUsdOverride: Number.MAX_VALUE,
+      }],
+      edges: [],
+    };
+    const { snapshot } = stepSimulationTick(topology, IDLE_CHAOS, createInitialEngineState());
+    expectFiniteSnapshot(snapshot);
+    expect(snapshot.nodes["max"]?.p99Ms).toBeGreaterThan(0);
+    expect(snapshot.nodes["max"]?.ttftMs).toBeGreaterThan(0);
+    expect(snapshot.totalCostPerHourUsd).toBeGreaterThan(0);
+  });
+
+  it("keeps the JavaScript fallback finite beyond the 96-node WASM limit", () => {
+    const topology: GraphTopology = {
+      nodes: Array.from({ length: 97 }, (_, index) => ({
+        ...node(`node-${index}`, "rest_service", { clientRps: Number.MAX_VALUE }),
+        replicationFactor: Number.MAX_VALUE,
+        baseThroughputRps: Number.MAX_VALUE,
+        maxConcurrency: Number.MAX_VALUE,
+        baseP50Ms: Number.MAX_VALUE,
+        baseP95Ms: Number.MAX_VALUE,
+        baseP99Ms: Number.MAX_VALUE,
+        costPerHourUsdOverride: Number.MAX_VALUE,
+      })),
+      edges: [],
+    };
+    const { snapshot } = stepSimulationTick(topology, IDLE_CHAOS, createInitialEngineState());
+    expectFiniteSnapshot(snapshot);
+    expect(Object.keys(snapshot.nodes)).toHaveLength(97);
+    expect(snapshot.globalP99Ms).toBeGreaterThan(0);
+  });
+});
+
 describe("chaos and determinism", () => {
   it("zone outage removes roughly a third of capacity", () => {
     const topology: GraphTopology = {
@@ -239,5 +383,133 @@ describe("chaos and determinism", () => {
       return last.snapshot;
     };
     expect(run()).toEqual(run());
+  });
+});
+
+class WorkerDouble {
+  static instances: WorkerDouble[] = [];
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+  onmessageerror: ((event: Event) => void) | null = null;
+  postMessage = vi.fn();
+  terminate = vi.fn();
+
+  constructor() {
+    WorkerDouble.instances.push(this);
+  }
+}
+
+describe("simulation worker fallback and lifecycle", () => {
+  const topology: GraphTopology = {
+    nodes: [node("svc", "rest_service", { clientRps: 100 })],
+    edges: [],
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers({ now: 0 });
+    vi.spyOn(performance, "now").mockImplementation(() => Date.now());
+    WorkerDouble.instances = [];
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("Worker", WorkerDouble);
+    const sim = useSimStore.getState();
+    sim.stopSimulation();
+    sim.resetEngine();
+    sim.clearHistory();
+  });
+
+  afterEach(() => {
+    useSimStore.getState().stopSimulation();
+    vi.clearAllTimers();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("resets on failover, terminates the failed owner, and rejects stale callbacks", () => {
+    useSimStore.getState().startSimulation(() => topology);
+    const instance = WorkerDouble.instances[0];
+    expect(instance).toBeDefined();
+    if (!instance) throw new Error("Worker was not constructed");
+
+    const sample = stepSimulationTick(topology, IDLE_CHAOS, createInitialEngineState()).snapshot;
+    sample.tick = 42;
+    const trace = {
+      traceId: "trace-42",
+      rootService: "svc",
+      totalDurationMs: sample.globalP99Ms,
+      spans: [],
+      sampledAtTick: 42,
+    };
+    instance.onmessage?.({ data: { type: "snapshot", snapshot: sample, trace } } as MessageEvent);
+    expect(useSimStore.getState().tick).toBe(42);
+
+    const staleSnapshot = instance.onmessage;
+    instance.onerror?.(new Event("worker-error"));
+    expect(instance.terminate).toHaveBeenCalledOnce();
+    expect(instance.onmessage).toBeNull();
+    expect(instance.onerror).toBeNull();
+    expect(instance.onmessageerror).toBeNull();
+    expect(useSimStore.getState().useWorker).toBe(false);
+    expect(useSimStore.getState().workerError).toContain("fallback");
+    expect(simSnapshotRef.current).toBeNull();
+
+    vi.advanceTimersByTime(FALLBACK_TICK_MS);
+    expect(simSnapshotRef.current?.tick).toBe(1);
+
+    const stale = { ...sample, tick: 999 };
+    staleSnapshot?.({ data: { type: "snapshot", snapshot: stale, trace: null } } as MessageEvent);
+    expect(simSnapshotRef.current?.tick).toBe(1);
+  });
+
+  it("detaches on stop and cannot restart a fallback from a stale worker error", () => {
+    useSimStore.getState().startSimulation(() => topology);
+    const instance = WorkerDouble.instances[0];
+    if (!instance) throw new Error("Worker was not constructed");
+    const staleError = instance.onerror;
+
+    useSimStore.getState().stopSimulation();
+    expect(instance.terminate).toHaveBeenCalledOnce();
+    expect(instance.onmessage).toBeNull();
+    expect(useSimStore.getState().running).toBe(false);
+
+    staleError?.(new Event("late-worker-error"));
+    vi.advanceTimersByTime(1000);
+    expect(useSimStore.getState().running).toBe(false);
+    expect(simSnapshotRef.current).toBeNull();
+  });
+
+  it("starts a trace on the same 20-tick cadence when Worker construction fails", () => {
+    vi.stubGlobal("Worker", class {
+      constructor() {
+        throw new Error("restricted iframe");
+      }
+    });
+    useSimStore.getState().startSimulation(() => topology);
+    expect(useSimStore.getState().useWorker).toBe(false);
+
+    vi.advanceTimersByTime(19 * FALLBACK_TICK_MS);
+    expect(useSimStore.getState().latestTrace).toBeNull();
+    vi.advanceTimersByTime(FALLBACK_TICK_MS);
+    expect(useSimStore.getState().latestTrace?.sampledAtTick).toBe(20);
+  });
+
+  it("keeps a 60-second DVR at the documented 10Hz sample cadence", () => {
+    vi.stubGlobal("Worker", class {
+      constructor() {
+        throw new Error("restricted iframe");
+      }
+    });
+    useSimStore.getState().startSimulation(() => topology);
+    expect(HISTORY_CAP * UI_SYNC_MS).toBe(HISTORY_WINDOW_MS);
+
+    vi.advanceTimersByTime(HISTORY_WINDOW_MS);
+    const history = useSimStore.getState().history;
+    expect(history).toHaveLength(HISTORY_CAP);
+    expect(history[0]?.timestampMs).toBe(UI_SYNC_MS);
+    expect(history[history.length - 1]?.timestampMs).toBe(HISTORY_WINDOW_MS);
+
+    useSimStore.getState().stopSimulation();
+    vi.advanceTimersByTime(1000);
+    expect(useSimStore.getState().history).toHaveLength(HISTORY_CAP);
   });
 });

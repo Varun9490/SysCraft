@@ -7,12 +7,14 @@ const SETS = [
   [1, 5, 9, 14, 18, 21],
   [1, 5, 9, 14, 18, 21, 3, 11],
   [1, 5, 9, 14, 18, 21, 3, 11, 7, 23],
+  [1, 5, 9, 14, 18, 21, 3, 11, 7, 23, 2, 16],
 ];
-const EST = [4120, 8350, 12640, 17110];
+const EST = [4120, 8350, 12640, 17110, 21480];
 
 export function BloomHllVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
-  const set = new Set(SETS[s]);
+  const set = new Set(SETS[s] ?? SETS[0]);
+  const final = s === 4;
 
   return (
     <Frame title="bloom / hll" step={s} active={active}>
@@ -60,7 +62,11 @@ export function BloomHllVisual({ stepIndex, active }: VisualProps) {
         approximate
       </text>
       <text x="506" y="326" textAnchor="middle" fontSize="18" fill="currentColor">
-        {EST[s]}
+        {EST[s] ?? EST[0]}
+      </text>
+
+      <text x="320" y="368" textAnchor="middle" fontSize="9" fill={final ? C.healthy : C.border}>
+        {final ? 'exact recheck confirms · fp bounded' : 'three hash positions per item'}
       </text>
     </Frame>
   );

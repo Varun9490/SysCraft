@@ -3,13 +3,21 @@ import { SITE_URL } from "@/data/contentManifest";
 import { GUIDED_LABS } from "@/data/guidedLabs";
 import { ENCYCLOPEDIA_MODULES } from "@/data/encyclopediaData";
 import { TOPICS } from "@/data/topics";
-import { LESSON_ROUTES } from "@/lib/lessonRoutes";
 import { BLOGS, TRACKS } from "@/content/platform/registry";
 
 /**
- * Honest sitemap: reading surfaces and interactive surfaces get listed;
- * utility-only pages (room, settings, progress, raw tool pages) and redirect
- * stubs (/path, /workspace, /encyclopedia, /signin, /signup) are absent.
+ * Discovery surface for canonical, indexable routes.
+ *
+ * Canonical policy (SEO-01 / ROUTE-03):
+ * - The seven-track /paths tree is the primary curriculum and carries the
+ *   highest priorities. Each track and lesson has its own canonical in its
+ *   page metadata (see src/lib/seo.ts).
+ * - The legacy /learn library is a secondary archive. Its index stays in the
+ *   sitemap at low priority; its individual lesson pages are intentionally
+ *   omitted because they duplicate canonical /paths lessons and declare the
+ *   archive index as their canonical (noindex on the legacy detail pages).
+ * - Utility-only pages (room, settings, progress, raw tool pages) and redirect
+ *   stubs (/path, /workspace, /encyclopedia, /signin, /signup) are absent.
  */
 export const dynamic = "force-static";
 
@@ -25,6 +33,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     page("/", 1),
+    // Primary curriculum.
     page("/paths", 0.9),
     ...TRACKS.map((track) => page(`/paths/${track.slug}`, 0.85)),
     ...TRACKS.flatMap((track) =>
@@ -35,15 +44,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/map", 0.8),
     page("/tools", 0.8),
     page("/quiz", 0.8),
-    page("/learn", 0.9),
-    ...LESSON_ROUTES.map((lesson) => page(lesson.href, 0.7)),
+    page("/labs", 0.85),
+    ...GUIDED_LABS.map((lab) => page(`/labs/${lab.id}`, 0.75)),
+    // Secondary archive — deliberately lower priority than /paths.
+    page("/learn", 0.3),
+    // Supporting content surfaces.
     page("/case-studies", 0.85),
     page("/roadmap", 0.8),
     page("/start", 0.9),
-    page("/labs", 0.85),
-    ...GUIDED_LABS.map((lab) =>
-      page(`/labs/${lab.id}`, 0.75),
-    ),
     page("/topics", 0.8),
     ...TOPICS.map((topic) => page(`/topics/${topic.slug}`, 0.65)),
     page("/wiki", 0.8),

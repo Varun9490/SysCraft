@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from "react";
-import { runStartupMigrations } from "@/store/db";
 
 /**
  * Client-only boot hook mounted once in the root layout.
@@ -15,6 +14,8 @@ export function BootRunner() {
   useEffect(() => {
     void (async () => {
       try {
+        // Keep the database facade and Dexie out of the static-prerender graph.
+        const { runStartupMigrations } = await import("@/store/db");
         await runStartupMigrations();
       } catch {
         /* migrations are best-effort; the app boots regardless */

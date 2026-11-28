@@ -6,7 +6,8 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2 } from "@/components/ui/icons";
 import { LessonBlogViewer } from "@/components/path/LessonBlogViewer";
 import { GlossaryText } from "@/components/wiki/GlossaryText";
-import { getLessonBlog } from "@/data/lessonBlogs";
+// Type-only: erased at compile time, so the lessonBlogs registry stays server-side.
+import type { LessonBlog } from "@/data/lessonBlogs";
 import { getAdjacentLessons, type LessonRoute } from "@/lib/lessonRoutes";
 
 const PROGRESS_KEY = "syscraft.completedLessons.v1";
@@ -31,9 +32,8 @@ function writeCompleted(next: Set<string>) {
   }
 }
 
-export function LessonPageContent({ route }: { route: LessonRoute }) {
+export function LessonPageContent({ route, blog }: { route: LessonRoute; blog: LessonBlog }) {
   const router = useRouter();
-  const blog = getLessonBlog(route.moduleId, route.lessonIndex);
   const { prev, next } = getAdjacentLessons(route);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 

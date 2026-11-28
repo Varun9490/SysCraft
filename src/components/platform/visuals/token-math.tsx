@@ -2,17 +2,19 @@
 
 import { C, Frame, useStep, type VisualProps } from './Frame';
 
-const CTX = ['4k', '8k', '16k', '32k'];
+const CTX = ['4k', '8k', '16k', '32k', '64k'];
 const SPLITS = [
   [70, 18, 12],
   [62, 26, 12],
   [52, 36, 12],
   [40, 48, 12],
+  [30, 58, 12],
 ];
 
 export function TokenMathVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
-  const split = SPLITS[s];
+  const split = SPLITS[s] ?? SPLITS[0];
+  const final = s === 4;
   const x = 110;
   const y = 120;
   const barW = 380;
@@ -28,7 +30,7 @@ export function TokenMathVisual({ stepIndex, active }: VisualProps) {
   return (
     <Frame title="token math" step={s} active={active}>
       <text x="320" y="86" textAnchor="middle" fontSize="10" fill={C.focus}>
-        {`ctx ${CTX[s]} · batch 1`}
+        {`ctx ${CTX[s] ?? CTX[0]} · batch 1`}
       </text>
 
       {segs.map((seg) => {
@@ -61,8 +63,14 @@ export function TokenMathVisual({ stepIndex, active }: VisualProps) {
         memory
       </text>
 
-      <text x="320" y="310" textAnchor="middle" fontSize="9" fill={C.focus}>
-        kv grows with context
+      <text
+        x="320"
+        y="310"
+        textAnchor="middle"
+        fontSize="9"
+        fill={final ? C.warning : C.focus}
+      >
+        {final ? 'long context · kv dominated · budget guard' : 'kv grows with context'}
       </text>
     </Frame>
   );

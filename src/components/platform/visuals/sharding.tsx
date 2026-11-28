@@ -11,7 +11,9 @@ const SPOTS: readonly (readonly [number, number])[] = [
 
 export function ShardingVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
-  const hot = s % 4;
+  // s === 4 is the rebalanced final state: no hot shard, uniform load.
+  const final = s === 4;
+  const hot = final ? -1 : s % 4;
   const split = s === 3;
 
   return (
@@ -70,15 +72,15 @@ export function ShardingVisual({ stepIndex, active }: VisualProps) {
             w={170}
             h={82}
             label={`shard ${i + 1}`}
-            sub={i === hot ? 'hot' : `${(i + 1) * 25}%`}
-            color={i === hot ? C.warning : C.border}
-            filled={i === hot}
+            sub={final ? '25%' : i === hot ? 'hot' : `${(i + 1) * 25}%`}
+            color={final ? C.healthy : i === hot ? C.warning : C.border}
+            filled={final || i === hot}
           />
         );
       })}
 
-      <text x="320" y="344" textAnchor="middle" fontSize="9" fill={split ? C.healthy : C.warning}>
-        {split ? 'hot shard split' : `shard ${hot + 1} hot`}
+      <text x="320" y="344" textAnchor="middle" fontSize="9" fill={final ? C.healthy : split ? C.healthy : C.warning}>
+        {final ? 'rebalanced · uniform load' : split ? 'hot shard split' : `shard ${hot + 1} hot`}
       </text>
     </Frame>
   );

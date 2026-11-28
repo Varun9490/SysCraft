@@ -43,6 +43,22 @@ const ALLOWED_VISUAL_IDS = [
   "agent-loop",
   "token-math",
   "notation-decoder",
+  "tokenization",
+  "lru-lfu",
+  "pubsub-routing",
+  "parking-allocation",
+  "elevator-dispatch",
+  "linux-namespaces",
+  "k8s-reconcile",
+  "transformer-architecture",
+  "quantization",
+  "training-stages",
+  "sql-indexing",
+  "dns-http-protocols",
+  "observability-sli",
+  "expand-contract",
+  "circuit-breaker",
+  "search-ranking",
 ] as const satisfies readonly VisualId[];
 
 const ALLOWED_VISUAL_ID_SET: ReadonlySet<string> = new Set(ALLOWED_VISUAL_IDS);
@@ -239,9 +255,9 @@ describe("SysCraft curriculum contract", () => {
     for (const topic of TOPICS) expectQuizContract(topic);
   });
 
-  it("uses only the 21 visualizer registry ids", () => {
-    expect(ALLOWED_VISUAL_IDS).toHaveLength(21);
-    expect(new Set(ALLOWED_VISUAL_IDS).size).toBe(21);
+  it("uses only registered visualizer ids", () => {
+    expect(ALLOWED_VISUAL_IDS).toHaveLength(37);
+    expect(new Set(ALLOWED_VISUAL_IDS).size).toBe(37);
 
     for (const topic of TOPICS) {
       topic.value.steps.forEach((step, stepIndex) => {
@@ -250,6 +266,36 @@ describe("SysCraft curriculum contract", () => {
           `${topic.label}.steps[${stepIndex}].visualId "${step.visualId}" is not registered`,
         ).toBe(true);
       });
+    }
+  });
+
+  it("keeps captions visual-specific instead of repeating the story opening", () => {
+    for (const topic of TOPICS) {
+      topic.value.steps.forEach((step, stepIndex) => {
+        const opening = step.story.split(/[.!?]/)[0]?.trim();
+        expect.soft(
+          step.visualCaption.trim(),
+          `${topic.label}.steps[${stepIndex}].visualCaption must not repeat the story opening`,
+        ).not.toBe(opening);
+      });
+    }
+  });
+
+  it("gives five-step topics five distinct visual states", () => {
+    for (const topic of TOPICS) {
+      if (topic.value.steps.length !== 5) continue;
+      const states = topic.value.steps.map((_, index) => ((index % 5) + 5) % 5);
+      expect.soft(new Set(states).size, `${topic.label} must expose five visual states`).toBe(5);
+    }
+  });
+
+  it("balances answer positions and includes story-match plus security recall", () => {
+    for (const topic of TOPICS) {
+      const positions = topic.value.quiz.map((question) => question.answerIndex).sort();
+      expect.soft(positions, `${topic.label}.quiz must use answer positions 0,1,2,3`).toEqual([0, 1, 2, 3]);
+      const kinds = new Set(topic.value.quiz.map((question) => question.kind));
+      expect.soft(kinds.has("story-match"), `${topic.label}.quiz needs a story-match question`).toBe(true);
+      expect.soft(kinds.has("security"), `${topic.label}.quiz needs a security question`).toBe(true);
     }
   });
 

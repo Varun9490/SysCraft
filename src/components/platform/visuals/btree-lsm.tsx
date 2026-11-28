@@ -5,6 +5,9 @@ import { Arrow, C, Frame, Panel, useStep, type VisualProps } from './Frame';
 export function BTreeLsmVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
   const hi = s % 2;
+  // Final step: compaction has merged the runs into one sorted level.
+  const final = s === 4;
+  const runs = final ? 1 : s;
 
   return (
     <Frame title="btree / lsm" step={s} active={active}>
@@ -26,10 +29,10 @@ export function BTreeLsmVisual({ stepIndex, active }: VisualProps) {
       </text>
 
       <Panel x={392} y={104} w={176} h={44} label="memtable" sub="in memory" color={C.healthy} />
-      {s > 0 ? <Arrow x1={480} y1={150} x2={480} y2={178} color={C.brass} /> : null}
+      {runs > 0 ? <Arrow x1={480} y1={150} x2={480} y2={178} color={C.brass} /> : null}
 
-      {Array.from({ length: s }).map((_, i) => {
-        const w = 150 - i * 26;
+      {Array.from({ length: runs }).map((_, i) => {
+        const w = final ? 150 : 150 - i * 26;
         const x = 405 + (150 - w) / 2;
         const y = 182 + i * 50;
         return (
@@ -46,19 +49,19 @@ export function BTreeLsmVisual({ stepIndex, active }: VisualProps) {
               strokeWidth="1"
             />
             <text x={x + w / 2} y={y + 21} textAnchor="middle" fontSize="9" fill="currentColor">
-              {`run ${i + 1}`}
+              {final ? 'merged run' : `run ${i + 1}`}
             </text>
           </g>
         );
       })}
 
-      {s === 0 ? (
+      {runs === 0 ? (
         <text x="480" y="212" textAnchor="middle" fontSize="9" fill={C.border}>
           no flush yet
         </text>
       ) : null}
-      <text x="480" y="340" textAnchor="middle" fontSize="9" fill={s > 0 ? C.brass : C.border}>
-        {s > 0 ? 'sorted runs on disk' : 'buffer writes'}
+      <text x="480" y="340" textAnchor="middle" fontSize="9" fill={runs > 0 ? C.brass : C.border}>
+        {final ? 'compacted · one sorted run' : runs > 0 ? 'sorted runs on disk' : 'buffer writes'}
       </text>
     </Frame>
   );

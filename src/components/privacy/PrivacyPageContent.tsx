@@ -9,71 +9,91 @@ import { Reveal, StaggerChild, StaggerGroup } from "@/components/ui/motion";
  * The privacy truth panel: not a ToS — a plain inventory of what this app
  * stores on your device and every external host it can reach, with the
  * condition under which it does. If behavior changes, this page changes with
- * it (same discipline as /reference/numbers).
+ * it (same discipline as /reference/numbers). Sources: learning/platform/storage.ts,
+ * store/canvasPersistence.ts, store/db.ts, engine/aiClient.ts, engine/roomSync.ts,
+ * engine/cveScanner.ts.
  */
 
 const STAYS_LOCAL: Array<{ title: string; detail: string }> = [
   {
-    title: "Your designs and the canvas",
+    title: "Learner progress and preferences",
     detail:
-      "Topology, configurations, custom primitives, and undo history live in an IndexedDB database (Dexie) named syscraft_db_v1 inside this browser. There is no server copy.",
+      "Completed lessons, read field notes, visited topics, mastery records, quiz history, notes, bookmarks, and your resume point — plus reading mode, theme, ambient motion, cursor, and break settings — live in localStorage under syscraft.learner.v1. This is what the learner progress export writes to JSON.",
   },
   {
-    title: "Practice and play records",
+    title: "Canvas designs and autosave",
     detail:
-      "FSRS scheduling state, review history, and game scores live in localStorage under the syscraft.* namespace, visible in devtools and covered by export.",
+      "The topology you build is autosaved to localStorage under syscraft-canvas-v1 (with a syscraft-canvas-v1:lab:<id> key per lab), not to IndexedDB. Canvas preferences and saved presets use syscraft.canvas.prefs / syscraft.canvas.presets. There is no server copy of your design; a full backup includes the autosave so it can be restored on another device.",
   },
   {
-    title: "Learning progress and preferences",
+    title: "Deck cards, lab progress, and blueprints",
     detail:
-      "Completed lessons, read blogs, visited topics, recall history, notes, bookmarks, reading mode, theme, ambient motion, cursor, and break settings live in localStorage under syscraft.learner.v1. Settings can export or import this state as JSON.",
+      "FSRS scheduling state and review history, lab progress, custom primitives, saved blueprints, and simulation recordings live in IndexedDB via Dexie (syscraft_db_v1). The older syscanvas database is copied into it on first boot. None of these tables have a server mirror.",
+  },
+  {
+    title: "Practice, rooms, and other local keys",
+    detail:
+      "Recall and game records (syscraft.practice.*, syscraft.play.scores), prediction history, room code and config, start-checklist state, plugin packs, and the OpenCode bridge toggle all live in localStorage under the syscraft.* namespace, editable or removable in devtools. Your saved API key lives here too — under syscraft.byok, excluded from ordinary backups.",
   },
   {
     title: "Accounts and analytics",
     detail:
-      "There are no accounts, no tracking pixels, and no analytics beacons. The static site requests no cookie beyond what the browser needs to function.",
+      "There are no accounts, no tracking pixels, and no analytics beacons. The static site sets no cookie beyond what the browser needs to function, and the default AI reviewer is a deterministic heuristic that makes no network request at all.",
   },
 ];
 
 const LEAVES_ONLY_WHEN_YOU_CHOOSE: Array<{ title: string; detail: string; when: string }> = [
   {
-    title: "AI review with your own API key (tier 1)",
-    when: "Only after you save a key in Settings — BYOK stored in localStorage under syscraft.byok",
+    title: "Cloud AI with your own API key",
+    when: "Only after you save a key in Settings — stored locally under syscraft.byok",
     detail:
-      "The review request goes from your browser directly to your chosen provider: generativelanguage.googleapis.com, api.openai.com, or api.anthropic.com. The key is sent as part of the request — never to SysCraft infrastructure, because none exists. Remove the key and the calls stop.",
+      "Your browser posts the topology brief directly to the provider you pick: generativelanguage.googleapis.com, api.openai.com, or api.anthropic.com. The key is part of that request to the provider only; it is never sent to SysCraft infrastructure, because none exists. It is deliberately excluded from normal backups, so a backup file cannot leak your credential. Clearing the key stops the calls. This is an opt-in server round-trip to the provider.",
   },
   {
-    title: "Local-model weights (tier 2)",
-    when: "Only when you explicitly select the local WebGPU model",
+    title: "Browser-local WebGPU model",
+    when: "Only when you explicitly load the local model in Settings",
     detail:
-      "The @mlc-ai/web-llm engine downloads model weights once from the public model registry (HuggingFace CDN), then runs inference entirely on your GPU. Inference itself makes no further network calls.",
+      "The @mlc-ai/web-llm engine downloads the Llama-3.2-1B-Instruct-q4f16_1-MLC weights once from the public MLC model registry on HuggingFace CDN and caches them in this browser. That download is a real network fetch; after it completes, inference runs on your GPU with no further requests.",
+  },
+  {
+    title: "Local OpenCode free-plan bridge",
+    when: "Only when you enable the bridge toggle and the OpenCode CLI bridge is running on your machine",
+    detail:
+      "The browser sends the topology brief over HTTP to http://127.0.0.1:8787/review — a loopback request to a process on your own computer, not to SysCraft or a remote service. It is still a network round-trip, and it happens only while the toggle is on and the local bridge is listening. The enabled flag lives in localStorage under syscraft.opencodeBridge.",
   },
   {
     title: "Live rooms (peer-to-peer)",
     when: "Only when you open or join a room",
     detail:
-      "Sessions ride on y-webrtc. A public signaling server (signaling.yjs.dev and y-webrtc-eu.fly.dev, the library defaults) relays connection offers only — it brokers the handshake, it does not store your canvas or messages. Canvas data then flows peer-to-peer over DTLS-encrypted WebRTC data channels.",
+      "Rooms ride on y-webrtc. Its public signaling servers (signaling.yjs.dev and y-webrtc-eu.fly.dev by default) relay connection offers so peers can find each other; they broker the handshake and never store your canvas. Scene data then travels peer-to-peer over DTLS-encrypted WebRTC data channels. Room code and config are saved locally under syscraft.room.config / syscraft.room.name.",
   },
   {
     title: "Live CVE threat feed (optional)",
-    when: "Only when you open the Security hub and request a live refresh",
+    when: "Only when you request a live refresh in the Security hub",
     detail:
-      "The Security hub can fetch live CVE records from the NVD REST API (services.nvd.nist.gov) with a hard timeout. If the fetch fails or is blocked, it falls back to the bundled curated cache. No canvas data is sent — only a keyword search query.",
+      "The default request goes to services.nvd.nist.gov with a keyword search and a hard timeout. You can paste a custom feed URL — in that case the browser fetches whatever URL you supplied, so that host receives the request. Canvas data is never sent, and a failed or blocked fetch falls back to the bundled curated cache.",
   },
 ];
 
 const CONTROLS: Array<{ title: string; detail: string; href?: string; linkLabel?: string }> = [
   {
-    title: "Export everything",
+    title: "Learner progress export",
     detail:
-      "Settings → Export produces a single JSON backup of the full Dexie database plus every syscraft.* localStorage key. Move it to another machine and import to restore exactly.",
+      "Settings → Learner data exports only the syscraft.learner.v1 state as JSON. It does not contain your API key, canvas designs, FSRS or lab records, or other local preferences — it is the portable record of what you have studied.",
+    href: "/settings",
+    linkLabel: "Open settings",
+  },
+  {
+    title: "Full local backup",
+    detail:
+      "Settings → Export backup is a separate snapshot of the Dexie tables plus every SysCraft-owned localStorage key, including canvas autosaves. It deliberately omits the syscraft.byok credential, so your provider key stays on this device even if you move the backup file.",
     href: "/settings",
     linkLabel: "Open settings",
   },
   {
     title: "Delete everything",
     detail:
-      "Settings → Reset deletes the IndexedDB tables and the syscraft.* localStorage keys owned by the existing canvas and practice tools. The learner-data reset is a separate confirmed action for syscraft.learner.v1. Nothing was on a server to survive.",
+      "Settings → Reset clears the Dexie tables and all SysCraft-owned localStorage keys, including canvas autosaves; resetting learner data is a separate confirmed action for syscraft.learner.v1. Nothing was on a server to survive — deletion is local and immediate.",
     href: "/settings",
     linkLabel: "Open settings",
   },
@@ -109,8 +129,9 @@ export function PrivacyPageContent() {
           <StaggerChild>
             <p className="mt-6 max-w-2xl text-pretty text-[15px] leading-relaxed text-content-secondary">
               SysCraft is local-first, and &quot;local-first&quot; is a technical claim that can be audited. This is the
-              audit: every store we touch, every host we can reach, and the exact condition under which we reach it. No
-              flattering summary written about itself — plain prose, checkable against the code.
+              audit: every store we touch, every host we can reach, and the exact condition under which we reach it. The
+              default path is entirely on your device; the network calls below are opt-in, and each one really does
+              leave the browser — we do not call that &quot;offline&quot;.
             </p>
           </StaggerChild>
         </StaggerGroup>
@@ -119,7 +140,7 @@ export function PrivacyPageContent() {
           <Reveal>
             <section className="h-full rounded-2xl border border-line bg-app/50 p-6 shadow-card" aria-label="Stays local">
               <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-tertiary">
-                <ShieldCheck size={14} className="text-brass" /> Never leaves your browser
+                <ShieldCheck size={14} className="text-brass" /> Never leaves your browser by default
               </p>
               <ul className="mt-4 space-y-4">
                 {STAYS_LOCAL.map((item) => (
@@ -162,7 +183,7 @@ export function PrivacyPageContent() {
               <Database size={18} className="text-brass" /> Your data, your controls
             </h2>
           </Reveal>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {CONTROLS.map((item, i) => (
               <Reveal key={item.title} delay={i * 0.05}>
                 <div className="flex h-full flex-col rounded-2xl border border-line bg-app/50 p-5 shadow-card">
@@ -189,8 +210,8 @@ export function PrivacyPageContent() {
           className="mt-12 text-[12px] leading-relaxed text-content-tertiary"
         >
           Found a mismatch between this page and the app&apos;s behavior? Treat it as a bug in the app: this inventory
-          is meant to be checkable, and every external host listed is drawn directly from the request-construction
-          code in the repository.
+          is meant to be checkable, and every storage key and external host listed is drawn from the code in this
+          repository.
         </motion.p>
       </div>
     </div>

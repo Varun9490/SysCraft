@@ -2,7 +2,8 @@ import { RedirectTo } from "@/components/nav/RedirectTo";
 
 /**
  * Legacy route preserved for old links: the learning path now lives at
- * /paths. A 301 is also declared in vercel.json for production traffic.
+ * /paths. vercel.json declares a 301 on Vercel; on plain static hosts this
+ * page is the fallback, with an explicit cross-canonical and a client hop.
  */
 
 export const metadata = {

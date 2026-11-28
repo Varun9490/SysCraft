@@ -1,6 +1,8 @@
 import type { Edge, Node } from "@xyflow/react";
+import { decompressFromEncodedURIComponent } from "lz-string";
 import type { ResourceNodeData, ResourceOverrides } from "@/types/resource";
 import type { StateStorage } from "zustand/middleware";
+import { SYSCRAFT_CANVAS_STORAGE_KEY } from "./backup/schema";
 import type {
   CanvasEdgeData,
   CanvasEdgeRouting,
@@ -20,10 +22,19 @@ import type {
  * a higher version bails so stale writes can never poison new state.
  */
 
-export const CANVAS_STORAGE_KEY = "syscraft-canvas-v1";
+export const CANVAS_STORAGE_KEY = SYSCRAFT_CANVAS_STORAGE_KEY;
 export const CANVAS_PERSIST_VERSION = 1;
 export const MAX_PERSISTED_NODES = 200;
 export const MAX_PERSISTED_EDGES = 400;
+export const MAX_SCENE_ENCODED_CHARS = 256_000;
+export const MAX_SCENE_DECODED_CHARS = 1_000_000;
+
+const MAX_NODE_ID_CHARS = 64;
+const MAX_EDGE_ID_CHARS = 96;
+const MAX_RESOURCE_ID_CHARS = 128;
+const MAX_OVERRIDE_ENTRIES = 32;
+const MAX_OVERRIDE_KEY_CHARS = 40;
+const MAX_OVERRIDE_STRING_CHARS = 200;
 
 /**
  * Canvas scopes keep independent autosaves. The freeform workspace uses
@@ -75,44 +86,64 @@ const EDGE_MARKERS = new Set<EdgeMarker>(["none", "arrow", "arrowClosed"]);
 
 const EDGE_ROUTINGS = new Set<CanvasEdgeRouting>(["smoothstep", "bezier", "straight"]);
 
+const UNSAFE_OVERRIDE_KEYS = new Set(["__proto__", "prototype", "constructor"]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function finiteNumber(value: unknown, min: number, max: number): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : undefined;
 }
 
 function boundedString(value: unknown, max: number, fallback: string): string {
-  if (typeof value !== "string") return fallback;
-  const trimmed = value.trim();
-  return trimmed.length > 0 && trimmed.length <= max ? trimmed : fallback.slice(0, max);
+  if (typeof value !== "string" || value.trim().length === 0) return fallback.slice(0, max);
+  return value.slice(0, max);
+}
+
+function boundedIdentifier(value: unknown, max: number): string | null {
+  if (typeof value !== "string" || value.trim().length === 0 || value.length > max) return null;
+  return value;
 }
 
 /** Narrow a raw node object into the persisted shape; null = drop it. */
 export function sanitizePersistedNode(raw: unknown): PersistedCanvasNode | null {
-  if (!raw || typeof raw !== "object") return null;
-  const rec = raw as Record<string, unknown>;
+  if (!isRecord(raw)) return null;
+  const rec = raw;
 
-  const id = typeof rec.id === "string" && rec.id.length > 0 ? rec.id.slice(0, 64) : null;
+  const id = boundedIdentifier(rec.id, MAX_NODE_ID_CHARS);
   if (!id) return null;
 
-  const position = rec.position as Record<string, unknown> | undefined;
+  const position = isRecord(rec.position) ? rec.position : undefined;
   const x = finiteNumber(position?.x, -200_000, 200_000);
   const y = finiteNumber(position?.y, -200_000, 200_000);
   if (x === undefined || y === undefined) return null;
 
-  const dataRaw = (rec.data ?? {}) as Record<string, unknown>;
-  const resourceId =
-    typeof dataRaw.resourceId === "string" && dataRaw.resourceId.length > 0
-      ? dataRaw.resourceId.slice(0, 128)
-      : null;
+  // Shared scenes use flat node fields; persisted React Flow nodes and direct
+  // topology replacements use `data`. Both enter the store through this seam.
+  const dataRaw = isRecord(rec.data) ? rec.data : rec;
+  const resourceId = boundedIdentifier(dataRaw.resourceId, MAX_RESOURCE_ID_CHARS);
   if (!resourceId) return null;
 
-  const overridesRaw = (dataRaw.overrides ?? {}) as Record<string, unknown>;
+  const overridesRaw = isRecord(dataRaw.overrides) ? dataRaw.overrides : {};
   const overrides: Record<string, string | number | boolean> = {};
-  for (const [key, value] of Object.entries(overridesRaw)) {
-    if (typeof key !== "string" || key.length === 0 || key.length > 40) continue;
-    if (value === null || value === undefined) continue;
-    if (typeof value === "boolean") overrides[key] = value;
-    else if (typeof value === "number" && Number.isFinite(value)) overrides[key] = value;
-    else if (typeof value === "string" && value.length <= 200) overrides[key] = value;
+  let examinedOverrides = 0;
+  for (const key in overridesRaw) {
+    if (examinedOverrides >= MAX_OVERRIDE_ENTRIES) break;
+    if (!Object.prototype.hasOwnProperty.call(overridesRaw, key)) continue;
+    examinedOverrides += 1;
+    if (key.length === 0 || key.length > MAX_OVERRIDE_KEY_CHARS || UNSAFE_OVERRIDE_KEYS.has(key)) continue;
+    const value = overridesRaw[key];
+    if (typeof value === "boolean") {
+      overrides[key] = value;
+    } else if (typeof value === "number" && Number.isFinite(value)) {
+      overrides[key] = value;
+    } else if (typeof value === "string") {
+      const safe = value.slice(0, MAX_OVERRIDE_STRING_CHARS);
+      if (safe.length > 0) overrides[key] = safe;
+    } else {
+      continue;
+    }
   }
 
   const zoomRaw = dataRaw.semanticZoomLevel;
@@ -125,8 +156,8 @@ export function sanitizePersistedNode(raw: unknown): PersistedCanvasNode | null 
     semanticZoomLevel,
   };
 
-  const width = finiteNumber(rec.width, 140, 520);
-  const height = finiteNumber(rec.height, 56, 320);
+  const width = finiteNumber(dataRaw.width ?? rec.width, 140, 520);
+  const height = finiteNumber(dataRaw.height ?? rec.height, 56, 320);
   if (width !== undefined && height !== undefined) {
     data.width = width;
     data.height = height;
@@ -136,8 +167,8 @@ export function sanitizePersistedNode(raw: unknown): PersistedCanvasNode | null 
   const accent = dataRaw.accentColor;
   if (typeof accent === "string" && /^#[0-9a-fA-F]{6}$/.test(accent)) data.accentColor = accent;
 
-  const comment = dataRaw.comment;
-  if (typeof comment === "string" && comment.trim().length > 0) data.comment = comment.trim().slice(0, 2000);
+  const comment = boundedString(dataRaw.comment, 2000, "");
+  if (comment.length > 0) data.comment = comment;
 
   // Persist the React Flow node type: without it the restored node falls back
   // to the library's default renderer and loses the resource card UI.
@@ -146,20 +177,20 @@ export function sanitizePersistedNode(raw: unknown): PersistedCanvasNode | null 
 
 /** Narrow a raw edge object; returns null for self-loops, or malformed pairs. */
 export function sanitizePersistedEdge(raw: unknown, nodeIds: Set<string>): PersistedCanvasEdge | null {
-  if (!raw || typeof raw !== "object") return null;
-  const rec = raw as Record<string, unknown>;
+  if (!isRecord(raw)) return null;
+  const rec = raw;
 
-  const id = typeof rec.id === "string" && rec.id.length > 0 ? rec.id.slice(0, 96) : null;
-  const source = typeof rec.source === "string" && rec.source.length > 0 ? rec.source.slice(0, 64) : null;
-  const target = typeof rec.target === "string" && rec.target.length > 0 ? rec.target.slice(0, 64) : null;
+  const id = boundedIdentifier(rec.id, MAX_EDGE_ID_CHARS);
+  const source = boundedIdentifier(rec.source, MAX_NODE_ID_CHARS);
+  const target = boundedIdentifier(rec.target, MAX_NODE_ID_CHARS);
   if (!id || !source || !target || source === target) return null;
   if (!nodeIds.has(source) || !nodeIds.has(target)) return null;
 
-  const dataRaw = (rec.data ?? {}) as Record<string, unknown>;
+  const dataRaw = isRecord(rec.data) ? rec.data : rec;
   const data: CanvasEdgeData = {};
 
-  const label = dataRaw.label;
-  if (typeof label === "string" && label.trim().length > 0) data.label = label.trim().slice(0, 120);
+  const label = boundedString(dataRaw.label, 120, "");
+  if (label.length > 0) data.label = label;
 
   const condition = dataRaw.condition;
   if (typeof condition === "string" && EDGE_CONDITIONS.has(condition as EdgeCondition)) {
@@ -176,12 +207,11 @@ export function sanitizePersistedEdge(raw: unknown, nodeIds: Set<string>): Persi
   }
 
   const width = finiteNumber(dataRaw.width, 0.75, 5);
-  if (width !== undefined && width !== 1.6) data.width = width;
+  if (width !== undefined) data.width = width;
 
   const marker = dataRaw.marker;
   if (typeof marker === "string" && EDGE_MARKERS.has(marker as EdgeMarker)) {
-    const safe = marker as EdgeMarker;
-    if (safe !== "none") data.marker = safe;
+    data.marker = marker as EdgeMarker;
   }
 
   return { id, source, target, data, selected: false };
@@ -189,50 +219,86 @@ export function sanitizePersistedEdge(raw: unknown, nodeIds: Set<string>): Persi
 
 /** Sanitize a whole persisted draft; undefined = unusable, fall back to empty. */
 export function sanitizePersistedCanvas(raw: unknown): PersistedCanvasState | undefined {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
-  const rec = raw as Record<string, unknown>;
-  if (!Array.isArray(rec.nodes) || !Array.isArray(rec.edges)) return undefined;
+  try {
+    if (!isRecord(raw) || !Array.isArray(raw.nodes) || !Array.isArray(raw.edges)) return undefined;
 
-  const nodes = rec.nodes
-    .slice(0, MAX_PERSISTED_NODES)
-    .map(sanitizePersistedNode)
-    .filter((node): node is PersistedCanvasNode => node !== null);
-  if (nodes.length === 0 && rec.nodes.length > 0) return undefined;
+    const nodes: PersistedCanvasNode[] = [];
+    const nodeIds = new Set<string>();
+    for (const rawNode of raw.nodes.slice(0, MAX_PERSISTED_NODES)) {
+      const node = sanitizePersistedNode(rawNode);
+      if (!node || nodeIds.has(node.id)) continue;
+      nodeIds.add(node.id);
+      nodes.push(node);
+    }
+    if (nodes.length === 0 && raw.nodes.length > 0) return undefined;
 
-  const nodeIds = new Set(nodes.map((node) => node.id));
-  const seenEdgeIds = new Set<string>();
-  const edges = rec.edges
-    .slice(0, MAX_PERSISTED_EDGES)
-    .map((edge) => sanitizePersistedEdge(edge, nodeIds))
-    .filter((edge): edge is PersistedCanvasEdge => {
-      if (edge === null) return false;
-      // Drop ties from patched payloads: first writer wins, dupes disappear.
-      const dupes = seenEdgeIds.has(`${edge.source}>${edge.target}`) || seenEdgeIds.has(edge.id);
+    const edges: PersistedCanvasEdge[] = [];
+    const seenEdgeIds = new Set<string>();
+    const seenEdgePairs = new Set<string>();
+    for (const rawEdge of raw.edges.slice(0, MAX_PERSISTED_EDGES)) {
+      const edge = sanitizePersistedEdge(rawEdge, nodeIds);
+      if (!edge) continue;
+      const pair = JSON.stringify([edge.source, edge.target]);
+      // First writer wins for both duplicate ids and duplicate directed pairs.
+      if (seenEdgeIds.has(edge.id) || seenEdgePairs.has(pair)) continue;
       seenEdgeIds.add(edge.id);
-      seenEdgeIds.add(`${edge.source}>${edge.target}`);
-      return !dupes;
-    });
+      seenEdgePairs.add(pair);
+      edges.push(edge);
+    }
 
-  return {
-    nodes,
-    edges,
-    sceneName: rec.sceneName === undefined ? "Untitled system" : boundedString(rec.sceneName, 80, "Untitled system"),
-    edgeStyle:
-      typeof rec.edgeStyle === "string" && EDGE_ROUTINGS.has(rec.edgeStyle as CanvasEdgeRouting)
-        ? (rec.edgeStyle as CanvasEdgeRouting)
-        : "smoothstep",
-    semanticZoomLevel: rec.semanticZoomLevel === 1 || rec.semanticZoomLevel === 3 ? rec.semanticZoomLevel : 2,
-  };
+    return {
+      nodes,
+      edges,
+      sceneName: raw.sceneName === undefined ? "Untitled system" : boundedString(raw.sceneName, 80, "Untitled system"),
+      edgeStyle:
+        typeof raw.edgeStyle === "string" && EDGE_ROUTINGS.has(raw.edgeStyle as CanvasEdgeRouting)
+          ? (raw.edgeStyle as CanvasEdgeRouting)
+          : "smoothstep",
+      semanticZoomLevel: raw.semanticZoomLevel === 1 || raw.semanticZoomLevel === 3 ? raw.semanticZoomLevel : 2,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Decode raw/compressed JSON and run every external scene through the same
+ * bounded topology sanitizer used by persistence and direct replacements.
+ */
+export function decodeAndSanitizeScene(
+  serialized: unknown,
+  expectedVersion: number,
+): PersistedCanvasState | undefined {
+  try {
+    if (typeof serialized !== "string" || serialized.length === 0 || serialized.length > MAX_SCENE_ENCODED_CHARS) {
+      return undefined;
+    }
+    const trimmed = serialized.trim();
+    if (trimmed.length === 0) return undefined;
+
+    let json: string | null = null;
+    if (trimmed.startsWith("{")) {
+      json = trimmed;
+    } else {
+      json = decompressFromEncodedURIComponent(trimmed);
+    }
+    if (!json || json.length > MAX_SCENE_DECODED_CHARS) return undefined;
+
+    const parsed: unknown = JSON.parse(json);
+    if (!isRecord(parsed)) return undefined;
+    const candidate = parsed.format === "syscraft.design/1" && "scene" in parsed ? parsed.scene : parsed;
+    if (!isRecord(candidate) || candidate.version !== expectedVersion) return undefined;
+    if (!Array.isArray(candidate.nodes) || !Array.isArray(candidate.edges)) return undefined;
+    return sanitizePersistedCanvas(candidate);
+  } catch {
+    return undefined;
+  }
 }
 
 /** Versioned migration for the persist middleware. Version > current → fresh. */
 export function migratePersistedCanvas(persisted: unknown, version: number): PersistedCanvasState | undefined {
   if (version > CANVAS_PERSIST_VERSION) return undefined;
-  try {
-    return sanitizePersistedCanvas(persisted);
-  } catch {
-    return undefined;
-  }
+  return sanitizePersistedCanvas(persisted);
 }
 
 /** Read a saved canvas for a scope without going through the store. */
@@ -241,6 +307,7 @@ export function readPersistedCanvas(scope: string): PersistedCanvasState | undef
   try {
     const raw = window.localStorage.getItem(canvasStorageKeyForScope(scope));
     if (!raw) return undefined;
+    if (raw.length > MAX_SCENE_DECODED_CHARS) return undefined;
     const parsed = JSON.parse(raw) as { state?: unknown; version?: unknown };
     const version = typeof parsed?.version === "number" ? parsed.version : CANVAS_PERSIST_VERSION;
     return migratePersistedCanvas(parsed?.state ?? parsed, version);
@@ -255,7 +322,26 @@ type CanvasStateStorage = StateStorage<void>;
 let storageRef: CanvasStateStorage | null = null;
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingWrite: { name: string; value: string } | null = null;
+let lifecycleFlushInstalled = false;
 const WRITE_DEBOUNCE_MS = 500;
+
+/**
+ * Install the autosave flush once for every canvas host, including labs that
+ * do not mount the freeform workspace shell. Browser access stays inside this
+ * boot-time call so importing the store remains SSR-safe.
+ */
+export function installCanvasPersistenceLifecycleFlush(): () => void {
+  if (typeof window === "undefined" || lifecycleFlushInstalled) return () => {};
+  const flush = () => flushPendingCanvasWrite();
+  window.addEventListener("pagehide", flush);
+  window.addEventListener("beforeunload", flush);
+  lifecycleFlushInstalled = true;
+  return () => {
+    window.removeEventListener("pagehide", flush);
+    window.removeEventListener("beforeunload", flush);
+    lifecycleFlushInstalled = false;
+  };
+}
 
 /**
  * localStorage adapter with trailing-debounced writes: topology changes fire
@@ -264,6 +350,7 @@ const WRITE_DEBOUNCE_MS = 500;
  * run on pagehide/beforeunload so a closed tab never loses trailing edits.
  */
 export function createDebouncedCanvasStorage(getBase: () => CanvasStateStorage | undefined): CanvasStateStorage {
+  installCanvasPersistenceLifecycleFlush();
   const resolve = () => {
     try {
       const base = getBase();
@@ -308,6 +395,15 @@ export function createDebouncedCanvasStorage(getBase: () => CanvasStateStorage |
       }
     },
   };
+}
+
+/** Cancel a queued autosave without writing it (used by backup import/wipe). */
+export function discardPendingCanvasWrite(): void {
+  pendingWrite = null;
+  if (flushTimer !== null) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
 }
 
 /** Write the pending snapshot now (pagehide / beforeunload / test seam). */

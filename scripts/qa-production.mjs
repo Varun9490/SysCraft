@@ -28,6 +28,13 @@ const SCORECARD_PATH = resolve(process.cwd(), "docs", "qa-scorecard.md");
 const VIEWPORT_DESKTOP = { width: 1440, height: 900 };
 const VIEWPORT_MOBILE = { width: 390, height: 844 };
 
+// CDN-backed production pages hydrate after DOMContentLoaded. Interaction
+// budgets therefore wait for a named control or a persisted state assertion,
+// and the budget itself is longer than the old 8s local-development value.
+const INTERACTION_TIMEOUT = 15000;
+// More frames smooth out headless vsync jitter for the non-critical p95 check.
+const PERF_FRAME_SAMPLES = 180;
+
 const CATEGORIES = [
   { key: "routes", label: "Routes and content", weight: 20 },
   { key: "learning", label: "Core learning interactions", weight: 20 },
@@ -178,6 +185,15 @@ const networkErrors = [];
 const httpErrors = [];
 let frameTiming = null;
 let browser;
+// Every long-lived scenario context is registered so the outer finally block
+// is a guaranteed cleanup path even if a check throws outside its own guard.
+const openContexts = [];
+
+async function trackedContext(options) {
+  const context = await browser.newContext(options);
+  openContexts.push(context);
+  return context;
+}
 
 function sameOrigin(rawUrl) {
   if (!rawUrl) return true;
@@ -265,14 +281,26 @@ async function readLearner(page) {
   }, LEARNER_KEY);
 }
 
+/**
+ * Wait for the reader's explicit hydration marker. Opening a topic no longer
+ * marks it visited, so localStorage cannot be used as a mount-time signal.
+ */
+async function waitForLearnerHydration(page, topicId) {
+  await page.locator(`[data-learner-hydrated="true"]`).waitFor({
+    state: "attached",
+    timeout: INTERACTION_TIMEOUT,
+  });
+  void topicId;
+}
+
 async function regionText(page, locator) {
-  await locator.waitFor({ state: "visible", timeout: 8000 });
+  await locator.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
   return (await locator.innerText()).replace(/\s+/g, " ");
 }
 
 async function activeStepNumber(page) {
   const current = page.locator(SELECTORS.activeStep).first();
-  await current.waitFor({ state: "visible", timeout: 8000 });
+  await current.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
   const label = (await current.getAttribute("aria-label")) ?? "";
   const match = label.match(/step\s+(\d+)/i);
   if (!match) throw new Error(`Cannot read active step from aria-label "${label}"`);
@@ -364,7 +392,7 @@ function writeScorecard(score) {
   lines.push("## Frame timing");
   lines.push("");
   if (frameTiming) {
-    lines.push(`- Steady-state 90 rAF frames after fonts and entrance reveals have settled: average **${frameTiming.average.toFixed(2)} ms**, p95 **${frameTiming.p95.toFixed(2)} ms**.`);
+    lines.push(`- Steady-state ${PERF_FRAME_SAMPLES} rAF frames after fonts and entrance reveals have settled: average **${frameTiming.average.toFixed(2)} ms**, p95 **${frameTiming.p95.toFixed(2)} ms**.`);
     lines.push("- Thresholds: average <= 34 ms, p95 <= 50 ms (headless vsync is not treated as a hard failure).");
   } else {
     lines.push("- Not measured (landing motion check did not complete).");
@@ -422,7 +450,7 @@ function writeScorecard(score) {
 
 try {
   browser = await chromium.launch({ headless: true });
-  const desktop = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+  const desktop = await trackedContext({ viewport: VIEWPORT_DESKTOP });
   const page = await newPage(desktop, "desktop");
 
   // -- 1. Routes and content -------------------------------------------------
@@ -466,7 +494,7 @@ try {
 
   await check("routes", "every track card links to the correct track", true, async () => {
     await page.goto(`${BASE_URL}/paths`, { waitUntil: "domcontentloaded" });
-    await page.getByRole("heading", { level: 1, name: "Learning paths" }).waitFor({ timeout: 8000 });
+    await page.getByRole("heading", { level: 1, name: "Learning paths" }).waitFor({ timeout: INTERACTION_TIMEOUT });
     const links = page.locator('main a[href^="/paths/"]');
     assert.equal(await links.count(), 7, "expected exactly 7 track cards on /paths");
     const hrefs = await links.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href")));
@@ -476,13 +504,13 @@ try {
 
   await check("routes", "first lesson navigation works from paths index", true, async () => {
     await page.locator('main a[href="/paths/foundations"]').first().click();
-    await page.waitForURL(`${BASE_URL}/paths/foundations`, { timeout: 8000 });
-    await page.locator("h1").first().waitFor({ state: "visible", timeout: 8000 });
+    await page.waitForURL(`${BASE_URL}/paths/foundations`, { timeout: INTERACTION_TIMEOUT });
+    await page.locator("h1").first().waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     const firstLesson = page.locator('main ol a[href="/paths/foundations/single-server"]').first();
     assert.equal(await firstLesson.count(), 1, "SELECTORS.firstLesson link not found on the track page");
     await firstLesson.click();
-    await page.waitForURL(`${BASE_URL}/paths/foundations/single-server`, { timeout: 8000 });
-    await page.locator("h1").first().waitFor({ state: "visible", timeout: 8000 });
+    await page.waitForURL(`${BASE_URL}/paths/foundations/single-server`, { timeout: INTERACTION_TIMEOUT });
+    await page.locator("h1").first().waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
   });
 
   await check("routes", "mobile menu navigates to Paths", false, async () => {
@@ -495,7 +523,7 @@ try {
         .getByRole("navigation", { name: "Site menu" })
         .getByRole("link", { name: "Paths" })
         .click();
-      await mobilePage.waitForURL(`${BASE_URL}/paths`, { timeout: 8000 });
+      await mobilePage.waitForURL(`${BASE_URL}/paths`, { timeout: INTERACTION_TIMEOUT });
     } finally {
       await mobile.close();
     }
@@ -505,14 +533,17 @@ try {
   await page.close();
 
   // -- 2. Core learning interactions ----------------------------------------
-  const learning = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+  const learning = await trackedContext({ viewport: VIEWPORT_DESKTOP });
   const lessonPage = await newPage(learning, "learning");
   const lessonUrl = `${BASE_URL}/paths/foundations/single-server`;
 
   await check("learning", "Story / Engineer / Both controls switch mode without resetting the step", true, async () => {
     await lessonPage.goto(lessonUrl, { waitUntil: "domcontentloaded" });
-    await lessonPage.getByRole("heading", { level: 1 }).waitFor({ timeout: 8000 });
-    await lessonPage.getByRole("button", { name: "Next", exact: true }).first().click();
+    await lessonPage.getByRole("heading", { level: 1 }).waitFor({ timeout: INTERACTION_TIMEOUT });
+    await waitForLearnerHydration(lessonPage, "single-server");
+    const next = lessonPage.getByRole("button", { name: "Next", exact: true }).first();
+    await next.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
+    await next.click();
     assert.equal(await activeStepNumber(lessonPage), 2, "Next did not advance to step 2");
     const modes = lessonPage.getByRole(SELECTORS.readingMode.role, { name: SELECTORS.readingMode.name });
     for (const name of ["Story", "Engineer", "Both"]) {
@@ -533,13 +564,14 @@ try {
 
   await check("learning", "engineer details are on demand via layer tabs / disclosure, never a second wall", true, async () => {
     await lessonPage.goto(lessonUrl, { waitUntil: "domcontentloaded" });
-    await lessonPage.getByRole("heading", { level: 1 }).waitFor({ timeout: 8000 });
+    await lessonPage.getByRole("heading", { level: 1 }).waitFor({ timeout: INTERACTION_TIMEOUT });
+    await waitForLearnerHydration(lessonPage, "single-server");
 
     const modes = lessonPage.getByRole(SELECTORS.readingMode.role, { name: SELECTORS.readingMode.name });
     // This page shares a browser context (and persisted prefs) with the mode
     // check above. Never assume the persisted mode is still "Both".
     const bothMode = modes.getByRole("button", { name: "Both", exact: true });
-    await bothMode.waitFor({ state: "visible", timeout: 8000 });
+    await bothMode.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     await bothMode.click();
     assert.equal(await bothMode.getAttribute("aria-pressed"), "true", "could not switch to Both mode");
 
@@ -548,7 +580,7 @@ try {
     const layer = lessonPage
       .getByRole(SELECTORS.readingLayer.role, { name: SELECTORS.readingLayer.name })
       .first();
-    await layer.waitFor({ state: "visible", timeout: 8000 });
+    await layer.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
 
     const engineer = lessonPage.locator('article:has(> h3:text-is("Engineer"))');
     const visibleEngineerPanels = async () => {
@@ -569,7 +601,7 @@ try {
           return min === 0 ? visible === 0 : visible >= min;
         },
         minimum,
-        { timeout: 8000 },
+        { timeout: INTERACTION_TIMEOUT },
       );
 
     // The panel of a previously selected layer can still be exiting.
@@ -584,7 +616,7 @@ try {
     const engineerTab = layer.getByRole("button", { name: "Engineer", exact: true });
     assert.equal(await storyTab.getAttribute("aria-pressed"), "true", "Both mode should open on the Story layer");
     await engineerTab.click();
-    await engineer.first().waitFor({ state: "visible", timeout: 8000 });
+    await engineer.first().waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     assert.ok((await visibleEngineerPanels()) >= 1, "SELECTORS.readingLayer: Engineer tab did not reveal details");
     await storyTab.click();
     // Wait for the engineer panel's AnimatePresence exit before changing mode.
@@ -592,9 +624,9 @@ try {
 
     // Story mode: the on-demand disclosure replaces the second text column.
     await modes.getByRole("button", { name: "Story", exact: true }).click();
-    await layer.waitFor({ state: "hidden", timeout: 8000 });
+    await layer.waitFor({ state: "hidden", timeout: INTERACTION_TIMEOUT });
     const disclosure = lessonPage.getByRole("button", { name: SELECTORS.engineerDisclosure }).first();
-    await disclosure.waitFor({ state: "visible", timeout: 8000 });
+    await disclosure.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     await disclosure.click();
     await lessonPage.waitForFunction(
       () =>
@@ -602,7 +634,7 @@ try {
           (article) => article.querySelector("h3")?.textContent === "Engineer" && article.getClientRects().length > 0,
         ),
       undefined,
-      { timeout: 8000 },
+      { timeout: INTERACTION_TIMEOUT },
     );
 
     // Engineer mode still exposes the layer directly.
@@ -616,7 +648,8 @@ try {
     try {
       const navPage = await newPage(navContext, "learning-navigation");
       await navPage.goto(lessonUrl, { waitUntil: "domcontentloaded" });
-      await navPage.getByRole("heading", { level: 1 }).waitFor({ timeout: 8000 });
+      await navPage.getByRole("heading", { level: 1 }).waitFor({ timeout: INTERACTION_TIMEOUT });
+      await waitForLearnerHydration(navPage, "single-server");
       assert.equal(await activeStepNumber(navPage), 1, "lesson did not start at step 1");
       await navPage.getByRole("button", { name: "Next", exact: true }).first().click();
       assert.equal(await activeStepNumber(navPage), 2, "Next failed");
@@ -642,7 +675,8 @@ try {
   await check("learning", "lesson notes persist after reload", true, async () => {
     await lessonPage.goto(lessonUrl, { waitUntil: "domcontentloaded" });
     const notes = lessonPage.getByLabel(SELECTORS.lessonNotes.label);
-    await notes.waitFor({ state: "visible", timeout: 8000 });
+    await notes.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
+    await waitForLearnerHydration(lessonPage, "single-server");
     const value = "Remember the bottleneck before adding replicas.";
     await notes.fill(value);
     await lessonPage.reload({ waitUntil: "domcontentloaded" });
@@ -652,7 +686,7 @@ try {
         return area instanceof HTMLTextAreaElement && area.value === expected;
       },
       value,
-      { timeout: 8000 },
+      { timeout: INTERACTION_TIMEOUT },
     );
     assert.equal(await lessonPage.getByLabel(SELECTORS.lessonNotes.label).inputValue(), value);
     const saved = await readLearner(lessonPage);
@@ -661,7 +695,8 @@ try {
 
   await check("learning", "bookmark toggle registers and appears in the utility dock", true, async () => {
     await lessonPage.goto(lessonUrl, { waitUntil: "domcontentloaded" });
-    await lessonPage.getByRole("heading", { level: 1 }).waitFor({ timeout: 8000 });
+    await lessonPage.getByRole("heading", { level: 1 }).waitFor({ timeout: INTERACTION_TIMEOUT });
+    await waitForLearnerHydration(lessonPage, "single-server");
     const bookmark = lessonPage.getByRole(SELECTORS.bookmark.role, { name: SELECTORS.bookmark.name }).first();
     await bookmark.click();
     assert.equal(await bookmark.getAttribute("aria-pressed"), "true", "bookmark aria-pressed did not turn on");
@@ -675,7 +710,7 @@ try {
     }
     await launcher.click();
     const popover = lessonPage.locator(SELECTORS.dockPanel).first();
-    await popover.waitFor({ state: "visible", timeout: 8000 });
+    await popover.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     const savedButton = lessonPage.getByRole("button", { name: /Saved bookmarks/i }).first();
     await savedButton.click();
     await lessonPage.waitForFunction(
@@ -689,50 +724,70 @@ try {
         );
       },
       undefined,
-      { timeout: 8000 },
+      { timeout: INTERACTION_TIMEOUT },
     );
     await lessonPage.keyboard.press("Escape");
   });
 
   await check("learning", "security shield toggle changes state and telemetry", true, async () => {
     await lessonPage.goto(lessonUrl, { waitUntil: "domcontentloaded" });
-    await lessonPage.getByRole("heading", { level: 1 }).waitFor({ timeout: 8000 });
+    await lessonPage.getByRole("heading", { level: 1 }).waitFor({ timeout: INTERACTION_TIMEOUT });
+    await waitForLearnerHydration(lessonPage, "single-server");
     const shield = lessonPage.getByRole(SELECTORS.shield.role, { name: SELECTORS.shield.name }).first();
     await shield.click();
     assert.equal(await shield.getAttribute("aria-pressed"), "true", "shield aria-pressed did not turn on");
-    await lessonPage.getByText(/Defense in depth: verified identity/i).waitFor({ timeout: 8000 });
+    await lessonPage.getByText(/Defense in depth: verified identity/i).waitFor({ timeout: INTERACTION_TIMEOUT });
   });
+
+  // Nothing else in this section uses the lesson page; stop its animations
+  // before the isolated blog check measures reader readiness.
+  await lessonPage.close();
 
   await check("learning", "blog final step marks the field note as read", true, async () => {
-    const blogUrl = `${BASE_URL}/blogs/database-melts-at-10k-rps`;
-    await lessonPage.goto(blogUrl, { waitUntil: "domcontentloaded" });
-    await lessonPage.getByRole("heading", { level: 1 }).waitFor({ timeout: 8000 });
-    await lessonPage.getByRole("button", { name: /^Go to step \d+:/ }).last().click();
-    await lessonPage.waitForFunction(
-      (key) => {
-        const raw = window.localStorage.getItem(key);
-        if (!raw) return false;
-        try {
-          return JSON.parse(raw).readBlogs.includes("database-melts-at-10k-rps");
-        } catch {
-          return false;
-        }
-      },
-      LEARNER_KEY,
-      { timeout: 8000 },
-    );
+    // This check used to run on the shared lesson page. A fresh context keeps
+    // the read marker (and the reader's hydration/resume effects) independent
+    // of the six preceding learning checks.
+    const blogContext = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+    try {
+      const blogPage = await newPage(blogContext, "blog-read");
+      const blogUrl = `${BASE_URL}/blogs/database-melts-at-10k-rps`;
+      await blogPage.goto(blogUrl, { waitUntil: "domcontentloaded", timeout: INTERACTION_TIMEOUT });
+      await blogPage.getByRole("heading", { level: 1 }).waitFor({ timeout: INTERACTION_TIMEOUT });
+      // The reader only marks the note read once the learner store is hydrated
+      // and its resume rAF has settled. visitTopic() commits on mount, so this
+      // state assertion is a deterministic hydration signal.
+      await waitForLearnerHydration(blogPage, "database-melts-at-10k-rps");
+      const finalStep = blogPage.getByRole("button", { name: /^Go to step \d+:/ }).last();
+      await finalStep.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
+      await finalStep.click();
+      await blogPage.waitForFunction(
+        (key) => {
+          const raw = window.localStorage.getItem(key);
+          if (!raw) return false;
+          try {
+            return JSON.parse(raw).readBlogs.includes("database-melts-at-10k-rps");
+          } catch {
+            return false;
+          }
+        },
+        LEARNER_KEY,
+        { timeout: INTERACTION_TIMEOUT },
+      );
+    } finally {
+      await blogContext.close();
+    }
   });
-  await learning.close();
+  // The learning context is closed by the outer finally via trackedContext.
 
   // -- 3. Landing and interactive motion ------------------------------------
-  const landing = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+  const landing = await trackedContext({ viewport: VIEWPORT_DESKTOP });
   const landingPage = await newPage(landing, "landing");
 
   await check("landing", "hero shows distinct request/response paths and both packet lanes animate", true, async () => {
     await landingPage.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
-    await landingPage.locator("h1").first().waitFor({ state: "visible", timeout: 8000 });
+    await landingPage.locator("h1").first().waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     const model = landingPage.locator(SELECTORS.heroModel).first();
-    await model.waitFor({ state: "visible", timeout: 8000 });
+    await model.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     const distinct = await model.locator("path[d]").evaluateAll(
       (nodes) => new Set(nodes.map((node) => node.getAttribute("d"))).size,
     );
@@ -762,7 +817,7 @@ try {
         );
       },
       SELECTORS.heroModel,
-      { timeout: 8000 },
+      { timeout: INTERACTION_TIMEOUT },
     );
     const before = await lanes();
     assert.ok(before.request.length >= 5, `expected request packet lane, found ${before.request.length} packets`);
@@ -779,7 +834,7 @@ try {
   await check("landing", "spike, kill-node, and attack controls update aria-pressed and telemetry", true, async () => {
     await landingPage.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
     const spike = landingPage.getByRole(SELECTORS.heroSpike.role, { name: SELECTORS.heroSpike.name });
-    await spike.waitFor({ state: "visible", timeout: 8000 });
+    await spike.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     await spike.click();
     assert.equal(await spike.getAttribute("aria-pressed"), "true", "spike did not toggle");
     await landingPage.getByText(/360 req\/s/).first().waitFor({ timeout: 6000 });
@@ -806,27 +861,28 @@ try {
     assert.deepEqual(hrefs.sort(), expected.sort(), "SELECTORS.trackShowcase: expected 7 unique track cards");
   });
 
-  await check("landing", "90 rAF frames measured within performance thresholds", false, async () => {
-    // Use a fresh context so earlier route/interaction checks cannot leave
-    // background work that distorts the landing page's frame budget.
-    const perfContext = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+  await check("landing", `${PERF_FRAME_SAMPLES} rAF frames measured within performance thresholds`, false, async () => {
+    // Use a separate browser process so earlier route/interaction checks cannot
+    // leave background work that distorts the landing page's frame budget.
+    const perfBrowser = await chromium.launch({ headless: true });
     let stats;
     try {
-      const perfPage = await newPage(perfContext, "landing-performance");
+      const perfPage = await perfBrowser.newPage({ viewport: VIEWPORT_DESKTOP });
+      watchPage(perfPage, "landing-performance");
       await perfPage.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
       await perfPage.evaluate(async () => {
         await document.fonts.ready;
       });
       await perfPage.waitForTimeout(2500);
       stats = await perfPage.evaluate(
-        () =>
+        (target) =>
           new Promise((resolve) => {
             const samples = [];
             let previous = 0;
             const frame = (time) => {
               if (previous !== 0) samples.push(time - previous);
               previous = time;
-              if (samples.length >= 90) {
+              if (samples.length >= target) {
                 const sorted = [...samples].sort((a, b) => a - b);
                 resolve({
                   average: samples.reduce((sum, value) => sum + value, 0) / samples.length,
@@ -838,9 +894,10 @@ try {
             };
             requestAnimationFrame(frame);
           }),
+        PERF_FRAME_SAMPLES,
       );
     } finally {
-      await perfContext.close();
+      await perfBrowser.close();
     }
     frameTiming = stats;
     console.log(`      frame timing: avg ${stats.average.toFixed(2)} ms, p95 ${stats.p95.toFixed(2)} ms`);
@@ -858,7 +915,7 @@ try {
     try {
       const reducedPage = await newPage(reduced, "reduced-motion");
       await reducedPage.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
-      await reducedPage.locator("h1").first().waitFor({ state: "visible", timeout: 8000 });
+      await reducedPage.locator("h1").first().waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
       assert.equal(
         await reducedPage.locator(SELECTORS.cursorMode).count(),
         0,
@@ -878,15 +935,15 @@ try {
       await reduced.close();
     }
   });
-  await landing.close();
+  // The landing context is closed by the outer finally via trackedContext.
 
   // -- 4. Compact dock and preferences --------------------------------------
-  const dock = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+  const dock = await trackedContext({ viewport: VIEWPORT_DESKTOP });
   const dockPage = await newPage(dock, "dock");
 
   await check("dock", "utility launcher is compact (<= 56px on each axis) by default", true, async () => {
     await dockPage.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
-    await dockPage.locator("h1").first().waitFor({ state: "visible", timeout: 8000 });
+    await dockPage.locator("h1").first().waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     const launcher = await findLauncher(dockPage);
     if (!launcher) {
       throw new Error(
@@ -900,7 +957,7 @@ try {
 
   await check("dock", "opening the dock exposes search, notes, bookmarks, mode, ambient, cursor, break", true, async () => {
     await dockPage.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
-    await dockPage.locator("h1").first().waitFor({ state: "visible", timeout: 8000 });
+    await dockPage.locator("h1").first().waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     const launcher = await findLauncher(dockPage);
     if (!launcher) throw new Error("SELECTORS.dockLauncher: launcher not found before opening dock");
     await launcher.click();
@@ -923,7 +980,7 @@ try {
 
   await check("dock", "Escape and outside click both close the dock", true, async () => {
     await dockPage.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
-    await dockPage.locator("h1").first().waitFor({ state: "visible", timeout: 8000 });
+    await dockPage.locator("h1").first().waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     const launcher = await findLauncher(dockPage);
     if (!launcher) throw new Error("SELECTORS.dockLauncher: launcher not found");
     await launcher.click();
@@ -941,7 +998,7 @@ try {
     try {
       const mobilePage = await newPage(mobile, "dock-mobile");
       await mobilePage.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
-      await mobilePage.locator("h1").first().waitFor({ state: "visible", timeout: 8000 });
+      await mobilePage.locator("h1").first().waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
       const launcher = await findLauncher(mobilePage);
       if (!launcher) throw new Error("SELECTORS.dockLauncher: launcher not found at 390px");
       await launcher.click();
@@ -963,14 +1020,14 @@ try {
       await mobile.close();
     }
   });
-  await dock.close();
+  // The dock context is closed by the outer finally via trackedContext.
 
   // -- 5. Quiz and local persistence ----------------------------------------
-  const freshQuiz = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+  const freshQuiz = await trackedContext({ viewport: VIEWPORT_DESKTOP });
   const freshQuizPage = await newPage(freshQuiz, "quiz-empty");
   await check("quiz", "fresh context shows the empty state with no active questions", true, async () => {
     await freshQuizPage.goto(`${BASE_URL}/quiz`, { waitUntil: "domcontentloaded" });
-    await freshQuizPage.getByText(SELECTORS.quizEmpty).first().waitFor({ timeout: 8000 });
+    await freshQuizPage.getByText(SELECTORS.quizEmpty).first().waitFor({ timeout: INTERACTION_TIMEOUT });
     assert.equal(await freshQuizPage.locator(SELECTORS.quizActive).count(), 0, "unexpected active quiz question");
     const state = await readLearner(freshQuizPage);
     assert.ok(
@@ -979,9 +1036,9 @@ try {
       "fresh context should not have seeded learner data",
     );
   });
-  await freshQuiz.close();
+  // The fresh-quiz context is closed by the outer finally via trackedContext.
 
-  const seededQuiz = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+  const seededQuiz = await trackedContext({ viewport: VIEWPORT_DESKTOP });
   await seed(
     seededQuiz,
     emptyLearner({ completedLessons: ["single-server"], visitedTopics: ["single-server"] }),
@@ -991,15 +1048,15 @@ try {
   await check("quiz", "seeded single-server progress produces a question with exactly 4 choices", true, async () => {
     await seededQuizPage.goto(`${BASE_URL}/quiz`, { waitUntil: "domcontentloaded" });
     const active = seededQuizPage.locator(SELECTORS.quizActive);
-    await active.waitFor({ state: "visible", timeout: 8000 });
+    await active.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     assert.equal(await active.locator("button").count(), 4, "SELECTORS.quizActive: expected 4 answer buttons");
   });
 
   await check("quiz", "answer reveals an explanation and history survives reload", true, async () => {
     const active = seededQuizPage.locator(SELECTORS.quizActive);
-    await active.waitFor({ state: "visible", timeout: 8000 });
+    await active.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     await active.locator("button").first().click();
-    await seededQuizPage.getByText(/Saved to your local review schedule/i).waitFor({ timeout: 8000 });
+    await seededQuizPage.getByText(/Saved to your local review schedule/i).waitFor({ timeout: INTERACTION_TIMEOUT });
     const before = await readLearner(seededQuizPage);
     assert.equal(before?.quizHistory?.length, 1, "answer was not recorded in quizHistory");
     await seededQuizPage.reload({ waitUntil: "domcontentloaded" });
@@ -1014,12 +1071,12 @@ try {
         }
       },
       LEARNER_KEY,
-      { timeout: 8000 },
+      { timeout: INTERACTION_TIMEOUT },
     );
   });
-  await seededQuiz.close();
+  // The seeded-quiz context is closed by the outer finally via trackedContext.
 
-  const settings = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+  const settings = await trackedContext({ viewport: VIEWPORT_DESKTOP });
   const settingsPage = await newPage(settings, "settings");
 
   await check("quiz", "settings exposes export and import controls", true, async () => {
@@ -1028,7 +1085,7 @@ try {
       SELECTORS.exportButton.role,
       { name: SELECTORS.exportButton.name },
     );
-    await exportButton.waitFor({ state: "visible", timeout: 8000 });
+    await exportButton.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     assert.equal(await exportButton.isEnabled(), true);
     const importInput = settingsPage.getByLabel(SELECTORS.importInput.label);
     assert.equal(await importInput.count(), 1, "SELECTORS.importInput: file input not found");
@@ -1038,7 +1095,7 @@ try {
   await check("quiz", "preference changes persist after reload", false, async () => {
     await settingsPage.goto(`${BASE_URL}/settings`, { waitUntil: "domcontentloaded" });
     const cursor = settingsPage.getByRole("checkbox", { name: "Custom cursor" }).first();
-    await cursor.waitFor({ state: "visible", timeout: 8000 });
+    await cursor.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     const next = !(await cursor.isChecked());
     await cursor.setChecked(next);
     await settingsPage.reload({ waitUntil: "domcontentloaded" });
@@ -1057,36 +1114,57 @@ try {
         return checkbox instanceof HTMLInputElement && checkbox.checked === expected;
       },
       { key: LEARNER_KEY, expected: next },
-      { timeout: 8000 },
+      { timeout: INTERACTION_TIMEOUT },
     );
     const after = settingsPage.getByRole("checkbox", { name: "Custom cursor" }).first();
-    await after.waitFor({ state: "visible", timeout: 8000 });
+    await after.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     assert.equal(await after.isChecked(), next, "custom cursor preference did not survive reload");
   });
-  await settings.close();
+  // The settings context is closed by the outer finally via trackedContext.
 
   // -- 6. Tools, map, and labs ----------------------------------------------
-  const tools = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+  const tools = await trackedContext({ viewport: VIEWPORT_DESKTOP });
   const toolsPage = await newPage(tools, "tools");
 
   await check("tools", "capacity estimator output updates when DAU changes", true, async () => {
-    await toolsPage.goto(`${BASE_URL}/tools`, { waitUntil: "domcontentloaded" });
-    const region = toolsPage.getByRole(
-      SELECTORS.capacityRegion.role,
-      { name: SELECTORS.capacityRegion.name },
-    );
-    const beforeMatch = (await regionText(toolsPage, region)).match(/Average QPS\s+([\d,.]+)/);
-    assert.ok(beforeMatch, "could not read Average QPS from the capacity region");
-    await toolsPage.getByLabel("Daily active users").fill("200000");
-    const expectedQps = ((200000 * 12) / 86400).toFixed(2);
-    await toolsPage.waitForFunction(
-      (expected) =>
-        new RegExp(`Average QPS\\s+${expected.replace(".", "\\.")}`).test(document.body.innerText),
-      expectedQps,
-      { timeout: 8000 },
-    );
-    const afterMatch = (await regionText(toolsPage, region)).match(/Average QPS\s+([\d,.]+)/);
-    assert.ok(afterMatch && afterMatch[1] !== beforeMatch[1], "Average QPS did not change with DAU");
+    // Isolate this check: on the shared tools page a preceding navigation can
+    // leave the calculator mid-hydration when the DAU field is filled.
+    const capacityContext = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+    try {
+      const capacityPage = await newPage(capacityContext, "capacity-estimator");
+      await capacityPage.goto(`${BASE_URL}/tools`, { waitUntil: "domcontentloaded", timeout: INTERACTION_TIMEOUT });
+      const region = capacityPage.getByRole(
+        SELECTORS.capacityRegion.role,
+        { name: SELECTORS.capacityRegion.name },
+      );
+      const dau = capacityPage.getByLabel("Daily active users");
+      await dau.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
+      await region.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
+      // Wait for the calculator's controlled input to be populated by React
+      // before typing into it; an empty server-rendered shell is not ready.
+      await capacityPage.waitForFunction(
+        () => {
+          const input = document.querySelector("#cap-dau");
+          return input instanceof HTMLInputElement && input.value.length > 0;
+        },
+        undefined,
+        { timeout: INTERACTION_TIMEOUT },
+      );
+      const beforeMatch = (await regionText(capacityPage, region)).match(/Average QPS\s+([\d,.]+)/);
+      assert.ok(beforeMatch, "could not read Average QPS from the capacity region");
+      await dau.fill("200000");
+      const expectedQps = ((200000 * 12) / 86400).toFixed(2);
+      await capacityPage.waitForFunction(
+        (expected) =>
+          new RegExp(`Average QPS\\s+${expected.replace(".", "\\.")}`).test(document.body.innerText),
+        expectedQps,
+        { timeout: INTERACTION_TIMEOUT },
+      );
+      const afterMatch = (await regionText(capacityPage, region)).match(/Average QPS\s+([\d,.]+)/);
+      assert.ok(afterMatch && afterMatch[1] !== beforeMatch[1], "Average QPS did not change with DAU");
+    } finally {
+      await capacityContext.close();
+    }
   });
 
   await check("tools", "KV cache and SLA calculators render finite numeric values", true, async () => {
@@ -1114,7 +1192,7 @@ try {
   await check("tools", "security checklist exposes component filters", true, async () => {
     await toolsPage.goto(`${BASE_URL}/tools`, { waitUntil: "domcontentloaded" });
     const region = toolsPage.getByRole(SELECTORS.securityRegion.role, { name: SELECTORS.securityRegion.name });
-    await region.waitFor({ state: "visible", timeout: 8000 });
+    await region.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     const groups = await region.locator("details").count();
     assert.ok(groups >= 6, `SELECTORS.securityRegion: expected at least 6 component groups, found ${groups}`);
     const text = await regionText(toolsPage, region);
@@ -1127,20 +1205,20 @@ try {
     await toolsPage.goto(`${BASE_URL}/map`, { waitUntil: "domcontentloaded" });
     await toolsPage.getByPlaceholder(SELECTORS.mapSearch.placeholder).fill("Kafka");
     const match = toolsPage.getByRole("link", { name: /kafka/i }).first();
-    await match.waitFor({ state: "visible", timeout: 8000 });
+    await match.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
   });
 
   await check("tools", "lab brief exposes a start / open-canvas action", true, async () => {
     await toolsPage.goto(`${BASE_URL}/labs/bitly-url-shortener`, { waitUntil: "domcontentloaded" });
     const action = toolsPage.getByRole("button", { name: SELECTORS.labStart }).first();
-    await action.waitFor({ state: "visible", timeout: 8000 });
+    await action.waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     assert.equal(await action.isEnabled(), true, "lab start action is disabled");
     // Do not click: starting the workspace launches a long-running simulation.
   });
-  await tools.close();
+  // The tools context is closed by the outer finally via trackedContext.
 
   // -- 7. Responsiveness, reduced motion, accessibility basics --------------
-  const a11y = await browser.newContext({ viewport: VIEWPORT_DESKTOP });
+  const a11y = await trackedContext({ viewport: VIEWPORT_DESKTOP });
   const a11yPage = await newPage(a11y, "a11y");
 
   await check("a11y", "each main route has exactly one h1", true, async () => {
@@ -1161,7 +1239,7 @@ try {
     const bad = [];
     for (const route of routes) {
       await a11yPage.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded" });
-      await a11yPage.locator("h1").first().waitFor({ state: "visible", timeout: 8000 });
+      await a11yPage.locator("h1").first().waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
       const count = await a11yPage.locator("h1").count();
       if (count !== 1) bad.push(`${route}: ${count} h1 elements`);
     }
@@ -1172,7 +1250,7 @@ try {
     const bad = [];
     for (const route of ["/", "/paths", "/quiz", "/tools", "/settings"]) {
       await a11yPage.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded" });
-      await a11yPage.locator("body").waitFor({ state: "visible", timeout: 8000 });
+      await a11yPage.locator("body").waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
       const unnamed = await a11yPage.evaluate(() =>
         Array.from(document.querySelectorAll("a, button"))
           .filter((element) => element.getClientRects().length > 0)
@@ -1199,7 +1277,7 @@ try {
       const overflow = [];
       for (const route of ["/", "/paths", "/paths/foundations/single-server", "/tools", "/quiz"]) {
         await mobilePage.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded" });
-        await mobilePage.locator("body").waitFor({ state: "visible", timeout: 8000 });
+        await mobilePage.locator("body").waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
         const delta = await mobilePage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         if (delta > 1) overflow.push(`${route}: ${delta}px`);
       }
@@ -1211,7 +1289,7 @@ try {
 
   await check("a11y", "keyboard focus shows a visible outline or ring", true, async () => {
     await a11yPage.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
-    await a11yPage.locator("body").waitFor({ state: "visible", timeout: 8000 });
+    await a11yPage.locator("body").waitFor({ state: "visible", timeout: INTERACTION_TIMEOUT });
     let visibleFocus = false;
     for (let i = 0; i < 8; i += 1) {
       await a11yPage.keyboard.press("Tab");
@@ -1232,14 +1310,19 @@ try {
     }
     assert.ok(visibleFocus, "no focused element showed a visible outline/ring within 8 Tab presses");
   });
-  await a11y.close();
+  // The a11y context is closed by the outer finally via trackedContext.
 } catch (fatal) {
   const detail = fatal instanceof Error ? (fatal.stack ?? fatal.message) : String(fatal);
   checks.push({ category: "harness", name: "QA runner completed without a fatal error", critical: true, passed: false, detail });
   console.log("FAIL  harness — QA runner completed without a fatal error [CRITICAL]");
   console.log(`      ${detail.split("\n")[0]}`);
 } finally {
-  if (browser) await browser.close();
+  try {
+    // Close every tracked scenario context even when a check threw early.
+    await Promise.allSettled(openContexts.map((context) => context.close()));
+  } finally {
+    if (browser) await browser.close();
+  }
 }
 
 const score = calculateScore();

@@ -39,9 +39,11 @@ export default async function LessonPage({ params }: { params: Promise<Params> }
   const route = findLessonRoute(moduleId, lessonSlug);
   if (!route) notFound();
 
+  const blog = getLessonBlog(route.moduleId, route.lessonIndex);
+
   return (
     <SiteChrome>
-      <LessonPageContent route={route} />
+      <LessonPageContent route={route} blog={blog} />
     </SiteChrome>
   );
 }

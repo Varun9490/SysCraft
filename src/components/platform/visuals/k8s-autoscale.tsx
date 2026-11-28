@@ -2,13 +2,14 @@
 
 import { C, Frame, useStep, type VisualProps } from './Frame';
 
-const CPU = [25, 50, 75, 95];
-const PODS = [1, 2, 3, 5];
+const CPU = [25, 50, 75, 95, 65];
+const PODS = [1, 2, 3, 5, 4];
 
 export function K8sAutoscaleVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
-  const cpu = CPU[s];
-  const pods = PODS[s];
+  const cpu = CPU[s] ?? CPU[0];
+  const pods = PODS[s] ?? PODS[0];
+  const final = s === 4;
 
   return (
     <Frame title="autoscale" step={s} active={active}>
@@ -56,8 +57,8 @@ export function K8sAutoscaleVisual({ stepIndex, active }: VisualProps) {
         );
       })}
 
-      <text x="320" y="316" textAnchor="middle" fontSize="9" fill={C.healthy}>
-        scale out
+      <text x="320" y="316" textAnchor="middle" fontSize="9" fill={final ? C.healthy : C.healthy}>
+        {final ? 'cluster autoscaled · nodes added · converged' : 'scale out'}
       </text>
     </Frame>
   );

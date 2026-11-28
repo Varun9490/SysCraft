@@ -25,16 +25,22 @@ const QUERIES: readonly (readonly [number, number])[] = [
   [300, 160],
   [400, 180],
   [460, 190],
+  [360, 175],
 ];
 
 export function RagSpaceVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
-  const q = QUERIES[s];
+  const q = QUERIES[s] ?? QUERIES[0];
   const ranked = PTS.map((p, i) => ({ p, i, d: Math.hypot(p[0] - q[0], p[1] - q[1]) })).sort(
     (a, b) => a.d - b.d,
   );
-  const near = new Set(ranked.slice(0, 3).map((r) => r.i));
+  const near = ranked.slice(0, 3).map((r) => r.i);
+  const nearSet = new Set(near);
   const reject = ranked[ranked.length - 1];
+  // The final step is the permission-aware result set: the nearest neighbor is
+  // filtered out by ACL even though it has the best lexical/semantic score.
+  const final = s === 4;
+  const filtered = final ? near[0] : -1;
 
   return (
     <Frame title="rag space" step={s} active={active}>
@@ -63,11 +69,11 @@ export function RagSpaceVisual({ stepIndex, active }: VisualProps) {
       ))}
 
       {PTS.map((p, i) => {
-        const isNear = near.has(i);
-        const isRejected = i === reject.i;
+        const isNear = nearSet.has(i);
+        const isRejected = i === reject.i || i === filtered;
         return (
           <g key={i}>
-            {isNear ? (
+            {isNear && i !== filtered ? (
               <circle cx={p[0]} cy={p[1]} r="11" fill="none" stroke={C.brass} strokeOpacity="0.6" strokeWidth="1" />
             ) : null}
             <circle
@@ -79,6 +85,11 @@ export function RagSpaceVisual({ stepIndex, active }: VisualProps) {
               strokeWidth="1.2"
               strokeDasharray={isRejected ? '2 2' : undefined}
             />
+            {i === filtered ? (
+              <text x={p[0]} y={p[1] - 12} textAnchor="middle" fontSize="8" fill={C.danger}>
+                acl deny
+              </text>
+            ) : null}
           </g>
         );
       })}
@@ -95,7 +106,7 @@ export function RagSpaceVisual({ stepIndex, active }: VisualProps) {
         3 neighbors
       </text>
       <text x="552" y="354" textAnchor="end" fontSize="9" fill={C.danger}>
-        low score rejected
+        {final ? 'top hit ACL-filtered' : 'low score rejected'}
       </text>
     </Frame>
   );

@@ -25,10 +25,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "transformer-projections",
           title: "Q, K, and V are three views of the same tokens",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. Imagine three librarians reading the same paragraph. One marks questions the paragraph might answer, one writes labels that other passages can match, and one extracts the facts worth carrying forward. A transformer creates analogous query, key, and value projections from token representations. These are not three different models; they are learned linear views of the same hidden states. Their dimensions determine how much information each token can express and how much work the layer must perform for every batch and sequence position.",
+            "At the library table, three researchers read the same paragraph: one marks questions, one writes matchable labels, and one extracts facts worth carrying into later discussion. One marks questions the paragraph might answer, one writes labels that other passages can match, and one extracts the facts worth carrying forward. A transformer creates analogous query, key, and value projections from token representations. These are not three different models; they are learned linear views of the same hidden states. Their dimensions determine how much information each token can express and how much work the layer must perform for every batch and sequence position.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. For hidden size d_model, learned projection matrices map token states into query, key, and value spaces. Matrix multiplication scales with tokens, batch size, and projection dimensions, while the stored weights scale with parameter count and bytes per element. Large projections improve representational capacity but increase weight memory and arithmetic. During inference, weight reads can dominate when the batch is small. Grouped-query and multi-query attention reduce key and value heads, but query computation and output projection still matter, so profile the whole layer rather than optimizing one matrix.",
-          visualId: "attention-kv",
+            "Q, K, and V projections are learned matrix multiplications whose cost scales with tokens, batch, and dimensions. Weight memory scales with parameter count and bytes per element, while small-batch inference can be dominated by weight reads. Matrix multiplication scales with tokens, batch size, and projection dimensions, while the stored weights scale with parameter count and bytes per element. Large projections improve representational capacity but increase weight memory and arithmetic. During inference, weight reads can dominate when the batch is small. Grouped-query and multi-query attention reduce key and value heads, but query computation and output projection still matter, so profile the whole layer rather than optimizing one matrix.",
+          visualId: "transformer-architecture",
           visualCaption:
             "Token states branch into learned query, key, and value projections before attention compares them.",
         },
@@ -36,10 +36,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "transformer-attention-matrix",
           title: "Attention compares every token with earlier tokens",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. In a roundtable discussion, each speaker may need to hear every earlier remark before choosing what to say. A causal decoder builds a score matrix that records those relationships. With a sequence of n tokens, there are roughly n squared pairwise opportunities, although a causal mask prevents looking forward. Doubling the sequence therefore does much more than double the pairwise attention work. Efficient kernels reduce memory traffic and avoid storing every intermediate score, but they do not erase the underlying growth in useful comparisons.",
+            "Around the decoder's table, each new speaker must review the earlier remarks permitted by the meeting rules before choosing a response, creating one relationship for every allowed pair of positions and a quadratic number of pairwise comparisons. A causal decoder builds a score matrix that records those relationships. With a sequence of n tokens, there are roughly n squared pairwise opportunities, although a causal mask prevents looking forward. Doubling the sequence therefore does much more than double the pairwise attention work. Efficient kernels reduce memory traffic and avoid storing every intermediate score, but they do not erase the underlying growth in useful comparisons.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Attention computes scores from Q and K, commonly scaling by the square root of the head dimension, applies a causal mask, normalizes with softmax, and multiplies by V. The score matrix has batch-by-head-by-sequence-by-sequence entries, so naive storage grows quadratically. FlashAttention-style kernels tile the computation and reduce reads and writes of intermediate matrices without changing the mathematical operation. Long prompts also increase prefill latency and KV-cache size. Measure sequence-length scaling separately from batch scaling because they stress different resources.",
-          visualId: "attention-kv",
+            "Attention forms QK scores, applies scaling and a causal mask, normalizes with softmax, then aggregates values. For head dimension d, divide QK scores by the square root of d before masking and softmax, then multiply normalized weights by V for each allowed position. The score matrix has batch-by-head-by-sequence-by-sequence entries, so naive storage grows quadratically. FlashAttention-style kernels tile the computation and reduce reads and writes of intermediate matrices without changing the mathematical operation. Long prompts also increase prefill latency and KV-cache size. Measure sequence-length scaling separately from batch scaling because they stress different resources.",
+          visualId: "transformer-architecture",
           visualCaption:
             "A causal score matrix compares each token with allowed earlier tokens and routes weighted values forward.",
         },
@@ -47,10 +47,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "transformer-mlp",
           title: "MLP blocks mix features after attention",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. After the roundtable decides which remarks matter, a set of mixing benches reshapes those ideas. One bench expands the representation, another applies a nonlinear gate, and a final projection compresses it back to the model width. This feed-forward block does most of its work independently at each token, which makes it a natural target for parallel hardware. Residual connections act like a side corridor, preserving a route for the original signal even when the transformed path is difficult to train or noisy.",
+            "After the discussion, mixing benches expand and gate the selected remarks before compressing them back to model width, while a side corridor preserves the original signal through the layer. One bench expands the representation, another applies a nonlinear gate, and a final projection compresses it back to the model width. This feed-forward block does most of its work independently at each token, which makes it a natural target for parallel hardware. Residual connections act like a side corridor, preserving a route for the original signal even when the transformed path is difficult to train or noisy.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Modern transformer MLPs often use gated variants such as SwiGLU with an intermediate size larger than d_model. They increase parameter count and activation memory but provide nonlinear feature mixing. Residual additions and normalization stabilize information flow, while placement and precision of normalization affect training stability and kernel fusion. During decode, MLP weights must be read for each small batch, contributing to memory-bandwidth pressure. During prefill, the same matrices process many tokens at once, creating higher arithmetic intensity and better hardware utilization.",
-          visualId: "attention-kv",
+            "Gated MLPs expand token states, apply nonlinear mixing, and project back to model width between residual connections. SwiGLU and related gated variants use an intermediate size larger than d_model, increasing parameter and activation memory in exchange for richer nonlinear feature mixing. They increase parameter count and activation memory but provide nonlinear feature mixing. Residual additions and normalization stabilize information flow, while placement and precision of normalization affect training stability and kernel fusion. During decode, MLP weights must be read for each small batch, contributing to memory-bandwidth pressure. During prefill, the same matrices process many tokens at once, creating higher arithmetic intensity and better hardware utilization.",
+          visualId: "transformer-architecture",
           visualCaption:
             "Attention output passes through gated feed-forward mixing while a residual path preserves the original signal.",
         },
@@ -58,9 +58,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "transformer-roofline",
           title: "Find the bottleneck before tuning",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A kitchen can be limited by a slow oven, a tiny counter, or a delivery truck that cannot bring ingredients fast enough. Buying more of the wrong resource leaves the real queue untouched. Transformer inference is similar: some phases need arithmetic throughput, some need memory bandwidth, and some need capacity for weights and cached tokens. The useful first question is not which optimization sounds impressive, but which resource is saturated on the actual model, hardware, sequence lengths, and batch sizes in production.",
+            "In the restaurant kitchen, ovens, counters, and delivery vans compete for space, so adding capacity to the wrong resource leaves the queue untouched until staff measures the actual constraint on a busy service with representative orders and sudden bursts. Buying more of the wrong resource leaves the real queue untouched. Transformer inference is similar: some phases need arithmetic throughput, some need memory bandwidth, and some need capacity for weights and cached tokens. The useful first question is not which optimization sounds impressive, but which resource is saturated on the actual model, hardware, sequence lengths, and batch sizes in production.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Use a roofline view: estimate arithmetic operations per byte moved and compare that intensity with the accelerator's compute and bandwidth limits. Prefill usually exposes high arithmetic intensity because many tokens are processed together; single-stream decode often exposes low intensity because weights and KV values are read for few tokens. Attention-head layout, sequence length, precision, and batch size all shift the balance. Profile layer time, memory allocation, kernel utilization, and queue delay. A failure mode is extrapolating from one shape that does not represent real traffic.",
+            "Arithmetic intensity, calculated as operations per byte moved, identifies whether compute or bandwidth limits a kernel. Prefill usually exposes high arithmetic intensity, whereas low-batch decode often exposes low intensity because weights and KV values are read for few tokens. Prefill usually exposes high arithmetic intensity because many tokens are processed together; single-stream decode often exposes low intensity because weights and KV values are read for few tokens. Attention-head layout, sequence length, precision, and batch size all shift the balance. Profile layer time, memory allocation, kernel utilization, and queue delay. A failure mode is extrapolating from one shape that does not represent real traffic.",
           visualId: "queue-workers",
           visualCaption:
             "Compute demand, memory traffic, and capacity compete across prefill, decode, and queueing phases.",
@@ -102,7 +102,7 @@ const inferenceTrack: Track & { trackId: string } = {
         {
           id: "transformer-q1",
           topicId: "transformer-bottlenecks",
-          prompt: "Why does naive attention storage grow roughly quadratically?",
+          prompt: "In the roundtable analogy, why does naive attention storage grow roughly with sequence length squared?",
           choices: [
             "Because every layer doubles the vocabulary",
             "Because it stores a score for each pair of sequence positions",
@@ -112,7 +112,7 @@ const inferenceTrack: Track & { trackId: string } = {
           answerIndex: 1,
           explanation:
             "The attention score matrix has sequence-by-sequence entries per head and batch, even though a causal mask limits which comparisons are used.",
-          kind: "tradeoff",
+          kind: "story-match",
         },
         {
           id: "transformer-q2",
@@ -134,12 +134,12 @@ const inferenceTrack: Track & { trackId: string } = {
           topicId: "transformer-bottlenecks",
           prompt: "Which phase is most likely to saturate arithmetic throughput?",
           choices: [
-            "Single-token decode with a tiny batch",
             "Prefill processing a long prompt as a large matrix operation",
+            "Single-token decode with a tiny batch",
             "An idle worker with no requests",
             "Loading a static model card",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "Prefill processes many token positions together, producing matrix operations with much higher arithmetic intensity than one-token decode.",
           kind: "scenario",
@@ -147,17 +147,17 @@ const inferenceTrack: Track & { trackId: string } = {
         {
           id: "transformer-q4",
           topicId: "transformer-bottlenecks",
-          prompt: "What should guide inference optimization first?",
+          prompt: "A faster transformer checkpoint arrives from an unapproved source without a signed manifest. What should deployment do?",
           choices: [
-            "The most fashionable kernel name",
-            "A single synthetic benchmark",
-            "Profiling the actual model, hardware, traffic shape, and saturated resource",
-            "Reducing the context window without measuring quality",
+            "Load it into a canary because benchmark latency is the only risk",
+            "Scan only the tokenizer and trust the model weights",
+            "Record its hash after loading so provenance can be reconstructed later",
+            "Quarantine it until signed provenance, immutable digest, dependencies, and licenses are verified",
           ],
-          answerIndex: 2,
+          answerIndex: 3,
           explanation:
-            "Optimization must target the measured bottleneck under representative sequence, batch, and concurrency conditions.",
-          kind: "scenario",
+            "Transformer artifacts can embed malicious behavior or incompatible configuration, so provenance and integrity checks must precede execution; a speed benchmark cannot establish trust.",
+          kind: "security",
         },
       ],
     },
@@ -177,9 +177,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "kv-formula",
           title: "KV bytes follow a simple multiplication",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. Imagine each token leaving two bookmarks in every transformer layer: one that helps future tokens find it and one that carries its value. The shelf space depends on how many bookmarks exist, how wide each bookmark is, and whether each number occupies two or four bytes. Add another conversation and the same shelves are needed again. The formula is less mysterious than it looks: count layers, key and value heads, head width, tokens, batch, and bytes per element, then remember the factor of two for keys and values.",
+            "On the decoder's shelves, every token leaves separate key and value bookmarks in every layer, so shelf space multiplies across layers, heads, width, tokens, batch size, and bytes per number before runtime overhead. The shelf space depends on how many bookmarks exist, how wide each bookmark is, and whether each number occupies two or four bytes. Add another conversation and the same shelves are needed again. The formula is less mysterious than it looks: count layers, key and value heads, head width, tokens, batch, and bytes per element, then remember the factor of two for keys and values.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. KV-cache bytes are 2 * layers * kvHeads * headDim * tokens * batch * bytesPerElement. The leading 2 represents separate key and value tensors. For 32 layers, 8 KV heads, headDim 128, 4096 cached tokens, batch 1, and FP16 at 2 bytes, the result is 536,870,912 bytes, or 512 MiB. This excludes weights, activations, allocator overhead, and other runtime state. Keep units explicit: bytes per element distinguishes FP16, FP8, and other stored formats, while sequence and batch counts must describe the actual cache footprint.",
+            "KV-cache bytes equal two times layers, KV heads, head dimension, tokens, batch, and bytes per element. The leading factor represents separate key and value tensors, and architecture values must come from the deployed model configuration rather than marketing shorthand. For 32 layers, 8 KV heads, headDim 128, 4096 cached tokens, batch 1, and FP16 at 2 bytes, the result is 536,870,912 bytes, or 512 MiB. This excludes weights, activations, allocator overhead, and other runtime state. Keep units explicit: bytes per element distinguishes FP16, FP8, and other stored formats, while sequence and batch counts must describe the actual cache footprint.",
           visualId: "attention-kv",
           visualCaption:
             "Layer, head, width, token, batch, and element-size factors multiply into the KV-cache footprint.",
@@ -188,9 +188,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "kv-lifetime",
           title: "The cache lives as long as the sequence",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A decoder's bookmarks cannot be thrown away after each sentence if later tokens still need the earlier context. They remain attached to the sequence until the request finishes, is cancelled, or reaches its limit. A long-running conversation therefore reserves memory even while the model is thinking. Sending two requests does not automatically let them share bookmarks unless their prefixes and cache policy match. Capacity planning must consider active requests, maximum outputs, scheduler reservations, and the fact that freeing memory after completion is not instantaneous.",
+            "On the decoder's shelves, written bookmarks remain attached to a sequence while later tokens still need them, occupying memory through thinking and waiting until completion, cancellation, timeout, or disconnect releases every reference. They remain attached to the sequence until the request finishes, is cancelled, or reaches its limit. A long-running conversation therefore reserves memory even while the model is thinking. Sending two requests does not automatically let them share bookmarks unless their prefixes and cache policy match. Capacity planning must consider active requests, maximum outputs, scheduler reservations, and the fact that freeing memory after completion is not instantaneous.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. KV memory grows with every generated token, so a request that starts small can become one of the largest allocations in the worker. Admission control should estimate prompt tokens plus a realistic maximum output allowance before scheduling. Free cache blocks on completion, cancellation, timeout, and client disconnect, and alert on reserved versus allocated memory. Reserve headroom for fragmentation and transient copies. A failure mode is budgeting only the prompt length, then discovering that concurrent long generations exhaust memory before their output limits.",
+            "KV allocations grow with generated tokens and remain reserved until every completion and cancellation path releases them. Admission control should estimate prompt tokens plus a realistic maximum output allowance before scheduling the request. Admission control should estimate prompt tokens plus a realistic maximum output allowance before scheduling. Free cache blocks on completion, cancellation, timeout, and client disconnect, and alert on reserved versus allocated memory. Reserve headroom for fragmentation and transient copies. A failure mode is budgeting only the prompt length, then discovering that concurrent long generations exhaust memory before their output limits.",
           visualId: "attention-kv",
           visualCaption:
             "A sequence's KV footprint grows during decoding and remains reserved until the request releases it.",
@@ -199,9 +199,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "kv-head-sharing",
           title: "GQA and MQA trade head diversity for capacity",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A meeting can give every participant a private notebook, let several share one notebook, or give the whole group a single notebook. Multi-head attention gives each query group its own key and value heads. Grouped-query attention lets several query heads share a smaller set of KV heads, while multi-query attention shares one set across all queries. Sharing saves shelf space and bandwidth, but gives the model fewer independent key-value views. The right choice depends on the quality target and the memory envelope, not on memory savings alone.",
+            "At the meeting, some participants share notebooks while others keep private copies, changing shelf demand and decode bandwidth without changing the number of questions or requiring a quality assumption about attention. Multi-head attention gives each query group its own key and value heads. Grouped-query attention lets several query heads share a smaller set of KV heads, while multi-query attention shares one set across all queries. Sharing saves shelf space and bandwidth, but gives the model fewer independent key-value views. The right choice depends on the quality target and the memory envelope, not on memory savings alone.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. KV-cache size scales linearly with kvHeads, so changing from many KV heads to fewer can reduce cache memory in direct proportion. Query heads can remain numerous, preserving attention pattern diversity while sharing cached keys and values. However, reduced KV diversity may affect quality, especially on some tasks, so evaluate the exact model and data distribution. Fewer KV heads also reduce decode memory traffic. Do not compare models using head count alone; include headDim, layers, precision, and architecture when calculating total bytes.",
+            "KV-cache memory scales linearly with the number of key and value heads rather than query heads. Query heads can remain numerous while sharing fewer cached KV heads, preserving some attention diversity with less decode traffic. Query heads can remain numerous, preserving attention pattern diversity while sharing cached keys and values. However, reduced KV diversity may affect quality, especially on some tasks, so evaluate the exact model and data distribution. Fewer KV heads also reduce decode memory traffic. Do not compare models using head count alone; include headDim, layers, precision, and architecture when calculating total bytes.",
           visualId: "attention-kv",
           visualCaption:
             "Multiple query heads can share fewer key-value heads to reduce cache bytes and decode bandwidth.",
@@ -210,9 +210,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "kv-paging",
           title: "Paging replaces giant reservations with blocks",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. Reserving one enormous shelf for every growing conversation wastes space when some conversations are short and others stop early. Paged storage gives each sequence a table of fixed-size blocks, adding blocks as needed and releasing them when finished. It resembles virtual memory in an operating system: logical pages need not sit in one contiguous physical region. Blocks can also be shared for identical prefixes when the runtime supports copy-on-write semantics. The gain is less fragmentation and finer-grained capacity control, not free memory.",
+            "At the decoder's storage desk, growing conversations receive fixed-size blocks on demand instead of one oversized contiguous shelf, and a block table records where each logical page resides. Paged storage gives each sequence a table of fixed-size blocks, adding blocks as needed and releasing them when finished. It resembles virtual memory in an operating system: logical pages need not sit in one contiguous physical region. Blocks can also be shared for identical prefixes when the runtime supports copy-on-write semantics. The gain is less fragmentation and finer-grained capacity control, not free memory.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. PagedAttention organizes KV storage into fixed-size blocks and maps each sequence's logical positions to allocated physical blocks. Block tables add metadata and some indirection, but avoid requiring a contiguous cache sized for the maximum output. Allocation and freeing occur in block units, and block size trades internal fragmentation against metadata and kernel overhead. Prefix caching can share immutable blocks across requests, subject to tenant isolation and eviction policy. Measure cache hit rate, block utilization, eviction behavior, and any kernel cost on the target accelerator.",
+            "PagedAttention maps logical token positions to fixed-size physical blocks through per-sequence block tables to reduce fragmentation. Block size trades internal fragmentation against metadata and kernel overhead, so measure utilization on the target accelerator. Block tables add metadata and some indirection, but avoid requiring a contiguous cache sized for the maximum output. Allocation and freeing occur in block units, and block size trades internal fragmentation against metadata and kernel overhead. Prefix caching can share immutable blocks across requests, subject to tenant isolation and eviction policy. Measure cache hit rate, block utilization, eviction behavior, and any kernel cost on the target accelerator.",
           visualId: "attention-kv",
           visualCaption:
             "Block tables map growing sequences onto reusable fixed-size KV pages instead of one contiguous reservation.",
@@ -254,7 +254,7 @@ const inferenceTrack: Track & { trackId: string } = {
         {
           id: "kv-q1",
           topicId: "kv-cache-paged-attention",
-          prompt: "What does the leading factor of 2 in the KV formula represent?",
+          prompt: "In the bookmark analogy, why does the KV-cache formula include a factor of two?",
           choices: [
             "Two model replicas",
             "Separate key and value tensors",
@@ -264,7 +264,7 @@ const inferenceTrack: Track & { trackId: string } = {
           answerIndex: 1,
           explanation:
             "Attention caches both keys and values; bytes per element is a separate factor in the formula.",
-          kind: "tradeoff",
+          kind: "story-match",
         },
         {
           id: "kv-q2",
@@ -287,11 +287,11 @@ const inferenceTrack: Track & { trackId: string } = {
           prompt: "Why can prefix caching be dangerous in a multi-tenant service?",
           choices: [
             "It increases vocabulary size",
-            "It can expose or reuse another tenant's private prompt state without scoped keys",
             "It always changes model weights",
             "It prevents token generation",
+            "It can expose or reuse another tenant's private prompt state without scoped keys",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "Cache reuse must include tenant and authorization scope; otherwise similar prefixes can cross isolation boundaries.",
           kind: "security",
@@ -329,9 +329,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "prefill-compute",
           title: "Prefill reads the whole prompt in parallel",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. Before writing, a scholar reads the entire manuscript, marks relationships, and prepares notes. Prefill does the model equivalent: it processes all prompt tokens together through the layers, computes attention over their representations, and creates the initial KV cache. Because many token positions move through large matrices in one operation, the hardware can stay busy with arithmetic. This phase usually determines time to first token. A longer prompt means more work and more cache to build, even if the eventual answer is short.",
+            "At the scholar's desk, the entire manuscript is read in one pass, relationships are marked across pages, and notes are prepared before the first sentence of a new draft appears. Prefill does the model equivalent: it processes all prompt tokens together through the layers, computes attention over their representations, and creates the initial KV cache. Because many token positions move through large matrices in one operation, the hardware can stay busy with arithmetic. This phase usually determines time to first token. A longer prompt means more work and more cache to build, even if the eventual answer is short.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Prefill is compute-bound in the usual serving regime because large matrix multiplications reuse weights across many tokens and expose high arithmetic intensity. Attention also has sequence-dependent work, and the phase writes the initial KV cache. Chunked prefill can split a long prompt into pieces to interleave decode work and reduce latency spikes, but it adds scheduling complexity and must preserve causal correctness. Cache hits can shorten prefill by reusing approved prefix blocks. Measure time to first token separately from output throughput because optimizing one can harm the other.",
+            "Prefill processes prompt positions in parallel, builds the initial KV cache, and exposes high arithmetic intensity. Chunked prefill can interleave long prompts with decode work to reduce latency spikes, but scheduling must preserve causal correctness. Attention also has sequence-dependent work, and the phase writes the initial KV cache. Chunked prefill can split a long prompt into pieces to interleave decode work and reduce latency spikes, but it adds scheduling complexity and must preserve causal correctness. Cache hits can shorten prefill by reusing approved prefix blocks. Measure time to first token separately from output throughput because optimizing one can harm the other.",
           visualId: "attention-kv",
           visualCaption:
             "Prefill processes the prompt in parallel, builds KV state, and hands the first token to decode.",
@@ -340,9 +340,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "prefill-decode-bandwidth",
           title: "Decode reads weights for one small step",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. Writing the next word is slower than it looks. For each token, the model must revisit its prepared notes and consult a huge set of learned reference volumes. When only one token is ready, much of the hardware waits for data rather than performing enough arithmetic to hide the delay. Decode is therefore memory-bandwidth-bound in the common low-batch case. The output grows one token at a time, and each step depends on the previous one, so simply adding more prompt-reading capacity does not make every subsequent word appear faster.",
+            "At the writing desk, each new word requires another trip to the reference shelves before the next sentence can continue. For each token, the model must revisit its prepared notes and consult a huge set of learned reference volumes. When only one token is ready, much of the hardware waits for data rather than performing enough arithmetic to hide the delay. Decode is therefore memory-bandwidth-bound in the common low-batch case. The output grows one token at a time, and each step depends on the previous one, so simply adding more prompt-reading capacity does not make every subsequent word appear faster.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Autoregressive decode generates one position per sequence per iteration. With a small batch, each layer reads model weights and a growing KV cache to produce relatively little arithmetic, giving low arithmetic intensity and high sensitivity to memory bandwidth. Larger batches reuse those reads across more sequences, improving utilization until compute, memory capacity, or latency constraints bind. Quantization can reduce bytes moved, while paged KV access and efficient kernels reduce cache traffic. Measure per-token latency and aggregate tokens per second because they can move in opposite directions.",
+            "Autoregressive decode produces one position per sequence per iteration while repeatedly reading weights and KV state. With a small batch, each layer moves substantial weights and cache state for relatively little arithmetic, making bandwidth the likely constraint. With a small batch, each layer reads model weights and a growing KV cache to produce relatively little arithmetic, giving low arithmetic intensity and high sensitivity to memory bandwidth. Larger batches reuse those reads across more sequences, improving utilization until compute, memory capacity, or latency constraints bind. Quantization can reduce bytes moved, while paged KV access and efficient kernels reduce cache traffic. Measure per-token latency and aggregate tokens per second because they can move in opposite directions.",
           visualId: "queue-workers",
           visualCaption:
             "Decode repeatedly reads weights and KV state to produce one dependent token per sequence.",
@@ -351,9 +351,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "prefill-continuous-batching",
           title: "Continuous batching fills seats every iteration",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A shuttle that waits for a full bus can waste seats when one rider leaves early. Continuous batching schedules at each generation iteration instead of holding a fixed group until everyone finishes. A completed sequence vacates its slot, a waiting request joins, and the next token step proceeds with the new mix. Short answers therefore stop consuming resources, while long answers coexist with fresh work. The scheduler becomes the traffic controller, balancing fairness, cache reuse, memory reservations, and the latency promises made to different users.",
+            "At the shuttle stop, the dispatcher replaces departed riders with waiting passengers at every departure instead of holding a fixed group, letting short trips free capacity for new work. Continuous batching schedules at each generation iteration instead of holding a fixed group until everyone finishes. A completed sequence vacates its slot, a waiting request joins, and the next token step proceeds with the new mix. Short answers therefore stop consuming resources, while long answers coexist with fresh work. The scheduler becomes the traffic controller, balancing fairness, cache reuse, memory reservations, and the latency promises made to different users.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Iteration-level or continuous batching admits and removes sequences as their states change, avoiding the head-of-line blocking of static batches. The scheduler considers queued prompts, running decodes, available KV blocks, prefix-cache opportunities, and priority or fairness rules. Prefill-decode disaggregation can place the two phases on separate pools with distinct scaling policies, but it introduces transfer and scheduling overhead. A failure mode is admitting too many requests: throughput may rise while time to first token and per-token latency exceed the service objective.",
+            "Iteration-level scheduling adds and removes sequences as their states change instead of waiting for static batches. The scheduler weighs queued prompts, running decodes, available KV blocks, prefix-cache opportunities, and fairness rules at each iteration. The scheduler considers queued prompts, running decodes, available KV blocks, prefix-cache opportunities, and priority or fairness rules. Prefill-decode disaggregation can place the two phases on separate pools with distinct scaling policies, but it introduces transfer and scheduling overhead. A failure mode is admitting too many requests: throughput may rise while time to first token and per-token latency exceed the service objective.",
           visualId: "queue-workers",
           visualCaption:
             "An iteration-level scheduler replaces finished sequences with waiting work inside the active batch.",
@@ -362,9 +362,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "prefill-queueing",
           title: "Scheduling latency is part of inference latency",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A fast checkout clerk cannot help if customers wait outside an unstaffed door. The same is true for inference workers: excellent kernel time does not erase queue delay. Requests may wait for a GPU slot, a KV block, a prefill turn, or admission approval. Good systems measure the wait separately from execution so teams know whether to add capacity, reduce prompt size, change batching policy, or fix a slow dependency. Fairness matters too, because one long generation should not starve a steady stream of shorter requests.",
+            "At the checkout entrance, customers can wait before the clerk starts, so the service records entrance delay separately from transaction time. The same is true for inference workers: excellent kernel time does not erase queue delay. Requests may wait for a GPU slot, a KV block, a prefill turn, or admission approval. Good systems measure the wait separately from execution so teams know whether to add capacity, reduce prompt size, change batching policy, or fix a slow dependency. Fairness matters too, because one long generation should not starve a steady stream of shorter requests.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Track queue delay, prefill time, decode time, and total latency as separate spans. Little's Law links concurrency, arrival rate, and time in system, while queueing behavior makes tail latency rise sharply near saturation. Use bounded queues, admission control, deadlines, cancellation, and tenant fairness. Reserve capacity for interactive traffic when batch workloads share the pool, and avoid retries that amplify overload. A failure mode is reporting only model execution time, hiding the delay that users actually experience before the first token arrives.",
+            "User-visible latency decomposes into queue delay, prefill, decode, and delivery spans that require separate instrumentation. Little's Law links concurrency, arrival rate, and time in system, while queueing makes tail latency rise sharply near saturation. Instrument client-visible timestamps and carry one correlation ID across gateway, scheduler, and worker. Use bounded queues, admission control, deadlines, cancellation, and tenant fairness. Reserve capacity for interactive traffic when batch workloads share the pool, and avoid retries that amplify overload. A failure mode is reporting only model execution time, hiding the delay that users actually experience before the first token arrives.",
           visualId: "queue-workers",
           visualCaption:
             "Queue wait, prefill execution, decode steps, and response delivery form the user-visible latency path.",
@@ -406,17 +406,17 @@ const inferenceTrack: Track & { trackId: string } = {
         {
           id: "prefill-q1",
           topicId: "prefill-decode-batching",
-          prompt: "Why is prefill usually compute-bound?",
+          prompt: "In the manuscript analogy, why does prefill usually expose high arithmetic intensity?",
           choices: [
-            "It generates one token at a time",
             "It processes many prompt tokens through large matrix operations",
+            "It generates one token at a time",
             "It performs no attention",
             "It never writes a KV cache",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "Parallel prompt processing exposes arithmetic-heavy matrix operations with high weight reuse across tokens.",
-          kind: "tradeoff",
+          kind: "story-match",
         },
         {
           id: "prefill-q2",
@@ -451,17 +451,17 @@ const inferenceTrack: Track & { trackId: string } = {
         {
           id: "prefill-q4",
           topicId: "prefill-decode-batching",
-          prompt: "Which metric reveals hidden waiting before generation?",
+          prompt: "One tenant submits a burst of long prompts and repeated retries, filling queues and KV reservations while other tenants wait. Which mitigation best preserves service isolation?",
           choices: [
-            "Vocabulary size",
-            "Queue delay as a separate latency span",
-            "Number of attention heads",
-            "Tokenizer vocabulary hash",
+            "Remove per-tenant quotas so every request has equal queue access",
+            "Let clients mark their retries as high priority",
+            "Disable output limits whenever prefill latency rises",
+            "Enforce tenant-aware admission control, token and concurrency quotas, bounded queues, deadlines, and fair scheduling before worker admission",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
-            "Kernel execution time excludes scheduler and admission waits, so queue delay must be measured independently.",
-          kind: "scenario",
+            "Without trusted per-tenant limits, one client can monopolize scheduler and KV capacity; admission control and fairness bound resource consumption while protecting other tenants' latency and isolation.",
+          kind: "security",
         },
       ],
     },
@@ -481,10 +481,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "quantization-formats",
           title: "Formats choose precision and exponent range",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A measuring cup marked in fine increments can capture small amounts, but it takes more space to print all those marks. A coarser cup is compact but may lose tiny measurements. Floating-point formats spend bits on a sign, exponent, and mantissa; integer formats store scaled values without that exponent structure. FP16 offers a broad practical baseline, while FP8, INT8, and INT4 reduce storage and bandwidth. The smallest format is not automatically the best choice, because dynamic range, hardware support, and the sensitivity of each tensor all matter.",
+            "At the packing bench, finely labeled containers preserve small quantities but occupy more space than compact containers with coarser markings, forcing a choice between precision, range, and supported handling on real hardware. A coarser cup is compact but may lose tiny measurements. Floating-point formats spend bits on a sign, exponent, and mantissa; integer formats store scaled values without that exponent structure. FP16 offers a broad practical baseline, while FP8, INT8, and INT4 reduce storage and bandwidth. The smallest format is not automatically the best choice, because dynamic range, hardware support, and the sensitivity of each tensor all matter.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. FP16 uses 16 bits with an exponent and mantissa, balancing range and precision for many inference workloads. FP8 formats vary in exponent and mantissa allocation and often require scaling. INT8 represents scaled integer values, while INT4 packs two values per byte but needs appropriate unpacking kernels. Weight-only quantization can reduce memory traffic without quantizing every activation. Compare bytes per element, supported matrix kernels, dequantization cost, and accumulation precision. Do not assume a nominal bit width maps directly to end-to-end speed or quality.",
-          visualId: "token-math",
+            "Numeric formats allocate bits differently among sign, exponent, mantissa, scaling metadata, and supported matrix kernels. FP16 remains a broad baseline, INT8 stores scaled integers, and INT4 packs two values per byte with efficient unpacking kernels. FP8 formats vary in exponent and mantissa allocation and often require scaling. INT8 represents scaled integer values, while INT4 packs two values per byte but needs appropriate unpacking kernels. Weight-only quantization can reduce memory traffic without quantizing every activation. Compare bytes per element, supported matrix kernels, dequantization cost, and accumulation precision. Do not assume a nominal bit width maps directly to end-to-end speed or quality.",
+          visualId: "quantization",
           visualCaption:
             "Numeric formats trade bit width, dynamic range, scaling needs, and supported kernel behavior.",
         },
@@ -492,10 +492,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "quantization-granularity",
           title: "Scale precision per tensor, channel, or group",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A single shoe size will not fit every person in a crowd. Quantization scales work the same way: one scale for an entire tensor may be simple but poorly represent values with different ranges. A scale per output channel respects more local variation, while a scale per small group captures outliers more closely. Finer scales improve fidelity but add metadata and kernel complexity. The best granularity is the one that protects important values without turning savings into bookkeeping overhead.",
+            "At the shoe rack, different foot sizes need different fits, so smaller groups receive their own scales instead of one compromise, accepting extra bookkeeping to represent local ranges faithfully. Quantization scales work the same way: one scale for an entire tensor may be simple but poorly represent values with different ranges. A scale per output channel respects more local variation, while a scale per small group captures outliers more closely. Finer scales improve fidelity but add metadata and kernel complexity. The best granularity is the one that protects important values without turning savings into bookkeeping overhead.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Symmetric quantization maps values around zero using a scale; asymmetric quantization adds a zero point to use the available range more fully. Per-tensor schemes minimize metadata, per-channel schemes adapt to output dimensions, and per-group schemes handle local variation and outliers more effectively. Activation quantization can be harder than weight quantization because activation ranges vary by input. Mixed precision often keeps sensitive layers or normalization operations in higher precision. Evaluate calibration data representativeness and test each supported kernel path for numerical consistency.",
-          visualId: "token-math",
+            "Quantization granularity trades metadata and kernel complexity for scales that better represent local activation or weight ranges. Per-tensor schemes minimize metadata, per-channel schemes adapt to output dimensions, and per-group schemes handle local outliers more effectively. Per-tensor schemes minimize metadata, per-channel schemes adapt to output dimensions, and per-group schemes handle local variation and outliers more effectively. Symmetric schemes use a scale around zero, while asymmetric schemes add a zero point; activation ranges also vary by input. Mixed precision often keeps sensitive layers or normalization operations in higher precision. Evaluate calibration data representativeness and test each supported kernel path for numerical consistency.",
+          visualId: "quantization",
           visualCaption:
             "Quantization scales move from whole tensors to channels and groups as representation fidelity increases.",
         },
@@ -503,10 +503,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "quantization-calibration",
           title: "Calibration learns how to compress",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. Before packing a shipment, a mover learns which boxes are fragile and which items are unexpectedly heavy. Quantization calibration similarly observes representative activations or weight distributions before choosing scales. A tiny sample may miss the rare large value that matters most, while an unrepresentative sample can optimize for the wrong traffic. Post-training quantization applies these choices without full retraining, whereas quantization-aware training exposes the model to simulated precision effects during learning. Both approaches require quality evidence, not just a smaller file.",
+            "Before sealing the shipment, the mover inspects representative boxes for fragile contents and unusually heavy items, using those observations to choose packing rules that protect the values most likely to matter in production. Quantization calibration similarly observes representative activations or weight distributions before choosing scales. A tiny sample may miss the rare large value that matters most, while an unrepresentative sample can optimize for the wrong traffic. Post-training quantization applies these choices without full retraining, whereas quantization-aware training exposes the model to simulated precision effects during learning. Both approaches require quality evidence, not just a smaller file.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Post-training quantization estimates scales from weights alone or from calibration activations. Methods such as min-max, clipping, and learned rounding make different trade-offs between range coverage and resolution. Quantization-aware training inserts fake-quantization operations during training so the model can adapt, at higher computational and data cost. Watch for outlier channels, degraded tool formatting, reduced multilingual quality, and changes in refusal behavior. Keep an unquantized reference for comparison and evaluate the full pipeline, because retrieval and prompt changes can mask or amplify numeric errors.",
-          visualId: "token-math",
+            "Calibration estimates quantization scales from representative weights or activations before lower-precision kernels are evaluated against a full-precision baseline. Min-max, clipping, and learned rounding make different trade-offs between range coverage and resolution. Methods such as min-max, clipping, and learned rounding make different trade-offs between range coverage and resolution. Quantization-aware training inserts fake-quantization operations during training so the model can adapt, at higher computational and data cost. Watch for outlier channels, degraded tool formatting, reduced multilingual quality, and changes in refusal behavior. Keep an unquantized reference for comparison and evaluate the full pipeline, because retrieval and prompt changes can mask or amplify numeric errors.",
+          visualId: "quantization",
           visualCaption:
             "Calibration data and granularity determine how faithfully a lower-precision representation preserves behavior.",
         },
@@ -514,10 +514,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "quantization-serving",
           title: "Measure the whole serving path",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A smaller crate may save fuel but require extra unpacking at every stop. Quantization can reduce bytes moved yet add scaling, packing, and conversion work that offsets part of the gain. The useful comparison includes memory capacity, time to first token, per-token latency, aggregate throughput, and task quality on the real hardware. A format that fits more models on one GPU may still disappoint if its kernels are immature. Production decisions therefore need both a performance experiment and a quality gate.",
+            "At the loading dock, a smaller crate saves transport space but adds unpacking work, so the crew measures resident memory, latency, throughput, and task quality across the entire delivery path. Quantization can reduce bytes moved yet add scaling, packing, and conversion work that offsets part of the gain. The useful comparison includes memory capacity, time to first token, per-token latency, aggregate throughput, and task quality on the real hardware. A format that fits more models on one GPU may still disappoint if its kernels are immature. Production decisions therefore need both a performance experiment and a quality gate.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Benchmark identical traffic against a higher-precision baseline and report the model, hardware, batch shapes, sequence lengths, and software versions. Measure resident memory, KV-cache compatibility, prefill, decode, and queue delay. Quantized weights may leave KV cache or activations in another format, so total savings differ from the headline weight reduction. Require task evaluations and safety regressions to pass before rollout, then monitor canaries. Avoid universal claims: the benefit is model- and workload-dependent, and any broad speed estimate should be described only as an order-of-magnitude expectation until measured.",
-          visualId: "deploy-strategies",
+            "A quantization release must benchmark resident memory, prefill, decode, queueing, and quality on the exact serving stack. Report model, hardware, batch shapes, sequence lengths, and software versions so another team can reproduce the comparison. Measure resident memory, KV-cache compatibility, prefill, decode, and queue delay. Quantized weights may leave KV cache or activations in another format, so total savings differ from the headline weight reduction. Require task evaluations and safety regressions to pass before rollout, then monitor canaries. Avoid universal claims: the benefit is model- and workload-dependent, and any broad speed estimate should be described only as an order-of-magnitude expectation until measured.",
+          visualId: "quantization",
           visualCaption:
             "A quantization release gates memory, latency, throughput, and task quality on the actual serving stack.",
         },
@@ -591,11 +591,11 @@ const inferenceTrack: Track & { trackId: string } = {
           prompt: "What must happen before shipping a quantized model?",
           choices: [
             "Only check the file size",
-            "Benchmark and evaluate the exact artifact on representative tasks and security cases",
             "Assume the source model's results transfer unchanged",
             "Disable structured output validation",
+            "Benchmark and evaluate the exact artifact on representative tasks and security cases",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "Quantization can change performance and behavior, so the exact artifact needs both performance and quality gates.",
           kind: "security",
@@ -603,7 +603,7 @@ const inferenceTrack: Track & { trackId: string } = {
         {
           id: "quantization-q4",
           topicId: "quantization",
-          prompt: "Why can INT4 weight quantization fail to reduce total memory by four times?",
+          prompt: "In the packing analogy, why might a four-bit crate not shrink the whole shipment fourfold?",
           choices: [
             "Because activations, KV cache, scales, and other tensors may remain higher precision",
             "Because integers cannot be stored",
@@ -613,7 +613,7 @@ const inferenceTrack: Track & { trackId: string } = {
           answerIndex: 0,
           explanation:
             "Only selected tensors may be quantized, and metadata plus higher-precision runtime state reduce the end-to-end savings.",
-          kind: "scenario",
+          kind: "story-match",
         },
       ],
     },
@@ -633,9 +633,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "latency-metrics",
           title: "Name the latency the user feels",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A customer waiting for a meal experiences the line, the kitchen, and the walk to the table. Reporting only cooking time would miss most of the experience. LLM serving has a similar chain: admission wait, prefill, first-token delay, inter-token generation, and network delivery. Time to first token describes how quickly the response begins, while total completion time describes when the full answer arrives. A streaming interface can feel responsive before the answer is complete, but it does not eliminate the underlying work or cost.",
+            "At the restaurant entrance, the host records waiting separately from kitchen preparation and delivery because the diner experiences every span from arrival to the completed meal. Reporting only cooking time would miss most of the experience. LLM serving has a similar chain: admission wait, prefill, first-token delay, inter-token generation, and network delivery. Time to first token describes how quickly the response begins, while total completion time describes when the full answer arrives. A streaming interface can feel responsive before the answer is complete, but it does not eliminate the underlying work or cost.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Define time to first token, inter-token latency, total request latency, and queue delay as separate measurements. Track p50, p95, and p99 by model, route, input length, output length, and tenant class. Percentiles matter because averages hide the slow requests that dominate user frustration. Use client-visible timestamps where possible and carry a request ID across gateway, scheduler, and worker. A failure mode is optimizing time to first token with tiny output reservations while long completions queue behind an unsafe level of admitted concurrency.",
+            "Time to first token, inter-token latency, total completion time, and queue delay are distinct measurements. Track p50, p95, and p99 by model, route, input length, output length, and tenant class. Track p50, p95, and p99 by model, route, input length, output length, and tenant class. Percentiles matter because averages hide the slow requests that dominate user frustration. Use client-visible timestamps where possible and carry a request ID across gateway, scheduler, and worker. A failure mode is optimizing time to first token with tiny output reservations while long completions queue behind an unsafe level of admitted concurrency.",
           visualId: "traffic-flow",
           visualCaption:
             "Admission, queue, prefill, token generation, and delivery spans combine into user-visible latency.",
@@ -644,9 +644,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "latency-throughput",
           title: "Throughput grows until latency bends",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A workshop can produce more work by keeping every bench busy, but crowding the floor eventually slows each job. Inference throughput rises with batching and utilization, yet queue delay and contention increase sharply near saturation. The best operating point is not always the point with the highest tokens per second. It is the point that meets latency objectives with enough headroom for bursts, failures, and uneven prompt lengths. Capacity plans need both a rate and a concurrency envelope, not a single optimistic average.",
+            "On the workshop floor, keeping every bench busy raises output until crowding slows individual jobs and the service loses its latency margin, so capacity plans reserve headroom for bursts and failures rather than chasing peak throughput. Inference throughput rises with batching and utilization, yet queue delay and contention increase sharply near saturation. The best operating point is not always the point with the highest tokens per second. It is the point that meets latency objectives with enough headroom for bursts, failures, and uneven prompt lengths. Capacity plans need both a rate and a concurrency envelope, not a single optimistic average.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Distinguish per-request tokens per second from aggregate serving throughput. Little's Law relates average concurrency to arrival rate and time in system, while queueing theory predicts tail growth near full utilization. Measure arrival patterns, prompt-length distributions, output-length limits, and burstiness. Keep headroom for failover and avoid running interactive pools at their theoretical maximum. A failure mode is sizing from aggregate token throughput alone; two systems can share that number while one delivers acceptable p99 latency and the other collapses under small bursts.",
+            "Little's Law links arrival rate, concurrency, and time in system, while tail latency grows near saturation. Measure arrival patterns, prompt-length distributions, output limits, and burstiness instead of sizing from aggregate token throughput alone. Two systems can share aggregate token throughput while only one meets p99 latency under small bursts. Measure arrival patterns, prompt-length distributions, output-length limits, and burstiness. Keep headroom for failover and avoid running interactive pools at their theoretical maximum. A failure mode is sizing from aggregate token throughput alone; two systems can share that number while one delivers acceptable p99 latency and the other collapses under small bursts.",
           visualId: "queue-workers",
           visualCaption:
             "Batching raises token throughput until queueing and resource contention bend the latency curve.",
@@ -655,9 +655,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "latency-cost",
           title: "Count cost per successful task",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A cheap tool that fails twice is not cheaper than a reliable tool that finishes once. LLM cost should include input tokens, output tokens, retrieval, tool calls, retries, abandoned streams, and the infrastructure kept warm for latency. Dividing that total by successfully completed user goals reveals the real unit economics. A workflow can look efficient per token while wasting money on repeated agent loops or oversized context. Cost optimization must preserve the product outcome, not merely shrink the largest line on the invoice.",
+            "At the tool crib, a cheap device that fails twice costs more than a reliable device that finishes the job once, so total spending is divided by successfully completed goals. LLM cost should include input tokens, output tokens, retrieval, tool calls, retries, abandoned streams, and the infrastructure kept warm for latency. Dividing that total by successfully completed user goals reveals the real unit economics. A workflow can look efficient per token while wasting money on repeated agent loops or oversized context. Cost optimization must preserve the product outcome, not merely shrink the largest line on the invoice.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Build a cost model with input and output token rates, cached-prefix pricing where applicable, retrieval and storage, tool execution, observability, and reserved accelerator capacity. Measure cost per successful task and cost per accepted request as complementary metrics. Include failed and retried attempts, because reliability problems create hidden demand. Use routing or smaller models only when task evaluations support the change, and compare quality-adjusted outcomes. A failure mode is reporting accelerator utilization as a cost measure without connecting it to useful completed work.",
+            "Cost per successful task divides all token, retrieval, tool, retry, observability, and capacity spending by completed goals. Include failed and retried attempts, because reliability problems create hidden demand that token-price dashboards often miss. Measure cost per successful task and cost per accepted request as complementary metrics. Include failed and retried attempts, because reliability problems create hidden demand. Use routing or smaller models only when task evaluations support the change, and compare quality-adjusted outcomes. A failure mode is reporting accelerator utilization as a cost measure without connecting it to useful completed work.",
           visualId: "token-math",
           visualCaption:
             "Token, retry, retrieval, tool, and capacity costs roll up into cost per successful task.",
@@ -666,9 +666,9 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "latency-budget",
           title: "Turn objectives into testable budgets",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A project budget gives each team an allowance before construction begins. An inference budget does the same for latency and money. The team chooses target percentiles, reserves a share for queueing and network overhead, and sets maximum input and output envelopes. Experiments then test whether a proposed model, cache policy, or batching change fits the remaining allowance. When two options trade first-token speed against completion speed, the budget makes that trade explicit instead of leaving it to benchmark folklore.",
+            "Before construction begins, the project manager assigns each team an allowance so expensive surprises cannot silently consume the total budget, and proposed changes must fit the remaining headroom. An inference budget does the same for latency and money. The team chooses target percentiles, reserves a share for queueing and network overhead, and sets maximum input and output envelopes. Experiments then test whether a proposed model, cache policy, or batching change fits the remaining allowance. When two options trade first-token speed against completion speed, the budget makes that trade explicit instead of leaving it to benchmark folklore.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Start from a user objective, subtract gateway and network overhead, and allocate the remaining budget across admission, prefill, decode, and safety checks. Set explicit quality floors and cost ceilings, then run representative load tests with mixed sequence lengths and failures. Record model versions, hardware, kernels, batch policy, and cache settings so results can be reproduced. Use staged rollout to validate production assumptions. Avoid fake precision: when evidence is limited, describe expected effects as an order of magnitude and replace them with measured values before committing capacity.",
+            "A service budget subtracts fixed overhead and allocates the remainder across admission, prefill, decode, and safety checks. Set quality floors and cost ceilings, then run representative load tests with mixed sequence lengths and failures. Set explicit quality floors and cost ceilings, then run representative load tests with mixed sequence lengths and failures. Record model versions, hardware, kernels, batch policy, and cache settings so results can be reproduced. Use staged rollout to validate production assumptions. Avoid fake precision: when evidence is limited, describe expected effects as an order of magnitude and replace them with measured values before committing capacity.",
           visualId: "deploy-strategies",
           visualCaption:
             "Latency, quality, and cost ceilings become reproducible load-test gates and staged rollout criteria.",
@@ -710,7 +710,7 @@ const inferenceTrack: Track & { trackId: string } = {
         {
           id: "latency-q1",
           topicId: "latency-cost-budgets",
-          prompt: "What does time to first token measure?",
+          prompt: "In the restaurant analogy, what does time to first token measure?",
           choices: [
             "Total training time",
             "How long the complete answer takes",
@@ -720,7 +720,7 @@ const inferenceTrack: Track & { trackId: string } = {
           answerIndex: 2,
           explanation:
             "Time to first token captures responsiveness up to the start of generation, not completion of the full answer.",
-          kind: "scenario",
+          kind: "story-match",
         },
         {
           id: "latency-q2",
@@ -758,11 +758,11 @@ const inferenceTrack: Track & { trackId: string } = {
           prompt: "What should a degraded serving path preserve?",
           choices: [
             "Only token metering",
-            "The same authorization, redaction, and approval controls",
             "Unbounded context",
             "Shared administrator credentials",
+            "The same authorization, redaction, and approval controls",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "Performance fallbacks must not become security bypasses; mandatory controls apply on every route.",
           kind: "security",
@@ -785,10 +785,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "pretraining-next-token",
           title: "Pretraining learns statistical structure",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A reader immersed in an enormous library gradually learns grammar, facts, patterns, and the rhythms of different genres without completing a single formal worksheet. Next-token pretraining works in that spirit: the model sees a sequence and learns to predict what comes next. Repeating this objective across varied data builds broad representations and capabilities. It does not guarantee that every learned statement is true or that the model will follow a product's instructions, which is why pretraining alone is not a complete alignment or deployment strategy.",
+            "Inside the vast library, every passage becomes a prediction exercise as the reader continually guesses which word arrives next, learning broad patterns without completing a formal worksheet or receiving product policy for each task. Next-token pretraining works in that spirit: the model sees a sequence and learns to predict what comes next. Repeating this objective across varied data builds broad representations and capabilities. It does not guarantee that every learned statement is true or that the model will follow a product's instructions, which is why pretraining alone is not a complete alignment or deployment strategy.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. Pretraining optimizes a cross-entropy loss over next-token targets using large text or multimodal corpora. Tokenization, data mixture, sequence packing, optimizer settings, compute budget, and checkpoint selection all shape the result. Training scales approximately with model size, dataset size, and compute, but useful scaling laws are empirical rather than universal. Data quality and contamination matter as much as volume. Keep evaluation data separate, document provenance and licenses, and monitor loss by domain so an average score cannot hide poor performance on a critical language or task.",
-          visualId: "token-math",
+            "Next-token pretraining minimizes cross-entropy between the model's predicted distribution and the following token target across packed sequences. Tokenization, data mixture, sequence packing, optimizer settings, compute budget, and checkpoint selection all shape the learned result. Tokenization, data mixture, sequence packing, optimizer settings, compute budget, and checkpoint selection all shape the result. Training scales approximately with model size, dataset size, and compute, but useful scaling laws are empirical rather than universal. Data quality and contamination matter as much as volume. Keep evaluation data separate, document provenance and licenses, and monitor loss by domain so an average score cannot hide poor performance on a critical language or task.",
+          visualId: "training-stages",
           visualCaption:
             "A pretraining corpus supplies next-token targets whose prediction loss shapes broad model representations.",
         },
@@ -796,10 +796,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "pretraining-sft",
           title: "SFT teaches task behavior with demonstrations",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. After learning language, a new employee studies examples of good support replies, structured reports, and careful refusals. Supervised fine-tuning provides that guided practice. Each example pairs an input with the desired output, teaching format, tone, and task conventions that the base model did not prioritize. The examples must be accurate, diverse, and consistent with the product's policy. Too many narrow demonstrations can make the model imitate a template while losing flexibility; too few leave behavior inconsistent.",
+            "At the support desk, a new employee studies accurate replies, structured reports, careful refusals, and difficult exceptions, using guided examples to practice the formats, tone, and judgment required before handling live cases with real users. Supervised fine-tuning provides that guided practice. Each example pairs an input with the desired output, teaching format, tone, and task conventions that the base model did not prioritize. The examples must be accurate, diverse, and consistent with the product's policy. Too many narrow demonstrations can make the model imitate a template while losing flexibility; too few leave behavior inconsistent.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. SFT minimizes loss on curated prompt-response pairs, usually with a pretrained model as initialization. Data design should cover intended tasks, edge cases, tool-use formats, languages, and refusal or clarification behavior. Use loss masking where appropriate so the model learns from the response rather than merely copying the prompt. Split data to detect memorization and distribution shift, and evaluate generalization to unseen task variants. A failure mode is treating demonstration quality as a labeling chore; contradictory or insecure examples teach contradictory and insecure behavior.",
-          visualId: "agent-loop",
+            "Supervised fine-tuning minimizes loss on curated prompt-response pairs to shape task behavior and output format. Initialize from a pretrained model and mask prompt tokens where appropriate so updates focus on the desired response. Data design should cover intended tasks, edge cases, tool-use formats, languages, and refusal or clarification behavior. Evaluate generalization to unseen task variants rather than rewarding memorized demonstrations. Split data to detect memorization and distribution shift, and evaluate generalization to unseen task variants. A failure mode is treating demonstration quality as a labeling chore; contradictory or insecure examples teach contradictory and insecure behavior.",
+          visualId: "training-stages",
           visualCaption:
             "Curated input-output demonstrations shape task format, behavior, and policy-consistent responses.",
         },
@@ -807,10 +807,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "pretraining-rlhf",
           title: "RLHF learns from human preferences",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. Two drafts may both be grammatical, but a reviewer can say which is more helpful, accurate, or appropriate. Reinforcement learning from human feedback uses those comparisons to shape behavior beyond a single demonstration. A reward model learns to predict preferences, then an optimizer adjusts the policy while a reference model helps prevent excessive drift. The process can improve nuanced qualities, but it also inherits biases and inconsistencies from the people, instructions, and examples used to create the preference data.",
+            "At the review table, two grammatical drafts are compared for helpfulness, accuracy, and appropriateness, providing a preference signal that can guide later choices while inheriting the reviewers' biases, inconsistencies, and blind spots. Reinforcement learning from human feedback uses those comparisons to shape behavior beyond a single demonstration. A reward model learns to predict preferences, then an optimizer adjusts the policy while a reference model helps prevent excessive drift. The process can improve nuanced qualities, but it also inherits biases and inconsistencies from the people, instructions, and examples used to create the preference data.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. A common RLHF pipeline collects pairwise or ranked outputs, trains a reward model, and optimizes the language model with a method such as proximal policy optimization plus a KL penalty to a reference policy. Reward models are imperfect proxies and can be gamed or overfit, so monitor reward alongside independent task and safety evaluations. Preference data needs annotator guidance, inter-annotator agreement checks, and privacy controls. Avoid optimizing a proxy score without measuring real outcomes, because high reward can coexist with verbosity, bias, or confident errors.",
-          visualId: "threat-defense",
+            "A common RLHF pipeline trains a reward model, then optimizes policy against that proxy with a KL constraint to a reference policy. Pairwise or ranked outputs provide preference labels, while annotator guidance and agreement checks determine whether those labels are trustworthy. Reward models are imperfect proxies and can be gamed or overfit, so monitor reward alongside independent task and safety evaluations. Preference data needs annotator guidance, inter-annotator agreement checks, and privacy controls. Avoid optimizing a proxy score without measuring real outcomes, because high reward can coexist with verbosity, bias, or confident errors.",
+          visualId: "training-stages",
           visualCaption:
             "Human comparisons train a reward proxy that guides policy updates while independent evaluations check real behavior.",
         },
@@ -818,10 +818,10 @@ const inferenceTrack: Track & { trackId: string } = {
           id: "pretraining-dpo",
           title: "DPO optimizes preferences without a separate reward loop",
           story:
-            "The workshop comparison becomes useful when each part is mapped to measured compute, memory traffic, latency, or quality behavior. A coach can teach a chef by comparing two dishes and explaining why one better matches the house style, without building a separate machine that scores every future dish. Direct preference optimization follows a similar simplification. It uses preferred and rejected response pairs to adjust the model directly through a classification-style objective relative to a reference policy. This removes parts of the classic RLHF training loop, but it does not remove the need for good preference data, regularization, held-out evaluation, or monitoring for regressions.",
+            "In the kitchen, a coach compares two dishes and identifies the preferred one directly, without building a separate machine to score every future meal, though the chef still needs clear standards, representative practice, regularization, and held-out review before service with diners. Direct preference optimization follows a similar simplification. It uses preferred and rejected response pairs to adjust the model directly through a classification-style objective relative to a reference policy. This removes parts of the classic RLHF training loop, but it does not remove the need for good preference data, regularization, held-out evaluation, or monitoring for regressions.",
           engineer:
-            "Engineering decisions require measured arithmetic intensity, memory traffic, latency distributions, quality evidence, and explicit capacity limits rather than unsupported universal claims. DPO derives an implicit reward from the log-probability ratio between the policy and a frozen reference model, then increases the relative likelihood of preferred responses over rejected ones. Compared with a full RLHF pipeline, it can reduce training complexity and infrastructure, but it remains sensitive to data quality, preference strength, and reference-policy choice. Evaluate helpfulness, factuality, safety, calibration, and diversity on held-out tasks. A failure mode is assuming a simpler optimizer produces automatically safer behavior; post-training is not a substitute for access controls and runtime guardrails.",
-          visualId: "notation-decoder",
+            "DPO derives an implicit reward from policy and reference log-probability ratios to prefer selected responses. The objective increases the preferred response's log-probability margin relative to the rejected response under a frozen reference policy. Compared with a full RLHF pipeline, it can reduce training complexity and infrastructure, but it remains sensitive to data quality, preference strength, and reference-policy choice. Evaluate helpfulness, factuality, safety, calibration, and diversity on held-out tasks. A failure mode is assuming a simpler optimizer produces automatically safer behavior; post-training is not a substitute for access controls and runtime guardrails.",
+          visualId: "training-stages",
           visualCaption:
             "Preferred and rejected pairs adjust policy likelihood relative to a frozen reference model.",
         },
@@ -862,7 +862,7 @@ const inferenceTrack: Track & { trackId: string } = {
         {
           id: "pretraining-q1",
           topicId: "pretraining-posttraining",
-          prompt: "What is the primary objective of next-token pretraining?",
+          prompt: "In the library analogy, what learning objective drives next-token pretraining?",
           choices: [
             "Predict the next token from preceding context",
             "Rank every deployment platform",
@@ -872,7 +872,7 @@ const inferenceTrack: Track & { trackId: string } = {
           answerIndex: 0,
           explanation:
             "Next-token prediction builds broad sequence representations and capabilities, but it does not itself enforce product policy.",
-          kind: "tradeoff",
+          kind: "story-match",
         },
         {
           id: "pretraining-q2",

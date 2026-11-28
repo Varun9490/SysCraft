@@ -1,6 +1,6 @@
 # SysCraft production QA scorecard
 
-- Generated (UTC): 2026-11-27T14:17:03.901Z
+- Generated (UTC): 2026-11-28T06:02:04.884Z
 - BASE_URL: `http://127.0.0.1:4173`
 - Overall score: **100 / 100**
 - Checks: 36/36 passed (0 failed)
@@ -20,7 +20,7 @@
 
 ## Frame timing
 
-- Steady-state 90 rAF frames after fonts and entrance reveals have settled: average **22.59 ms**, p95 **33.40 ms**.
+- Steady-state 180 rAF frames after fonts and entrance reveals have settled: average **17.59 ms**, p95 **33.30 ms**.
 - Thresholds: average <= 34 ms, p95 <= 50 ms (headless vsync is not treated as a hard failure).
 
 ## Failures
@@ -33,7 +33,7 @@
 - Hydration warnings: 0
 - Uncaught page errors: 0
 - HTTP >= 400 (same-origin): 0
-- Failed requests (all origins): 247
+- Failed requests (all origins): 277
 
 ## Check log
 
@@ -54,7 +54,7 @@
 | landing | hero shows distinct request/response paths and both packet lanes animate | yes | PASS |
 | landing | spike, kill-node, and attack controls update aria-pressed and telemetry | yes | PASS |
 | landing | track showcase has exactly 7 track cards | yes | PASS |
-| landing | 90 rAF frames measured within performance thresholds | no | PASS |
+| landing | 180 rAF frames measured within performance thresholds | no | PASS |
 | landing | reduced motion disables custom cursor and continuous decorative animation | no | PASS |
 | dock | utility launcher is compact (<= 56px on each axis) by default | yes | PASS |
 | dock | opening the dock exposes search, notes, bookmarks, mode, ambient, cursor, break | yes | PASS |

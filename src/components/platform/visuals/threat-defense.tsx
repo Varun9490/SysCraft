@@ -5,6 +5,8 @@ import { Arrow, C, Frame, Panel, useStep, type VisualProps } from './Frame';
 export function ThreatDefenseVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
   const on = s >= 2;
+  // Final step adds the audit trail: verified, logged and reproducible.
+  const final = s === 4;
 
   return (
     <Frame title="input defense" step={s} active={active}>
@@ -36,6 +38,28 @@ export function ThreatDefenseVisual({ stepIndex, active }: VisualProps) {
 
       <Panel x={470} y={156} w={130} h={68} label="service" sub="trusted" color={on ? C.border : C.healthy} />
       {on ? null : <Arrow x1={452} y1={190} x2={468} y2={190} color={C.healthy} />}
+
+      <text x="320" y="332" textAnchor="middle" fontSize="9" fill={final ? C.healthy : C.border}>
+        {final ? 'verified · decision recorded in audit log' : 'validate before the trusted boundary'}
+      </text>
+      {final ? (
+        <g>
+          <rect
+            x="228"
+            y="342"
+            width="184"
+            height="34"
+            rx="6"
+            fill={C.focus}
+            fillOpacity="0.1"
+            stroke={C.focus}
+            strokeWidth="1"
+          />
+          <text x="320" y="363" textAnchor="middle" fontSize="9" fill={C.focus}>
+            audit trail · tamper-evident
+          </text>
+        </g>
+      ) : null}
     </Frame>
   );
 }

@@ -16,11 +16,18 @@ import {
   type SimTickSnapshot,
 } from "@/types/simulation";
 import {
+  activeReplicas,
+  cappedAdd,
+  cappedDivide,
+  cappedMultiply,
   cpuPercent,
   effectiveCapacity,
   errorRate,
   llmPhysics,
+  MAX_SIM_VALUE,
   nodeLatency,
+  sanitizeNonNegative,
+  sanitizePositive,
   updateQueue,
   utilization,
 } from "./queuingMath";
@@ -101,7 +108,7 @@ export function getResourceMeta(resourceId: string): ResourceMeta {
     const meta: ResourceMeta = {
       category: custom.category,
       storageEngine: custom.storageEngine,
-      costPerHourUsd: custom.costPerHourUsd,
+      costPerHourUsd: sanitizeNonNegative(custom.costPerHourUsd),
     };
     META_CACHE.set(resourceId, meta);
     return meta;
@@ -116,7 +123,7 @@ export function getResourceMeta(resourceId: string): ResourceMeta {
     ? {
         category: def.category,
         storageEngine: def.defaults.storageEngine,
-        costPerHourUsd: def.defaults.costPerHourUsd,
+        costPerHourUsd: sanitizeNonNegative(def.defaults.costPerHourUsd),
       }
     : fallback;
   META_CACHE.set(resourceId, meta);
@@ -163,10 +170,12 @@ const NO_PENALTY: NodeChaosPenalty = {
 };
 
 function clamp01(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  if (value < 0) return 0;
-  if (value > 1) return 1;
-  return value;
+  if (Number.isNaN(value) || value < 0) return 0;
+  return Math.min(value, 1);
+}
+
+function tickCounter(value: number): number {
+  return Math.floor(sanitizeNonNegative(value));
 }
 
 /** Per-node chaos penalty honoring explicit fields plus kind defaults. */
@@ -185,9 +194,7 @@ export function chaosPenaltyForNode(node: GraphNode, chaos: ChaosState): NodeCha
   if (!targeted) return NO_PENALTY;
 
   const basePenalty = clamp01(chaos.capacityPenalty);
-  const baseLatency = Number.isFinite(chaos.latencyPenaltyMs) && chaos.latencyPenaltyMs > 0
-    ? chaos.latencyPenaltyMs
-    : 0;
+  const baseLatency = sanitizeNonNegative(chaos.latencyPenaltyMs);
   const penalty: NodeChaosPenalty = {
     capacityPenalty: basePenalty,
     latencyMs: baseLatency,
@@ -267,31 +274,56 @@ function buildAdjacency(topology: GraphTopology): {
   return { outgoing, indegree };
 }
 
-/** Back-edge detection: true when target can reach source (closes a cycle). */
+/**
+ * Deterministic DFS back-edge detection. Only an edge to a currently-gray
+ * vertex closes a cycle; tree/forward/cross edges remain undamped. Node and
+ * edge IDs are sorted so the result does not depend on canvas insertion order.
+ */
 export function computeBackEdges(topology: GraphTopology): Set<string> {
   const { outgoing } = buildAdjacency(topology);
+  const compareIds = (left: string, right: string): number => {
+    if (left < right) return -1;
+    if (left > right) return 1;
+    return 0;
+  };
+  const orderedOutgoing = new Map<string, GraphEdge[]>();
+  for (const [nodeId, edges] of outgoing) {
+    orderedOutgoing.set(
+      nodeId,
+      [...edges].sort((left, right) => compareIds(left.id, right.id)),
+    );
+  }
+
+  const color = new Map<string, 0 | 1 | 2>();
   const backEdges = new Set<string>();
-  const reaches = (from: string, goal: string): boolean => {
-    if (from === goal) return true;
-    const visited = new Set<string>([from]);
-    const stack: string[] = [from];
-    let guard = 0;
-    while (stack.length > 0 && guard < 4096) {
-      guard += 1;
-      const current = stack.pop() as string;
-      for (const edge of outgoing.get(current) ?? []) {
-        if (edge.target === goal) return true;
-        if (!visited.has(edge.target)) {
-          visited.add(edge.target);
-          stack.push(edge.target);
-        }
+  const nodeIds = [...orderedOutgoing.keys()].sort(compareIds);
+
+  for (const root of nodeIds) {
+    if ((color.get(root) ?? 0) !== 0) continue;
+    color.set(root, 1);
+    const stack: Array<{ nodeId: string; nextEdge: number }> = [{ nodeId: root, nextEdge: 0 }];
+
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1];
+      const edges = orderedOutgoing.get(frame.nodeId) ?? [];
+      if (frame.nextEdge >= edges.length) {
+        color.set(frame.nodeId, 2);
+        stack.pop();
+        continue;
+      }
+
+      const edge = edges[frame.nextEdge];
+      frame.nextEdge += 1;
+      const targetColor = color.get(edge.target) ?? 0;
+      if (targetColor === 1) {
+        backEdges.add(edge.id);
+      } else if (targetColor === 0) {
+        color.set(edge.target, 1);
+        stack.push({ nodeId: edge.target, nextEdge: 0 });
       }
     }
-    return false;
-  };
-  for (const edge of topology.edges) {
-    if (reaches(edge.target, edge.source)) backEdges.add(edge.id);
   }
+
   return backEdges;
 }
 
@@ -306,14 +338,14 @@ function nextCircuit(
   const err = clamp01(targetErrorRate);
   switch (prev.state) {
     case "closed": {
-      const consecutive = err > CIRCUIT_ERROR_THRESHOLD ? prev.consecutiveErrorTicks + 1 : 0;
+      const consecutive = err > CIRCUIT_ERROR_THRESHOLD ? tickCounter(prev.consecutiveErrorTicks) + 1 : 0;
       if (consecutive >= CIRCUIT_OPEN_TICKS) {
         return { state: "open", consecutiveErrorTicks: 0, openTicks: 0, halfOpenCalmTicks: 0 };
       }
       return { state: "closed", consecutiveErrorTicks: consecutive, openTicks: 0, halfOpenCalmTicks: 0 };
     }
     case "open": {
-      const openTicks = prev.openTicks + 1;
+      const openTicks = tickCounter(prev.openTicks) + 1;
       if (openTicks >= CIRCUIT_HALF_OPEN_TICKS) {
         return { state: "half_open", consecutiveErrorTicks: 0, openTicks: 0, halfOpenCalmTicks: 0 };
       }
@@ -324,7 +356,7 @@ function nextCircuit(
         return { state: "open", consecutiveErrorTicks: 0, openTicks: 0, halfOpenCalmTicks: 0 };
       }
       if (err < CIRCUIT_RECOVER_ERROR) {
-        const calm = prev.halfOpenCalmTicks + 1;
+        const calm = tickCounter(prev.halfOpenCalmTicks) + 1;
         if (calm >= CIRCUIT_RECOVER_TICKS) {
           return { state: "closed", consecutiveErrorTicks: 0, openTicks: 0, halfOpenCalmTicks: 0 };
         }
@@ -334,6 +366,25 @@ function nextCircuit(
     }
     default:
       return defaultCircuit();
+  }
+}
+
+function assertFiniteSnapshot(snapshot: SimTickSnapshot): void {
+  const assertRecord = (record: Record<string, unknown>, label: string): void => {
+    for (const [key, value] of Object.entries(record)) {
+      if (typeof value !== "number") continue;
+      if (!Number.isFinite(value) || value < 0 || value > MAX_SIM_VALUE) {
+        throw new RangeError(`Simulation produced invalid ${label}.${key}: ${value}`);
+      }
+    }
+  };
+
+  assertRecord(snapshot as unknown as Record<string, unknown>, "snapshot");
+  for (const [nodeId, telemetry] of Object.entries(snapshot.nodes)) {
+    assertRecord(telemetry as unknown as Record<string, unknown>, `nodes.${nodeId}`);
+  }
+  for (const [edgeId, flow] of Object.entries(snapshot.edges)) {
+    assertRecord(flow as unknown as Record<string, unknown>, `edges.${edgeId}`);
   }
 }
 
@@ -365,8 +416,8 @@ export function stepSimulationTick(
   const baseInjection = new Map<string, number>();
   for (const node of topology.nodes) {
     const penalty = penalties.get(node.id) ?? NO_PENALTY;
-    const raw = Number.isFinite(node.clientRps) && node.clientRps > 0 ? node.clientRps : 0;
-    const injected = raw > 0 ? raw * penalty.arrivalMultiplier : 0;
+    const raw = sanitizeNonNegative(node.clientRps);
+    const injected = raw > 0 ? cappedMultiply(raw, penalty.arrivalMultiplier) : 0;
     baseInjection.set(node.id, injected);
   }
 
@@ -386,7 +437,10 @@ export function stepSimulationTick(
   const CHAOS_FLUSH_COLD_HIT = 0.05;
   const flushActiveTicks =
     chaosState.active && chaosState.kind === "cache_flush"
-      ? Math.max(0, prevTick.tick - chaosState.startedAtTick)
+      ? Math.max(
+          0,
+          tickCounter(prevTick.tick) - tickCounter(chaosState.startedAtTick),
+        )
       : 0;
   for (const node of topology.nodes) {
     const meta = getResourceMeta(node.resourceId);
@@ -408,13 +462,13 @@ export function stepSimulationTick(
   const computeOutput = (node: GraphNode, arrivalRps: number): number => {
     const meta = getResourceMeta(node.resourceId);
     const capacity = capacities.get(node.id) ?? 1;
-    const served = Math.min(Math.max(0, arrivalRps), capacity);
+    const served = Math.min(sanitizeNonNegative(arrivalRps), capacity);
     if (isCacheLike(node.resourceId, meta.category)) {
       const hit = effectiveHit.get(node.id) ?? clamp01(node.cacheHitRate);
       return served * (1 - hit);
     }
     if (isThrottleLike(node.resourceId, meta.category)) {
-      const limit = node.rateLimitRps > 0 ? node.rateLimitRps : capacity;
+      const limit = sanitizePositive(node.rateLimitRps, capacity);
       return Math.min(served, limit);
     }
     return served;
@@ -440,21 +494,24 @@ export function stepSimulationTick(
           const rho = utilization(targetArrival, targetCapacity);
           return 1 / (1 + Math.max(0, rho));
         });
-        const total = weights.reduce((sum, w) => sum + w, 0) || 1;
-        shares = weights.map((w) => w / total);
+        const total = weights.reduce((sum, weight) => cappedAdd(sum, weight), 0) || 1;
+        shares = weights.map((weight) => weight / total);
       } else {
-        const weights = downstream.map((edge) => (edge.weight > 0 ? edge.weight : 1));
-        const total = weights.reduce((sum, w) => sum + w, 0) || 1;
-        shares = weights.map((w) => w / total);
+        const weights = downstream.map((edge) => {
+          const weight = clamp01(edge.weight);
+          return weight > 0 ? weight : 1;
+        });
+        const total = weights.reduce((sum, weight) => cappedAdd(sum, weight), 0) || 1;
+        shares = weights.map((weight) => weight / total);
       }
 
       downstream.forEach((edge, index) => {
         const damping = backEdges.has(edge.id)
           ? Math.pow(CYCLE_DAMPING_BASE, pass + 1)
           : 1;
-        const flow = out * (shares[index] ?? 0) * damping;
-        passArrival.set(edge.target, (passArrival.get(edge.target) ?? 0) + flow);
-        passEdgeRps.set(edge.id, (passEdgeRps.get(edge.id) ?? 0) + flow);
+        const flow = cappedMultiply(out, cappedMultiply(shares[index] ?? 0, damping));
+        passArrival.set(edge.target, cappedAdd(passArrival.get(edge.target) ?? 0, flow));
+        passEdgeRps.set(edge.id, cappedAdd(passEdgeRps.get(edge.id) ?? 0, flow));
       });
     }
 
@@ -462,7 +519,7 @@ export function stepSimulationTick(
     edgeRps = passEdgeRps;
   }
 
-  const elapsedSeconds = prevTick.elapsedSeconds + TICK_INTERVAL_S;
+  const elapsedSeconds = cappedAdd(prevTick.elapsedSeconds, TICK_INTERVAL_S);
   const nodeTelemetry: Record<string, NodeTelemetry> = {};
   const edgeFlows: Record<string, EdgeFlow> = {};
   const nextQueueDepths: Record<string, number> = {};
@@ -483,7 +540,7 @@ export function stepSimulationTick(
   if (wasmInput) {
     topology.nodes.forEach((node, index) => {
       const meta = getResourceMeta(node.resourceId);
-      const lambda = Math.max(0, arrival.get(node.id) ?? 0);
+      const lambda = sanitizeNonNegative(arrival.get(node.id) ?? 0);
       const capacity = capacities.get(node.id) ?? 1;
       writePhysicsNode(
         index,
@@ -513,11 +570,11 @@ export function stepSimulationTick(
     nodeIndexCounter += 1;
     const meta = getResourceMeta(node.resourceId);
     const penalty = penalties.get(node.id) ?? NO_PENALTY;
-    const lambda = Math.max(0, arrival.get(node.id) ?? 0);
+    const lambda = sanitizeNonNegative(arrival.get(node.id) ?? 0);
     const capacity = capacities.get(node.id) ?? 1;
     const prevDepth = prevTick.queueDepths[node.id] ?? 0;
     const jsQueue = wasmOutput ? null : updateQueue(prevDepth, lambda, capacity, node.maxConcurrency, node.replicationFactor);
-    const queueDepth = wasmOutput ? wasmOutput[nodeSlot] : jsQueue!.queueDepth;
+    const queueDepth = sanitizeNonNegative(wasmOutput ? wasmOutput[nodeSlot] : jsQueue!.queueDepth);
     const queueDropped = wasmOutput ? wasmOutput[nodeSlot + 1] >= 0.5 : jsQueue!.dropped;
     nextQueueDepths[node.id] = queueDepth;
 
@@ -539,12 +596,15 @@ export function stepSimulationTick(
 
     const served = Math.min(lambda, capacity);
     const forwarded = computeOutput(node, lambda);
-    const rho = wasmOutput ? wasmOutput[nodeSlot + 6] : utilization(lambda, capacity);
-    const overloadError = wasmOutput ? wasmOutput[nodeSlot + 8] : errorRate(lambda, capacity);
-    const combinedError = Math.min(1, Math.max(0, overloadError + penalty.extraError));
-    const overloadDrops = Math.max(0, lambda - served) * (queueDropped ? 1 : 0.25);
-    const accountedDrops = Math.max(combinedError * lambda, overloadDrops);
-    const outputRps = Math.max(0, forwarded);
+    const rho = sanitizeNonNegative(wasmOutput ? wasmOutput[nodeSlot + 6] : utilization(lambda, capacity));
+    const overloadError = clamp01(wasmOutput ? wasmOutput[nodeSlot + 8] : errorRate(lambda, capacity));
+    const combinedError = clamp01(cappedAdd(overloadError, penalty.extraError));
+    const overloadDrops = cappedMultiply(
+      Math.max(0, lambda - served),
+      queueDropped ? 1 : 0.25,
+    );
+    const accountedDrops = Math.max(cappedMultiply(combinedError, lambda), overloadDrops);
+    const outputRps = sanitizeNonNegative(forwarded);
     const jsLatency = wasmOutput
       ? null
       : nodeLatency({
@@ -558,24 +618,24 @@ export function stepSimulationTick(
           elapsedSeconds,
           queueDepth,
         });
-    const baseP50 = wasmOutput ? wasmOutput[nodeSlot + 2] : jsLatency!.p50Ms;
-    const baseP95 = wasmOutput ? wasmOutput[nodeSlot + 3] : jsLatency!.p95Ms;
-    const baseP99 = wasmOutput ? wasmOutput[nodeSlot + 4] : jsLatency!.p99Ms;
+    const baseP50 = sanitizeNonNegative(wasmOutput ? wasmOutput[nodeSlot + 2] : jsLatency!.p50Ms);
+    const baseP95 = sanitizeNonNegative(wasmOutput ? wasmOutput[nodeSlot + 3] : jsLatency!.p95Ms);
+    const baseP99 = sanitizeNonNegative(wasmOutput ? wasmOutput[nodeSlot + 4] : jsLatency!.p99Ms);
 
-    let p50 = baseP50 + penalty.latencyMs;
-    let p95 = baseP95 + penalty.latencyMs;
-    let p99 = baseP99 + penalty.latencyMs;
+    let p50 = cappedAdd(baseP50, penalty.latencyMs);
+    let p95 = cappedAdd(baseP95, penalty.latencyMs);
+    let p99 = cappedAdd(baseP99, penalty.latencyMs);
     let ttftMs = 0;
     let kvCachePct = 0;
     if (isLlmLike(meta.category)) {
       if (wasmOutput) {
-        ttftMs = wasmOutput[nodeSlot + 10] + penalty.latencyMs;
-        kvCachePct = wasmOutput[nodeSlot + 11];
+        ttftMs = cappedAdd(sanitizeNonNegative(wasmOutput[nodeSlot + 10]), penalty.latencyMs);
+        kvCachePct = Math.min(100, sanitizeNonNegative(wasmOutput[nodeSlot + 11]));
         if (wasmOutput[nodeSlot + 13] >= 0.5) {
-          const penaltyFactor = wasmOutput[nodeSlot + 12];
-          p50 *= penaltyFactor;
-          p95 *= penaltyFactor;
-          p99 *= penaltyFactor;
+          const penaltyFactor = sanitizePositive(wasmOutput[nodeSlot + 12], 1);
+          p50 = cappedMultiply(p50, penaltyFactor);
+          p95 = cappedMultiply(p95, penaltyFactor);
+          p99 = cappedMultiply(p99, penaltyFactor);
         }
       } else {
         const llm = llmPhysics({
@@ -586,14 +646,14 @@ export function stepSimulationTick(
           avgOutputTokens: node.avgOutputTokens,
           vramGbPerReplica: node.vramGbPerReplica,
           replicationFactor: node.replicationFactor,
-          activeConcurrentRequests: lambda * (baseP50 / 1000),
+          activeConcurrentRequests: cappedMultiply(lambda, cappedDivide(baseP50, 1000)),
         });
-        ttftMs = llm.ttftMs + penalty.latencyMs;
+        ttftMs = cappedAdd(llm.ttftMs, penalty.latencyMs);
         kvCachePct = llm.kvCachePct;
         if (llm.preempted) {
-          p50 *= llm.latencyPenalty;
-          p95 *= llm.latencyPenalty;
-          p99 *= llm.latencyPenalty;
+          p50 = cappedMultiply(p50, llm.latencyPenalty);
+          p95 = cappedMultiply(p95, llm.latencyPenalty);
+          p99 = cappedMultiply(p99, llm.latencyPenalty);
         }
       }
     }
@@ -603,13 +663,16 @@ export function stepSimulationTick(
     const concurrentInFlight =
       lambda > 0 && baseP50 > 0
         ? Math.min(
-            Math.max(1, node.replicationFactor) * Math.max(1, node.maxConcurrency),
-            lambda * (baseP50 / 1000),
+            cappedMultiply(
+              activeReplicas(node.replicationFactor),
+              Math.max(1, sanitizeNonNegative(node.maxConcurrency, 1)),
+            ),
+            cappedMultiply(lambda, cappedDivide(baseP50, 1000)),
           )
         : 0;
 
     const cacheHitPct = isCacheLike(node.resourceId, meta.category)
-      ? (effectiveHit.get(node.id) ?? clamp01(node.cacheHitRate)) * 100
+      ? Math.min(100, (effectiveHit.get(node.id) ?? clamp01(node.cacheHitRate)) * 100)
       : 0;
 
     nodeTelemetry[node.id] = {
@@ -624,18 +687,27 @@ export function stepSimulationTick(
       queueDepth,
       concurrentInFlight,
       errorRate: combinedError,
-      cpuPct: wasmOutput ? wasmOutput[nodeSlot + 9] : cpuPercent(rho, queueDepth, capacity),
+      cpuPct: Math.min(
+        100,
+        sanitizeNonNegative(wasmOutput ? wasmOutput[nodeSlot + 9] : cpuPercent(rho, queueDepth, capacity)),
+      ),
       cacheHitPct,
       ttftMs,
       kvCachePct,
-      droppedRps: Math.max(0, accountedDrops),
+      droppedRps: sanitizeNonNegative(accountedDrops),
     };
 
-    totalArrival += lambda;
-    totalDropped += Math.min(lambda, accountedDrops);
+    totalArrival = cappedAdd(totalArrival, lambda);
+    totalDropped = cappedAdd(totalDropped, Math.min(lambda, accountedDrops));
     if (p99 > globalP99) globalP99 = p99;
-    if ((indegree.get(node.id) ?? 0) === 0) entryRps += outputRps;
-    totalCost += (node.costPerHourUsdOverride ?? meta.costPerHourUsd) * Math.max(1, Math.floor(node.replicationFactor));
+    if ((indegree.get(node.id) ?? 0) === 0) entryRps = cappedAdd(entryRps, outputRps);
+    totalCost = cappedAdd(
+      totalCost,
+      cappedMultiply(
+        sanitizeNonNegative(node.costPerHourUsdOverride ?? meta.costPerHourUsd),
+        activeReplicas(node.replicationFactor),
+      ),
+    );
   }
 
   for (const edge of topology.edges) {
@@ -644,9 +716,11 @@ export function stepSimulationTick(
     if (!source || !target) continue;
     const sourceTele = nodeTelemetry[edge.source];
     const targetTele = nodeTelemetry[edge.target];
-    const rps = Math.max(0, edgeRps.get(edge.id) ?? 0);
-    const latencyMs =
-      (sourceTele?.p50Ms ?? 0) + getOneWayLatencyMs(source.region, target.region);
+    const rps = sanitizeNonNegative(edgeRps.get(edge.id) ?? 0);
+    const latencyMs = cappedAdd(
+      sourceTele?.p50Ms ?? 0,
+      sanitizeNonNegative(getOneWayLatencyMs(source.region, target.region)),
+    );
     edgeFlows[edge.id] = {
       edgeId: edge.id,
       rps,
@@ -657,11 +731,13 @@ export function stepSimulationTick(
     nextCircuits[edge.id] = nextCircuit(prev, targetTele?.errorRate ?? 0);
   }
 
-  const globalErrorRate = totalArrival > 0 ? Math.min(1, totalDropped / totalArrival) : 0;
-  const tick = prevTick.tick + 1;
+  const globalErrorRate = totalArrival > 0
+    ? Math.min(1, cappedDivide(totalDropped, totalArrival))
+    : 0;
+  const tick = Math.floor(cappedAdd(prevTick.tick, 1));
   const snapshot: SimTickSnapshot = {
     tick,
-    timestampMs: Math.round(elapsedSeconds * 1000),
+    timestampMs: Math.round(cappedMultiply(elapsedSeconds, 1000)),
     nodes: nodeTelemetry,
     edges: edgeFlows,
     globalRps: entryRps > 0 ? entryRps : totalArrival,
@@ -669,6 +745,8 @@ export function stepSimulationTick(
     globalErrorRate,
     totalCostPerHourUsd: totalCost,
   };
+
+  assertFiniteSnapshot(snapshot);
 
   return {
     snapshot,

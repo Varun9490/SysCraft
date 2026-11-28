@@ -1,15 +1,161 @@
 'use client';
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ArrowRight, CheckCircle2, Clock, Layers } from "@/components/ui/icons";
 import { AnimatedCounter } from "@/components/ui/interactive/AnimatedCounter";
 import { ScrollReveal } from "@/components/ui/interactive/ScrollReveal";
-import { BLOGS } from "@/content/platform/registry";
 import { useLearnerPlatformStore } from "@/store/useLearnerPlatformStore";
-import type { Track } from "@/learning/platform/types";
 
-export function TrackLessons({ track }: { track: Track }) {
+/**
+ * Only the fields this screen reads from a track. Callers may pass the full
+ * registry Track today, but the component never depends on step bodies,
+ * security practices, or quiz banks, and a summary DTO satisfies the same
+ * contract. Keeping the prop narrow stops the client from needing those
+ * content modules just to render a list of links.
+ */
+type LessonCard = {
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly storyHook: string;
+  readonly minutes: number;
+  readonly prerequisites: readonly string[];
+};
+
+type TrackSummary = {
+  readonly slug: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly lessons: readonly LessonCard[];
+};
+
+/**
+ * View-only catalog of blog cards. `src/content/platform/registry.ts` stays the
+ * source of truth for blog bodies; this projection exists so a track page does
+ * not load every post's steps and quiz bank to find three related links.
+ * Keep these cards in sync with the registry when blog metadata changes.
+ */
+type BlogCard = {
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly minutes: number;
+  readonly relatedLessonIds: readonly string[];
+};
+
+const BLOG_CARDS: readonly BlogCard[] = [
+  {
+    id: "database-melts-at-10k-rps",
+    slug: "database-melts-at-10k-rps",
+    title: "Why Your Database Melts at 10,000 RPS (And How to Fix It)",
+    minutes: 11,
+    relatedLessonIds: [
+      "single-server",
+      "load-balancing",
+      "caching-eviction",
+      "sql-modeling",
+      "scaling-databases",
+      "observability-slos",
+    ],
+  },
+  {
+    id: "discord-trillions-of-messages",
+    slug: "discord-trillions-of-messages",
+    title: "How Discord Stores Trillions of Messages",
+    minutes: 13,
+    relatedLessonIds: [
+      "chat-system",
+      "kafka-streaming",
+      "scaling-databases",
+      "replication-consistency",
+      "caching-eviction",
+      "observability-slos",
+    ],
+  },
+  {
+    id: "securing-agents-against-indirect-injection",
+    slug: "securing-agents-against-indirect-injection",
+    title: "Securing AI Agents Against Indirect Prompt Injection",
+    minutes: 12,
+    relatedLessonIds: [
+      "ai-security",
+      "embeddings-rag",
+      "agent-loop",
+      "evals-guardrails",
+      "observability-slos",
+    ],
+  },
+  {
+    id: "what-happens-during-token-generation",
+    slug: "what-happens-during-token-generation",
+    title: "What Actually Happens During an LLM Token Generation",
+    minutes: 10,
+    relatedLessonIds: [
+      "kv-cache-paged-attention",
+      "tokenization",
+      "agent-loop",
+      "transformer-bottlenecks",
+      "observability-slos",
+    ],
+  },
+  {
+    id: "zero-downtime-schema-migrations",
+    slug: "zero-downtime-schema-migrations",
+    title: "Zero-Downtime Schema Migrations Explained Visually",
+    minutes: 12,
+    relatedLessonIds: [
+      "sql-modeling",
+      "safe-deployments",
+      "distributed-transactions",
+      "replication-consistency",
+      "scaling-databases",
+      "observability-slos",
+    ],
+  },
+  {
+    id: "consistent-hashing-in-production",
+    slug: "consistent-hashing-in-production",
+    title: "Consistent Hashing in Production",
+    minutes: 10,
+    relatedLessonIds: [
+      "scaling-databases",
+      "consistent-hashing",
+      "caching-eviction",
+      "replication-consistency",
+      "load-balancing",
+      "observability-slos",
+    ],
+  },
+  {
+    id: "kafka-consumer-lag",
+    slug: "kafka-consumer-lag",
+    title: "The Anatomy of Kafka Consumer Lag",
+    minutes: 11,
+    relatedLessonIds: [
+      "kafka-streaming",
+      "queues-jobs",
+      "scaling-databases",
+      "observability-slos",
+      "load-balancing",
+    ],
+  },
+  {
+    id: "error-budgets-that-engineers-trust",
+    slug: "error-budgets-that-engineers-trust",
+    title: "Error Budgets Engineers Actually Trust",
+    minutes: 9,
+    relatedLessonIds: [
+      "observability-slos",
+      "safe-deployments",
+      "load-balancing",
+      "replication-consistency",
+      "metrics-alerting",
+    ],
+  },
+];
+
+export function TrackLessons({ track }: { track: TrackSummary }) {
   const completedLessons = useLearnerPlatformStore((s) => s.completedLessons);
   const hydrate = useLearnerPlatformStore((s) => s.hydrate);
 
@@ -17,9 +163,13 @@ export function TrackLessons({ track }: { track: Track }) {
     hydrate();
   }, [hydrate]);
 
-  const completed = track.lessons.filter((lesson) => completedLessons.includes(lesson.id)).length;
-  const minutes = track.lessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
-  const relatedBlogs = BLOGS.filter((blog) => blog.relatedLessonIds.some((id) => track.lessons.some((lesson) => lesson.id === id)));
+  const { completed, minutes, relatedBlogs } = useMemo(() => {
+    const lessonIds = new Set(track.lessons.map((lesson) => lesson.id));
+    const done = track.lessons.filter((lesson) => completedLessons.includes(lesson.id)).length;
+    const totalMinutes = track.lessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
+    const related = BLOG_CARDS.filter((blog) => blog.relatedLessonIds.some((id) => lessonIds.has(id)));
+    return { completed: done, minutes: totalMinutes, relatedBlogs: related };
+  }, [track.lessons, completedLessons]);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-5 pb-24 pt-12 sm:px-8">

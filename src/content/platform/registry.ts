@@ -55,7 +55,11 @@ export const allTopicIds: string[] = Array.from(new Set([
   ...BLOGS.map((blog) => blog.id),
 ]));
 
-/** Builds the recall bank only from lessons and blogs the learner has opened. */
+/**
+ * Builds the recall bank from completed lessons, read blogs, and topics the
+ * reader has meaningfully visited. Readers own the visit threshold; an empty
+ * eligibility set deliberately produces an empty bank rather than a fallback.
+ */
 export function findQuizBank(state: LearnerStateV1): QuizQuestion[] {
   const eligible = new Set([
     ...state.completedLessons,

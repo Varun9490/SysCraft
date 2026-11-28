@@ -12,10 +12,14 @@ const GAP = 8;
 
 export function AttentionKvVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
-  const attended = s + 1;
+  // Clamp to the physical cache size so s === 4 never draws a line to row 4.
+  const attended = Math.min(s + 1, ROWS);
   const reusedR = (s + 1) % ROWS;
   const reusedC = (s * 2 + 1) % COLS;
   const tokenY = Y + (ROWS * (H + GAP)) / 2 - 17;
+  // Final step: LRU eviction of one cached block under a fixed cache budget.
+  const final = s === 4;
+  const evicted = final ? (reusedR * COLS + (reusedC + 3) % COLS) : -1;
 
   return (
     <Frame title="attention kv" step={s} active={active}>
@@ -27,8 +31,10 @@ export function AttentionKvVisual({ stepIndex, active }: VisualProps) {
         Array.from({ length: COLS }).map((_, c) => {
           const x = X + c * (W + GAP);
           const y = Y + r * (H + GAP);
+          const idx = r * COLS + c;
           const isReused = r === reusedR && c === reusedC;
           const isAttended = r < attended;
+          const isEvicted = idx === evicted;
           return (
             <g key={`${r}-${c}`}>
               <rect
@@ -37,10 +43,11 @@ export function AttentionKvVisual({ stepIndex, active }: VisualProps) {
                 width={W}
                 height={H}
                 rx={4}
-                fill={isAttended ? C.brass : C.border}
-                fillOpacity={isAttended ? 0.16 : 0.1}
-                stroke={isReused ? C.focus : isAttended ? C.brass : C.border}
-                strokeWidth={isReused ? 1.8 : 1}
+                fill={isEvicted ? C.danger : isAttended ? C.brass : C.border}
+                fillOpacity={isEvicted ? 0.2 : isAttended ? 0.16 : 0.1}
+                stroke={isEvicted ? C.danger : isReused ? C.focus : isAttended ? C.brass : C.border}
+                strokeWidth={isEvicted || isReused ? 1.8 : 1}
+                strokeDasharray={isEvicted ? '3 2' : undefined}
               />
               {c === 0 ? (
                 <text x={x - 8} y={y + 17} textAnchor="end" fontSize="9" fill={C.border}>
@@ -81,8 +88,8 @@ export function AttentionKvVisual({ stepIndex, active }: VisualProps) {
         />
       ))}
 
-      <text x="320" y="360" textAnchor="middle" fontSize="9" fill={C.focus}>
-        paged block reused
+      <text x="320" y="360" textAnchor="middle" fontSize="9" fill={final ? C.danger : C.focus}>
+        {final ? 'LRU eviction · cache budget enforced' : 'paged block reused'}
       </text>
     </Frame>
   );

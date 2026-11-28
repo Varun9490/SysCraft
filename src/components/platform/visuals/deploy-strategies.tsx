@@ -2,12 +2,14 @@
 
 import { C, Frame, useStep, type VisualProps } from './Frame';
 
-const PCT = [5, 25, 100, 25];
+const PCT = [5, 25, 100, 25, 100];
 
 export function DeployStrategiesVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
-  const p = PCT[s];
+  const p = PCT[s] ?? PCT[0];
   const rollback = s === 3;
+  // s === 4 is the verified, fully rolled-out final state (not the mid-rollout 100% of s === 2).
+  const final = s === 4;
   const barX = 80;
   const barW = 480;
   const y = 180;
@@ -60,11 +62,17 @@ export function DeployStrategiesVisual({ stepIndex, active }: VisualProps) {
         />
       )}
       <text x="320" y={y + 32} textAnchor="middle" fontSize="14" fill="currentColor">
-        {`${p}% new`}
+        {final ? '100% · verified' : `${p}% new`}
       </text>
 
-      <text x="320" y="270" textAnchor="middle" fontSize="9" fill={rollback ? C.danger : C.healthy}>
-        {rollback ? 'error rate rising' : 'error rate ok'}
+      <text
+        x="320"
+        y="270"
+        textAnchor="middle"
+        fontSize="9"
+        fill={rollback ? C.danger : final ? C.healthy : C.healthy}
+      >
+        {rollback ? 'error rate rising' : final ? 'rollout complete · stable' : 'error rate ok'}
       </text>
 
       {rollback ? (
@@ -79,6 +87,13 @@ export function DeployStrategiesVisual({ stepIndex, active }: VisualProps) {
           <text x="320" y="342" textAnchor="middle" fontSize="9" fill={C.danger}>
             rollback
           </text>
+        </g>
+      ) : null}
+
+      {final ? (
+        <g>
+          <circle cx="320" cy="330" r="16" fill={C.healthy} fillOpacity="0.18" stroke={C.healthy} strokeWidth="1.4" />
+          <path d="M 312 330 L 318 336 L 329 323" fill="none" stroke={C.healthy} strokeWidth="2" />
         </g>
       ) : null}
     </Frame>

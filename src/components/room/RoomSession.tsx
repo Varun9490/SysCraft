@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Menu, Share, Users, X } from '@/components/ui/icons';
 import { clearRoomConfig, colorForName, loadRoomConfig, type RoomConfig } from '@/engine/roomSync';
+import { MAX_SCENE_ENCODED_CHARS } from '@/store/canvasPersistence';
 import { useCanvasStore } from '@/store/useCanvasStore';
 
 /**
@@ -90,7 +91,7 @@ export function RoomSession() {
         let applyingRemote = false;
 
         const applyRemotePayload = (payload: unknown) => {
-          if (typeof payload !== 'string' || payload.length === 0) return;
+          if (typeof payload !== 'string' || payload.length === 0 || payload.length > MAX_SCENE_ENCODED_CHARS) return;
           applyingRemote = true;
           try {
             const ok = useCanvasStore.getState().deserializeScene(payload);

@@ -5,6 +5,9 @@ export const metadata = {
   title: "Encyclopedia moved — SysCraft knowledge map",
   description:
     "The encyclopedia has moved to the knowledge map at /map. The original articles are still available in the wiki at /wiki.",
+  // Intentional legacy policy: this stub is not a competing destination.
+  alternates: { canonical: "/map" },
+  robots: { index: false, follow: true },
 };
 
 export default function EncyclopediaPage() {

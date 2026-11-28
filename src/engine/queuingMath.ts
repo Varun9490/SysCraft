@@ -13,29 +13,74 @@ import type { StorageEngine } from "@/types/resource";
 export const MAX_EFFECTIVE_RHO = 0.995;
 export const TICK_INTERVAL_S = 0.05;
 export const KV_SATURATE_PENALTY = 3.5;
+/**
+ * Practical finite ceiling for graph inputs and derived telemetry. Capping
+ * before multiplication prevents MAX_VALUE inputs from overflowing to
+ * Infinity and then being mistaken for zero by a final sanitizer.
+ * Keep this value in sync with wasm/sim-kernel/src/lib.rs.
+ */
+export const MAX_SIM_VALUE = 1_000_000_000_000_000;
 
 export function clamp(value: number, min: number, max: number): number {
-  if (!Number.isFinite(value)) return min;
-  if (value < min) return min;
+  if (Number.isNaN(value) || value < min) return min;
   if (value > max) return max;
   return value;
 }
 
-function sanitizeNonNegative(value: number, fallback = 0): number {
-  if (!Number.isFinite(value) || value < 0) return fallback;
-  return value;
+export function sanitizeNonNegative(value: number, fallback = 0): number {
+  const safeFallback = Number.isFinite(fallback) && fallback >= 0
+    ? Math.min(fallback, MAX_SIM_VALUE)
+    : 0;
+  if (Number.isNaN(value) || value < 0) return safeFallback;
+  return Math.min(value, MAX_SIM_VALUE);
 }
 
-/** Active replicas c_i = max(1, replicationFactor). */
+export function sanitizePositive(value: number, fallback = 1): number {
+  const safeFallback = Number.isFinite(fallback) && fallback > 0
+    ? Math.min(fallback, MAX_SIM_VALUE)
+    : 1;
+  if (Number.isNaN(value) || value <= 0) return safeFallback;
+  return Math.min(value, MAX_SIM_VALUE);
+}
+
+/** Addition that saturates at the simulation ceiling instead of overflowing. */
+export function cappedAdd(left: number, right: number): number {
+  const sum = sanitizeNonNegative(left) + sanitizeNonNegative(right);
+  return Number.isFinite(sum) ? Math.min(sum, MAX_SIM_VALUE) : MAX_SIM_VALUE;
+}
+
+/** Multiplication that saturates at the simulation ceiling instead of overflowing. */
+export function cappedMultiply(left: number, right: number): number {
+  const product = sanitizeNonNegative(left) * sanitizeNonNegative(right);
+  return Number.isFinite(product) ? Math.min(product, MAX_SIM_VALUE) : MAX_SIM_VALUE;
+}
+
+/** Division with a finite saturated result, including subnormal denominators. */
+export function cappedDivide(numerator: number, denominator: number, fallback = 0): number {
+  const num = sanitizeNonNegative(numerator);
+  const den = sanitizeNonNegative(denominator);
+  if (den <= 0) return sanitizeNonNegative(fallback);
+  const ratio = num / den;
+  return Number.isFinite(ratio) ? Math.min(ratio, MAX_SIM_VALUE) : MAX_SIM_VALUE;
+}
+
+function tokenCount(value: number | undefined, fallback: number): number {
+  // Non-finite token counts use defaults; finite negative/zero counts floor to
+  // one. This intentionally mirrors floor_at_least_one in the Rust kernel.
+  const source = value !== undefined && Number.isFinite(value)
+    ? Math.min(value, MAX_SIM_VALUE)
+    : fallback;
+  return Math.max(1, Math.floor(source));
+}
+
+/** Active replicas c_i = max(1, floor(replicationFactor)). */
 export function activeReplicas(replicationFactor: number): number {
-  if (!Number.isFinite(replicationFactor)) return 1;
-  return Math.max(1, Math.floor(replicationFactor));
+  return Math.max(1, Math.floor(sanitizeNonNegative(replicationFactor, 1)));
 }
 
 /** Per-replica base throughput mu_i = max(1, baseThroughputRps). */
 export function perReplicaThroughput(baseThroughputRps: number): number {
-  if (!Number.isFinite(baseThroughputRps)) return 1;
-  return Math.max(1, baseThroughputRps);
+  return Math.max(1, sanitizeNonNegative(baseThroughputRps, 1));
 }
 
 /**
@@ -50,20 +95,20 @@ export function effectiveCapacity(
   const c = activeReplicas(replicationFactor);
   const mu = perReplicaThroughput(baseThroughputRps);
   const penalty = clamp(chaosCapacityPenalty, 0, 0.99);
-  const capacity = c * mu * (1 - penalty);
+  const capacity = cappedMultiply(cappedMultiply(c, mu), 1 - penalty);
   return Math.max(1, capacity);
 }
 
 /** Utilization rho_i = lambda / C. Always finite and >= 0. */
 export function utilization(arrivalRps: number, capacityRps: number): number {
   const lambda = sanitizeNonNegative(arrivalRps);
-  const capacity = capacityRps > 0 && Number.isFinite(capacityRps) ? capacityRps : 1;
-  return lambda / capacity;
+  const capacity = sanitizePositive(capacityRps, 1);
+  return cappedDivide(lambda, capacity);
 }
 
 /** Effective (clamped) utilization hat-rho = min(rho, 0.995). */
 export function clampedUtilization(rho: number): number {
-  if (!Number.isFinite(rho) || rho < 0) return 0;
+  if (Number.isNaN(rho) || rho < 0) return 0;
   return Math.min(rho, MAX_EFFECTIVE_RHO);
 }
 
@@ -80,8 +125,8 @@ export function queueMultiplier(rho: number): number {
 
 /** Compaction spike for LSM trees: deterministic 0-0.25 sawtooth over time. */
 export function compactionSpike(elapsedSeconds: number): number {
-  if (!Number.isFinite(elapsedSeconds) || elapsedSeconds < 0) return 0;
-  const phase = (elapsedSeconds % 60) / 60;
+  const elapsed = sanitizeNonNegative(elapsedSeconds);
+  const phase = (elapsed % 60) / 60;
   return phase < 0.1 ? (0.1 - phase) * 2.5 : 0;
 }
 
@@ -138,9 +183,7 @@ export function nodeLatency(input: NodeLatencyInput): NodeLatencyResult {
   const baseP50 = sanitizeNonNegative(input.baseP50Ms);
   const baseP95 = sanitizeNonNegative(input.baseP95Ms);
   const baseP99 = sanitizeNonNegative(input.baseP99Ms);
-  const capacity = input.capacityRps > 0 && Number.isFinite(input.capacityRps)
-    ? input.capacityRps
-    : 1;
+  const capacity = sanitizePositive(input.capacityRps, 1);
   const lambda = sanitizeNonNegative(input.arrivalRps);
   const queueDepth = sanitizeNonNegative(input.queueDepth ?? 0);
   const rho = utilization(lambda, capacity);
@@ -150,10 +193,13 @@ export function nodeLatency(input: NodeLatencyInput): NodeLatencyResult {
     input.writeRatio ?? 0,
     input.elapsedSeconds ?? 0,
   );
-  const queueWaitMs = (queueDepth / capacity) * 1000;
-  const p50 = baseP50 * wAmp * m;
-  const p95 = baseP95 * wAmp * Math.pow(m, 1.15);
-  const p99 = baseP99 * wAmp * Math.pow(m, 1.3) + queueWaitMs;
+  const queueWaitMs = cappedMultiply(cappedDivide(queueDepth, capacity), 1000);
+  const p50 = cappedMultiply(cappedMultiply(baseP50, wAmp), m);
+  const p95 = cappedMultiply(cappedMultiply(baseP95, wAmp), Math.pow(m, 1.15));
+  const p99 = cappedAdd(
+    cappedMultiply(cappedMultiply(baseP99, wAmp), Math.pow(m, 1.3)),
+    queueWaitMs,
+  );
   return {
     p50Ms: sanitizeNonNegative(p50),
     p95Ms: sanitizeNonNegative(p95),
@@ -185,14 +231,22 @@ export function updateQueue(
   const prev = sanitizeNonNegative(prevDepth);
   const lambda = sanitizeNonNegative(arrivalRps);
   const capacity = Math.max(1, sanitizeNonNegative(capacityRps, 1));
-  const perReplica = Number.isFinite(maxConcurrency) && maxConcurrency > 0 ? maxConcurrency : 1;
-  const k = perReplica * activeReplicas(replicationFactor);
-  const dt = dtSeconds > 0 && Number.isFinite(dtSeconds) ? dtSeconds : TICK_INTERVAL_S;
+  const perReplica = Math.max(1, sanitizeNonNegative(maxConcurrency, 1));
+  const k = cappedMultiply(perReplica, activeReplicas(replicationFactor));
+  const dt = !Number.isNaN(dtSeconds) && dtSeconds > 0
+    ? Math.min(dtSeconds, MAX_SIM_VALUE)
+    : TICK_INTERVAL_S;
   if (lambda > capacity) {
-    const next = Math.min(k, prev + (lambda - capacity) * dt);
+    const next = Math.min(
+      k,
+      cappedAdd(prev, cappedMultiply(lambda - capacity, dt)),
+    );
     return { queueDepth: next, dropped: next >= k };
   }
-  return { queueDepth: Math.max(0, prev - (capacity - lambda) * dt), dropped: false };
+  return {
+    queueDepth: Math.max(0, prev - cappedMultiply(capacity - lambda, dt)),
+    dropped: false,
+  };
 }
 
 /** Error rate E = clamp(max(0, lambda - C) / max(1, lambda), 0, 1). */
@@ -207,8 +261,9 @@ export function errorRate(arrivalRps: number, capacityRps: number): number {
 export function cpuPercent(util: number, queueDepth: number, capacityRps: number): number {
   const rho = sanitizeNonNegative(util);
   const q = sanitizeNonNegative(queueDepth);
-  const cap = capacityRps > 0 && Number.isFinite(capacityRps) ? capacityRps : 1;
-  return clamp(rho * 100 + (q / (cap + q)) * 10, 0, 100);
+  const cap = sanitizePositive(capacityRps, 1);
+  const pressure = cappedDivide(q, cappedAdd(cap, q));
+  return clamp(cappedAdd(cappedMultiply(rho, 100), cappedMultiply(pressure, 10)), 0, 100);
 }
 
 export interface LlmPhysicsInput {
@@ -235,17 +290,28 @@ export interface LlmPhysicsResult {
  * Above 95% saturation the queuing penalty spikes 3.5x.
  */
 export function llmPhysics(input: LlmPhysicsInput): LlmPhysicsResult {
-  const prompt = Math.max(1, Math.floor(input.avgPromptTokens ?? 1024));
-  const output = Math.max(1, Math.floor(input.avgOutputTokens ?? 256));
+  const prompt = tokenCount(input.avgPromptTokens, 1024);
+  const output = tokenCount(input.avgOutputTokens, 256);
   const baseP50 = sanitizeNonNegative(input.baseP50Ms);
-  const rho = utilization(input.arrivalRps, Math.max(1, input.capacityRps));
+  const arrival = sanitizeNonNegative(input.arrivalRps);
+  const capacity = sanitizePositive(input.capacityRps, 1);
+  const rho = utilization(arrival, capacity);
   const m = queueMultiplier(rho);
-  const ttft = baseP50 * m + 0.04 * prompt;
+  const ttft = cappedAdd(
+    cappedMultiply(baseP50, m),
+    cappedMultiply(0.04, prompt),
+  );
   const vram = sanitizeNonNegative(input.vramGbPerReplica ?? 0);
   const c = activeReplicas(input.replicationFactor ?? 1);
-  const active = sanitizeNonNegative(input.activeConcurrentRequests ?? input.arrivalRps * 0.5);
-  const denom = vram * c;
-  const kvPct = denom > 0 ? clamp((active * (prompt + output) * 0.0005) / denom * 100, 0, 100) : 0;
+  const active = sanitizeNonNegative(
+    input.activeConcurrentRequests ?? cappedMultiply(arrival, 0.5),
+  );
+  const denom = cappedMultiply(vram, c);
+  const tokenBytesPerRequest = cappedMultiply(active, cappedAdd(prompt, output));
+  const kvNumerator = cappedMultiply(tokenBytesPerRequest, 0.0005);
+  const kvPct = denom > 0
+    ? clamp(cappedMultiply(cappedDivide(kvNumerator, denom), 100), 0, 100)
+    : 0;
   const preempted = kvPct > 95;
   return {
     ttftMs: sanitizeNonNegative(ttft),
@@ -257,7 +323,7 @@ export function llmPhysics(input: LlmPhysicsInput): LlmPhysicsResult {
 
 /** Little's Law: L = lambda * W (W in seconds). */
 export function littlesLawConcurrent(arrivalRps: number, meanLatencyMs: number): number {
-  return sanitizeNonNegative(arrivalRps) * (sanitizeNonNegative(meanLatencyMs) / 1000);
+  return cappedMultiply(arrivalRps, cappedDivide(meanLatencyMs, 1000));
 }
 
 /** Required replicas c = ceil(lambda * headroom / mu). */
@@ -268,8 +334,8 @@ export function requiredReplicas(
 ): number {
   const lambda = sanitizeNonNegative(arrivalRps);
   const mu = Math.max(1, sanitizeNonNegative(perReplicaThroughputRps, 1));
-  const headroom = headroomFactor > 0 && Number.isFinite(headroomFactor) ? headroomFactor : 1.3;
-  return Math.max(1, Math.ceil((lambda * headroom) / mu));
+  const headroom = sanitizePositive(headroomFactor, 1.3);
+  return Math.max(1, Math.ceil(cappedDivide(cappedMultiply(lambda, headroom), mu)));
 }
 
 /** Series availability: product of stage availabilities. */

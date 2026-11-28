@@ -141,12 +141,12 @@ export const trackFoundations: Track = {
           prompt:
             "A checkout service has low CPU usage but p99 latency rises sharply every evening. What is the best first investigation?",
           choices: [
-            "Replace the server with a larger CPU immediately",
             "Trace dependency times and inspect database, thread, and connection pool queues",
-            "Disable health checks so more requests can enter",
+            "Replace the server with a larger CPU immediately",
+            "Check only average CPU across the whole day",
             "Store all sessions in local memory",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "Low CPU can coexist with queueing on a disk, downstream service, or bounded worker pool; tracing identifies the actual bottleneck.",
         }),
@@ -157,11 +157,11 @@ export const trackFoundations: Track = {
             "Which design best protects customer uploads when application instances are replaced frequently?",
           choices: [
             "Write uploads to each instance's temporary folder",
-            "Keep uploads in the server's root home directory",
             "Use private encrypted object storage with scoped service credentials",
+            "Keep uploads in the server's root home directory",
             "Embed upload contents in session cookies",
           ],
-          answerIndex: 2,
+          answerIndex: 1,
           explanation:
             "Private encrypted object storage survives instance replacement and can enforce least-privilege access independently of the application host.",
         }),
@@ -171,12 +171,12 @@ export const trackFoundations: Track = {
           prompt:
             "Why might a team choose vertical scaling before splitting an application?",
           choices: [
-            "It removes every possible failure mode",
+            "It eliminates the need for a load balancer at any future scale",
+            "It provides automatic geographic failover",
             "It preserves a simple deployment and shared transactions while buying time",
-            "It eliminates the need for backups",
             "It guarantees lower cost at every scale",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "A larger machine can delay architectural complexity, but it has cost, hardware, and availability limits and is usually a temporary strategy.",
         }),
@@ -186,12 +186,12 @@ export const trackFoundations: Track = {
           prompt:
             "In the bicycle shop story, why is moving the customer ledger to a shared office important?",
           choices: [
-            "It lets interchangeable cashiers use the same durable records",
             "It makes every repair twice as fast",
             "It removes the need for access rules",
             "It replaces the need for a backup",
+            "It lets interchangeable cashiers use the same durable records",
           ],
-          answerIndex: 0,
+          answerIndex: 3,
           explanation:
             "Externalizing durable state lets new application instances serve any request without depending on one machine's local notebook.",
         }),
@@ -212,7 +212,7 @@ export const trackFoundations: Track = {
             "A courier is handed a shop name, Maple Street Bakery, rather than a street number. The courier first asks a local address book, then a city directory, and finally the bakery's own registry. Each answer may be cached for a while because rebuilding the entire directory for every delivery would be wasteful. If the bakery moves, the registry changes, but old address books can keep sending couriers to the empty lot until their copies expire. A good delivery service records how long an answer may be reused and can try another address when a location is unavailable.",
           engineer:
             "DNS resolves names to records through recursive resolvers and authoritative servers. TTLs control caching, while low TTLs improve failover speed at the cost of more queries and operational exposure to resolver failures. Record types matter: address records identify hosts, aliases connect names, and certificate authorities may consult specialized records during certificate issuance. A common failure is changing a database endpoint without accounting for resolver caches, application connection pools, or long-lived sessions. Monitor resolution latency and errors, keep resolver capacity in mind, and use provider health checks rather than assuming that every DNS answer is currently reachable.",
-          visualId: visual("traffic-flow"),
+          visualId: visual("dns-http-protocols"),
           visualCaption:
             "A client resolves a hostname through cached DNS answers before opening a connection to a server.",
         }),
@@ -221,8 +221,8 @@ export const trackFoundations: Track = {
           story:
             "A cafe takes orders on numbered slips. In the old system, the barista finishes writing one complete slip before looking at the next, so a slow explanation blocks every customer behind it. The new system lets several slips travel together on one tray, each with its own number and size. If the milk shipment is delayed, only the latte order waits; the toast order can still arrive. The tray has a limited amount of space, and the kitchen must track how much each slip occupies so one enormous catering order does not crowd out everyone else.",
           engineer:
-            "HTTP/2 multiplexes many request and response streams over one TCP connection, reducing connection setup overhead and avoiding application-level head-of-line blocking between streams. Header compression and flow control reduce repeated metadata and protect receivers, but TCP still delivers bytes in order, so a lost packet can delay every stream on that connection. HTTP/1.1 keep-alive saves setup work but serial handling or limited connections can create different bottlenecks. Configure connection and stream limits deliberately. A production failure is pooling only one HTTP/2 connection per service: packet loss can then stall all traffic for that service, while opening connections without bounds can exhaust sockets.",
-          visualId: visual("traffic-flow"),
+            "HTTP/2 multiplexes many request and response streams over one TCP connection, reducing connection setup overhead and avoiding application-level head-of-line blocking between streams. Header compression reduces repeated metadata sent on the wire, while flow control protects receivers from excessive buffered data; TCP still delivers bytes in order, so a lost packet can delay every stream on that connection. HTTP/1.1 keep-alive saves setup work but serial handling or limited connections can create different bottlenecks. Configure connection and stream limits deliberately. A production failure is pooling only one HTTP/2 connection per service: packet loss can then stall all traffic for that service, while opening connections without bounds can exhaust sockets.",
+          visualId: visual("dns-http-protocols"),
           visualCaption:
             "Multiple HTTP/2 streams share one connection while independent responses make progress.",
         }),
@@ -232,7 +232,7 @@ export const trackFoundations: Track = {
             "A delivery company discovers that one flooded road stops an entire convoy, even when many parcels were heading to different neighborhoods. It switches to individually numbered waterproof packages. If one package is lost, the driver can request that package again without holding all the others at the depot. The company also gives frequent customers a reusable dispatch token to skip familiar paperwork, but it carefully avoids promising that an old dispatch token can be reused after a delivery has already been accepted. Drivers must still check road signs because some older routes do not understand the new package system.",
           engineer:
             "HTTP/3 uses QUIC over UDP with integrated TLS 1.3 and independent streams. Because loss recovery and stream state are implemented above UDP, a lost packet does not block unrelated streams as it can with shared TCP. QUIC still performs congestion control and reliable delivery where needed; it is not permission for unbounded traffic. Connection migration can preserve sessions across network changes, useful on mobile devices. Early data can reduce latency, but servers must restrict it to operations safe to replay and must retain replay defenses. Some networks treat UDP unfavorably, so measure HTTP/3 reachability and maintain a controlled fallback instead of assuming universal support.",
-          visualId: visual("traffic-flow"),
+          visualId: visual("dns-http-protocols"),
           visualCaption:
             "Independent QUIC streams continue past a lost packet while TLS protects the connection.",
         }),
@@ -242,7 +242,7 @@ export const trackFoundations: Track = {
             "Two restaurants share a catering kitchen. One sends handwritten notes saying 'the usual,' and the other interprets that differently whenever the menu changes. They replace the notes with a printed ticket that names every field: table number, dish code, quantity, allergy marker, and delivery window. Both kitchens keep a copy of the ticket format. A missing field is rejected before cooking starts, and a delivery deadline tells the kitchen when to stop waiting. When a new optional garnish is introduced, older ticket readers can ignore it without losing the core order.",
           engineer:
             "gRPC commonly uses HTTP/2 for transport and Protocol Buffers for compact, versioned messages. Services publish schemas so teams can generate clients and validate contracts. Unary calls fit request-response work, while server, client, and bidirectional streaming support ongoing exchanges. Deadlines bound waiting, cancellation releases upstream work, and metadata carries selected cross-cutting context. Schema compatibility is not automatic: removing or repurposing field numbers can break deployed clients. A frequent failure is omitting deadlines, which turns a slow dependency into threads and connections held indefinitely. Retries must be limited and safe for the specific method, especially when a response was lost after the server committed work.",
-          visualId: visual("notation-decoder"),
+          visualId: visual("dns-http-protocols"),
           visualCaption:
             "A versioned message schema maps application fields into a compact gRPC request contract.",
         }),
@@ -280,10 +280,10 @@ export const trackFoundations: Track = {
           prompt:
             "After changing a database hostname, some application instances still connect to the old address for an hour. What should the team examine first?",
           choices: [
-            "The HTTP request body size",
+            "The application's HTTP/2 connection coalescing settings",
             "DNS TTLs plus application resolver caches and existing connection pools",
-            "The number of Kafka partitions",
-            "The cache eviction algorithm",
+            "The resolver's DNSSEC validation policy only",
+            "The database's max_connections setting only",
           ],
           answerIndex: 1,
           explanation:
@@ -295,10 +295,10 @@ export const trackFoundations: Track = {
           prompt:
             "Which control most directly reduces the risk of a client trusting a fake HTTPS endpoint?",
           choices: [
-            "Accepting any certificate during development and production",
-            "Increasing DNS TTLs",
+            "Disable certificate-chain validation after the hostname is resolved",
+            "Pin the old database certificate indefinitely",
             "Validating the certificate chain and hostname and trusting only configured authorities",
-            "Compressing response headers more aggressively",
+            "Rely only on DNSSEC for HTTPS identity",
           ],
           answerIndex: 2,
           explanation:
@@ -310,12 +310,12 @@ export const trackFoundations: Track = {
           prompt:
             "Why can HTTP/3 improve performance during packet loss while still requiring congestion control?",
           choices: [
-            "It removes the need for reliable delivery",
+            "QUIC eliminates retransmissions by moving streams above TCP",
+            "QUIC requires a new handshake after every packet",
+            "QUIC makes UDP traffic immune to middlebox filtering",
             "Independent QUIC streams avoid shared packet-order blocking, but senders must still protect the network from overload",
-            "It makes every UDP packet arrive exactly once",
-            "It guarantees that all middleboxes support UDP",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "QUIC isolates stream loss recovery while retaining congestion control, retransmission, and flow-control responsibilities.",
         }),
@@ -325,12 +325,12 @@ export const trackFoundations: Track = {
           prompt:
             "What does the numbered catering ticket represent in the gRPC lesson?",
           choices: [
-            "A shared database index",
-            "A server load-balancing algorithm",
             "A versioned message schema with explicit fields and deadlines",
-            "A cache expiration policy",
+            "HTTP/2 connection coalescing",
+            "A DNS TTL",
+            "QUIC connection migration",
           ],
-          answerIndex: 2,
+          answerIndex: 0,
           explanation:
             "The ticket's named fields and agreed format model gRPC schemas, while its delivery window models deadlines.",
         }),
@@ -419,12 +419,12 @@ export const trackFoundations: Track = {
           prompt:
             "Round robin sends equal request counts to two servers, but one still has high latency. What is the most plausible explanation?",
           choices: [
-            "Equal request counts always mean equal load",
+            "Round robin guarantees equal resource use, so high latency must be client-side only",
+            "The busier server has a smaller connection backlog",
             "The slow server may receive more expensive requests or have fewer available workers",
-            "The load balancer must be using sticky sessions",
-            "DNS resolution is disabled",
+            "The load balancer has disabled all health checks",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "Request cost and worker availability vary, so equal counts do not guarantee balanced resource use or latency.",
         }),
@@ -434,12 +434,12 @@ export const trackFoundations: Track = {
           prompt:
             "Why should origins remain private after a load balancer is deployed?",
           choices: [
+            "Private origins eliminate the need for backend authentication",
+            "Private origins make edge DDoS protection unnecessary",
+            "Private origins guarantee every backend has identical capacity",
             "Private origins prevent clients from bypassing edge rate limits, filtering, and audit controls",
-            "Private origins remove the need for authentication",
-            "Private origins make DNS optional",
-            "Private origins guarantee zero latency",
           ],
-          answerIndex: 0,
+          answerIndex: 3,
           explanation:
             "Restricting origin access preserves the load balancer as the enforced entry point rather than an optional path.",
         }),
@@ -449,12 +449,12 @@ export const trackFoundations: Track = {
           prompt:
             "What is the main cost of using sticky sessions to preserve local application state?",
           choices: [
-            "They make TLS impossible",
-            "They remove health checks",
             "They reduce failover flexibility and can produce uneven backend load",
-            "They prevent all connection reuse",
+            "They require client certificates for every request",
+            "They prevent connection pooling at the load balancer",
+            "They force all backends to store session state locally",
           ],
-          answerIndex: 2,
+          answerIndex: 0,
           explanation:
             "Affinity ties clients to instances, so losing an instance disrupts its clients and traffic distributions can become imbalanced.",
         }),
@@ -464,10 +464,10 @@ export const trackFoundations: Track = {
           prompt:
             "In the coffee-shop story, what does the host's green lamp represent?",
           choices: [
-            "A database transaction log",
+            "A WebSocket heartbeat",
             "A backend readiness signal used for traffic admission",
-            "A client session cookie",
-            "A consistent-hashing ring",
+            "A per-client rate-limit counter",
+            "A cache freshness TTL",
           ],
           answerIndex: 1,
           explanation:
@@ -482,7 +482,7 @@ export const trackFoundations: Track = {
       summary:
         "Use cached answers to reduce origin work while controlling freshness, key design, memory pressure, stampedes, and the security boundary around shared data.",
       minutes: 11,
-      prerequisites: ["single-server", "sql-modeling"],
+      prerequisites: ["single-server", "networking-protocols"],
       steps: [
         step({
           title: "Espresso is prepared before the rush",
@@ -558,12 +558,12 @@ export const trackFoundations: Track = {
           prompt:
             "A popular cache key expires and thousands of requests simultaneously reach the database. Which control best addresses this failure?",
           choices: [
-            "Increase the key's value size",
-            "Disable expiration for every key",
+            "Jitter the origin query across every waiting request",
+            "Increase database pool size until the miss rate falls",
+            "Serve a stale placeholder as the refreshed value",
             "Coalesce concurrent misses so one loader refreshes the value while others wait",
-            "Remove the cache entirely",
           ],
-          answerIndex: 2,
+          answerIndex: 3,
           explanation:
             "Request coalescing or a short-lived refresh lock prevents a cache stampede from multiplying expensive origin work.",
         }),
@@ -573,12 +573,12 @@ export const trackFoundations: Track = {
           prompt:
             "Why must a cache key include tenant or authorization context for private content?",
           choices: [
-            "To increase the number of hash collisions",
             "To prevent one caller from receiving an entry populated for another security scope",
-            "To make TTLs unnecessary",
-            "To guarantee that every request is a cache miss",
+            "To reduce the number of keys that must be invalidated",
+            "To make every personalized response publicly cacheable",
+            "To ensure TTLs replace authorization checks",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "Security-scoped keys preserve isolation and stop shared storage from reusing private data across unrelated callers.",
         }),
@@ -588,12 +588,12 @@ export const trackFoundations: Track = {
           prompt:
             "What is the central tradeoff when shortening a cache TTL?",
           choices: [
+            "More memory use with unchanged staleness",
             "Lower staleness in exchange for more misses and origin load",
-            "Higher memory use with no effect on freshness",
-            "Fewer cache keys with guaranteed correctness",
-            "Stronger transactions with no latency cost",
+            "Fewer origin reads with stronger consistency",
+            "Simpler invalidation with no additional traffic",
           ],
-          answerIndex: 0,
+          answerIndex: 1,
           explanation:
             "Shorter TTLs bound staleness more tightly but cause values to expire sooner and require more origin work.",
         }),
@@ -604,11 +604,11 @@ export const trackFoundations: Track = {
             "Why does the cafe use both cup age and counter capacity rules?",
           choices: [
             "They are two names for the same policy",
+            "Age controls memory pressure while capacity controls freshness",
             "Age controls freshness while capacity controls memory pressure",
-            "Age removes all cache misses",
-            "Capacity makes labels unnecessary",
+            "Together they guarantee zero stale responses",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "TTL and eviction solve different problems: freshness and bounded storage.",
         }),
@@ -649,7 +649,7 @@ export const trackFoundations: Track = {
             "A librarian can search every shelf for a book, but a customer usually wants it now. A catalog organized by author lets the librarian jump directly to one section instead of walking the entire building. A second catalog organized by shelf location helps restocking. Each catalog takes time to update when books arrive, so adding indexes for every possible search would make the storage room crowded and slow every delivery. The library chooses catalogs for frequent, important questions and accepts a full search for a rare annual report. The manager reviews catalog usefulness whenever a new search pattern appears.",
           engineer:
             "An index maps selected values to table rows, usually through a B-tree. Composite indexes are ordered by column sequence, so they serve queries whose predicates align with the leftmost useful columns. Covering indexes include enough columns to answer a query without repeated table visits. Selectivity matters: an index on a nearly unique identifier is often more useful than one on a low-cardinality flag, although filtering and ordering interact. Every index consumes storage and adds write, update, and maintenance cost. A common failure is adding indexes from intuition without reading execution plans. Use representative data and compare scans, row estimates, buffer reads, and actual latency before and after changes.",
-          visualId: visual("btree-lsm"),
+          visualId: visual("sql-indexing"),
           visualCaption:
             "A B-tree index lets the database locate matching rows without scanning the full table.",
         }),
@@ -659,7 +659,7 @@ export const trackFoundations: Track = {
             "The property office accepts information from residents through a locked form, not by asking clerks to paste handwritten instructions into the cabinet system. The form has separate boxes for values, and the database receives those values without treating them as new filing instructions. A junior clerk can view inspection dates but cannot change ownership. When a suspicious entry is submitted, the office keeps an audit record of who changed the card and when. Encryption protects paper copies during transport and locked archives overnight, but it does not replace the need to decide who is allowed to open them.",
           engineer:
             "Parameterized queries keep user-supplied values separate from SQL structure, preventing input from changing the statement's meaning. Use a database role with only the required operations, and separate migration, reporting, and application privileges. Avoid constructing SQL through string concatenation, including identifiers that cannot be parameterized; validate identifiers against a strict allowlist. Encrypt connections and storage according to the data classification, and manage keys independently from database credentials. A subtle failure is granting a reporting account table-owner rights because a query was slow. Diagnose the query with plans and appropriate indexes instead. Log administrative changes and sensitive access without recording secret values or unnecessary personal data.",
-          visualId: visual("threat-defense"),
+          visualId: visual("sql-indexing"),
           visualCaption:
             "Parameterized inputs, scoped database roles, encryption, and audit logs protect stored records.",
         }),
@@ -697,12 +697,12 @@ export const trackFoundations: Track = {
           prompt:
             "A query filters by customer_id and orders by created_at on a very large orders table. Which index is the most natural starting point?",
           choices: [
-            "An index on created_at alone for every table",
             "A composite index on customer_id followed by created_at",
-            "An index containing every column in the table",
-            "No index, because filters always require full scans",
+            "A single-column index on created_at only, ignoring the customer filter",
+            "An index on every column to maximize selectivity",
+            "A hash index on customer_id only, because ordering is unnecessary",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "The composite order supports filtering by customer and then ordering that customer's results by time, subject to plan verification.",
         }),
@@ -713,11 +713,11 @@ export const trackFoundations: Track = {
             "What is the safest way to include a user-provided value in a database query?",
           choices: [
             "Concatenate it after checking that it looks friendly",
-            "Place it in a comment for the database to ignore",
             "Bind it through a parameterized query",
+            "Place it in a comment for the database to ignore",
             "URL-encode it before concatenation",
           ],
-          answerIndex: 2,
+          answerIndex: 1,
           explanation:
             "Parameter binding keeps values separate from SQL structure; encoding or superficial checks do not provide that boundary.",
         }),
@@ -727,12 +727,12 @@ export const trackFoundations: Track = {
           prompt:
             "Why should a team avoid indexing every column by default?",
           choices: [
-            "Indexes make all reads slower",
+            "Indexes improve reads without consuming storage",
+            "Indexes remove the need to inspect execution plans",
             "Indexes consume storage and increase write and maintenance work",
-            "Indexes disable transactions",
-            "Indexes prevent query planning",
+            "Indexes make every write faster",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "Each index must be maintained on writes and consumes memory and disk, so indexes should be justified by important query patterns.",
         }),
@@ -742,12 +742,12 @@ export const trackFoundations: Track = {
           prompt:
             "In the property office story, what does one building card linked to many inspection cards model?",
           choices: [
+            "A denormalized comma-separated inspection list",
+            "A many-to-many join table for inspections and owners",
+            "A replicated catalog of inspection rows",
             "A one-to-many relationship with a foreign key",
-            "A many-to-many comma-separated list",
-            "A cache eviction policy",
-            "A leader election term",
           ],
-          answerIndex: 0,
+          answerIndex: 3,
           explanation:
             "A building can have multiple inspections, while each inspection refers to one building through a key.",
         }),
@@ -806,11 +806,11 @@ export const trackFoundations: Track = {
       security: [
         practice({
           threat:
-            "A network partition leaves an old primary writable after a replica has been promoted, allowing conflicting writes.",
+            "A promoted database leaves the old primary reachable or application pools keep writing to it, so failed connection draining creates split-brain.",
           control:
-            "Fence the old primary before promotion, require an external authority or quorum for leadership, and restrict database ingress so a demoted node cannot continue serving writes.",
+            "Control promotion through an external authority, fence the old primary's write endpoint, remove it from discovery and load-balancer rotation, and drain existing pools before reopening traffic.",
           verify:
-            "Run an authorized failover exercise and confirm the former primary rejects writes, emits a clear fencing event, and cannot rejoin as writable until explicitly synchronized.",
+            "Run a failover drill with active transactions and confirm new connections avoid the old primary, existing pools drain safely, the old node rejects writes, and it rejoins read-only until synchronized.",
         }),
         practice({
           threat:
@@ -836,12 +836,12 @@ export const trackFoundations: Track = {
           prompt:
             "A user saves a profile and immediately reads it from a lagging replica, seeing the old value. Which response best matches a deliberate design?",
           choices: [
+            "Route all reads to the newest replica without checking position",
             "Route that read-your-writes operation to the primary or wait for the required replication position",
-            "Remove replicas permanently",
-            "Increase every application connection pool",
-            "Cache the stale value forever",
+            "Cache the profile locally until the user logs in again",
+            "Retry the same lagging replica until it catches up",
           ],
-          answerIndex: 0,
+          answerIndex: 1,
           explanation:
             "Freshness-sensitive reads need an authoritative source or a known replication position rather than an arbitrary replica.",
         }),
@@ -851,12 +851,12 @@ export const trackFoundations: Track = {
           prompt:
             "Why fence an old primary during failover?",
           choices: [
-            "To increase DNS resolution time",
+            "To reduce replica lag to zero",
+            "To force clients to reconnect with new credentials",
             "To prevent it from accepting writes that conflict with the promoted primary",
-            "To disable encryption",
-            "To make backups unnecessary",
+            "To ensure backups are promoted before replicas",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "Fencing establishes one write authority and prevents split-brain from producing divergent records.",
         }),
@@ -866,12 +866,12 @@ export const trackFoundations: Track = {
           prompt:
             "What does adding read replicas primarily improve?",
           choices: [
-            "Unlimited write throughput on one primary",
+            "Unlimited write throughput from the same primary",
+            "Historical recovery without separate backups",
+            "Consistent reads from every replica regardless of lag",
             "Read capacity and failover options, with added consistency and operational complexity",
-            "Automatic removal of all backups",
-            "Guaranteed zero replication lag",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "Replicas offload reads and support availability, but writes still need an authority and asynchronous copies introduce lag.",
         }),
@@ -882,8 +882,8 @@ export const trackFoundations: Track = {
             "Why does the library use central-ledger reservations but branch catalogs for browsing?",
           choices: [
             "Reservations require authoritative uniqueness, while browsing tolerates delayed copies",
-            "Branch catalogs are always more accurate",
-            "The central ledger has no read load",
+            "A branch copy should override the central ledger during every write",
+            "The central ledger never receives read traffic",
             "Copies eliminate the need for transactions",
           ],
           answerIndex: 0,
@@ -937,7 +937,7 @@ export const trackFoundations: Track = {
             "During a festival, the public line grows while the fire-safety team still needs to enter. The bouncer reserves tokens for staff, separates payment failures from entrance decisions, and gives rejected guests a time to return. Staff also avoid asking every waiting guest to retry immediately, because synchronized retries create another surge. The club publishes its rules, records aggregate arrival patterns, and does not keep a detailed dossier on every person merely to count tokens. A compromised gate credential is quickly revoked so it cannot consume another entrance's allowance. Guests see the same rule at every entrance.",
           engineer:
             "Combine rate limits with concurrency limits, timeouts, queue bounds, and load shedding. Prioritize health checks, administrative recovery paths, and critical business operations when capacity is scarce. Clients should honor retry guidance and use exponential backoff with jitter, but the server must remain safe when clients do not. Derive identity from verified credentials rather than unvalidated headers, and ensure proxy chains preserve the trusted client context. A common failure is allowing retries around a rate-limited endpoint to bypass accounting. Keep counters aggregate and short-lived, rotate administrative credentials, and monitor for policy changes and abnormal enforcement distribution.",
-          visualId: visual("threat-defense"),
+          visualId: visual("rate-limiter"),
           visualCaption:
             "Verified identities, reserved capacity, jittered retries, and aggregate counters protect overloaded services.",
         }),
@@ -975,12 +975,12 @@ export const trackFoundations: Track = {
           prompt:
             "An API allows a normal rate of 10 requests per second and a short burst of 20. Which model most directly represents that policy?",
           choices: [
-            "A fixed window with no state",
+            "A fixed window that allows exactly 10 requests at each boundary",
+            "A leak bucket that emits exactly one request every 100 ms",
             "A token bucket with capacity 20 and a refill rate of 10 per second",
-            "An LRU cache with TTL 20 seconds",
-            "A database read replica",
+            "A concurrency limit of 20 with no refill rule",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "Token-bucket capacity controls burst size while the refill rate controls sustained throughput.",
         }),
@@ -990,12 +990,12 @@ export const trackFoundations: Track = {
           prompt:
             "What should a gateway do with a client-supplied header that claims to identify the original caller?",
           choices: [
-            "Trust it for every route",
+            "Accept it only for requests without an authenticated token",
+            "Canonicalize it before using it as the rate-limit key",
+            "Use it unless the client also supplies an API key",
             "Strip it unless it arrives through an explicitly trusted proxy",
-            "Store it as the permanent user identity",
-            "Ignore authentication entirely",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "Forwarding metadata must originate from a trusted proxy so clients cannot choose the identity used for security policy.",
         }),
@@ -1005,12 +1005,12 @@ export const trackFoundations: Track = {
           prompt:
             "What is a drawback of enforcing exact global limits through one remote counter on every request?",
           choices: [
-            "It makes bursts mathematically impossible",
             "It adds latency and creates a dependency on the counter service",
-            "It removes the need for endpoint policies",
-            "It guarantees unlimited availability",
+            "It makes the configured burst size harder to reason about",
+            "It requires every client to obtain a global token before connecting",
+            "It eliminates the need for local fallback during counter outages",
           ],
-          answerIndex: 1,
+          answerIndex: 0,
           explanation:
             "Exact coordination costs a network round trip and makes the limiter itself part of the critical path.",
         }),
@@ -1020,10 +1020,10 @@ export const trackFoundations: Track = {
           prompt:
             "In the bouncer story, what does the bowl's capacity represent?",
           choices: [
-            "The database's storage size",
+            "The token refill interval",
             "The maximum immediate burst allowed before refill becomes the limit",
-            "The number of application replicas",
-            "The cache eviction interval",
+            "The number of gateway instances sharing the counter",
+            "The maximum number of queued requests",
           ],
           answerIndex: 1,
           explanation:
@@ -1092,19 +1092,19 @@ export const trackFoundations: Track = {
         }),
         practice({
           threat:
-            "A repeatedly failing poison message blocks a partition or drives destructive retry behavior across the worker fleet.",
+            "A stalled worker holds a claimed job past its visibility timeout while another worker receives it, causing duplicate effects or letting a poison message stall the queue.",
           control:
-            "Validate messages before processing, apply bounded retries with jitter, and route permanent failures to an access-controlled dead-letter queue with an owner and replay procedure.",
+            "Size visibility timeouts from processing-time percentiles, renew leases only for active work, and make handlers idempotent; after bounded failures move the job to an access-controlled dead-letter queue.",
           verify:
-            "Exercise a controlled malformed message and confirm attempt limits, dead-letter routing, alerting, and continued progress for valid messages on the same queue.",
+            "Pause a controlled worker past the timeout, confirm redelivery and deduplication, then verify a malformed job reaches the dead letter after the attempt limit while later jobs progress.",
         }),
         practice({
           threat:
             "Sensitive job payloads or dead-letter contents remain readable to broad worker roles or longer than their business purpose requires.",
           control:
-            "Minimize payload data, encrypt queues and dead letters, restrict read and replay permissions, and expire retained messages according to a documented policy.",
+            "Store minimal references or opaque tokens instead of sensitive fields, encrypt queues and dead letters in transit and at rest, separate produce, consume, and replay roles, and purge expired payloads.",
           verify:
-            "Inspect retention and encryption settings, review replay audit logs, and test that ordinary workers cannot read unrelated dead letters or extend retention.",
+            "Inspect queued test payloads for unnecessary personal data, verify encryption and role denials, and confirm an expired test message is purged from both primary and dead-letter storage.",
         }),
       ],
       quiz: [
@@ -1114,12 +1114,12 @@ export const trackFoundations: Track = {
           prompt:
             "A worker charges a customer, then crashes before acknowledging the job. What design most safely handles redelivery?",
           choices: [
-            "Assume delivery is exactly once",
+            "Commit the acknowledgment before applying the charge",
+            "Retry until the payment provider returns success",
+            "Store completion only in worker memory",
             "Use a stable idempotency key and durable deduplication before applying the charge",
-            "Remove acknowledgments from the protocol",
-            "Charge every redelivery without checks",
           ],
-          answerIndex: 1,
+          answerIndex: 3,
           explanation:
             "At-least-once redelivery can repeat work; idempotency makes the business effect safe across attempts.",
         }),
@@ -1130,9 +1130,9 @@ export const trackFoundations: Track = {
             "Why should a dead-letter queue have restricted replay access?",
           choices: [
             "Replay can execute privileged business operations and expose retained sensitive payloads",
-            "Dead letters contain no useful information",
-            "Restriction increases message duplication",
-            "Replay always bypasses authentication",
+            "Dead letters are automatically deleted after every retry",
+            "Only original producers need access because consumers never see them",
+            "Replay permission can safely be inherited from the queue's public read role",
           ],
           answerIndex: 0,
           explanation:
@@ -1144,10 +1144,10 @@ export const trackFoundations: Track = {
           prompt:
             "What is the main benefit of a queue compared with doing slow work inside the user request?",
           choices: [
-            "It guarantees every job finishes instantly",
+            "It guarantees every job completes before the response returns",
             "It decouples admission from execution and makes backlog and scaling explicit",
-            "It removes the need for idempotency",
-            "It eliminates all downstream limits",
+            "It removes the need for idempotent handlers",
+            "It eliminates downstream capacity limits by buffering work",
           ],
           answerIndex: 1,
           explanation:
@@ -1159,12 +1159,12 @@ export const trackFoundations: Track = {
           prompt:
             "What does the kitchen's review basket model?",
           choices: [
-            "A primary database",
+            "A priority queue for interactive requests",
+            "A consumer group committing partition offsets",
             "A dead-letter queue for work requiring bounded handling and controlled replay",
-            "A read replica",
-            "A load-balancer health check",
+            "A circuit breaker protecting the database",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "The review basket isolates problematic tickets so they do not block ordinary work or disappear silently.",
         }),
@@ -1254,9 +1254,9 @@ export const trackFoundations: Track = {
             "A dashboard needs frequent server-to-client updates but clients never send messages. Which transport is often the simplest fit?",
           choices: [
             "Server-sent events",
-            "A bidirectional database transaction",
-            "A raw UDP socket with no framing",
-            "A daily batch export",
+            "WebSockets, because every live feature needs two-way messages",
+            "Long polling, because it avoids all persistent server resources",
+            "HTTP/2 server push for each dashboard update",
           ],
           answerIndex: 0,
           explanation:
@@ -1268,10 +1268,10 @@ export const trackFoundations: Track = {
           prompt:
             "A user's room permission is revoked while their WebSocket remains open. What should happen?",
           choices: [
-            "Nothing until the socket closes naturally",
+            "Refresh the token only on the next handshake",
             "The server should end the subscription or connection and reject future messages for that room",
-            "The client should decide whether to continue",
-            "The room should become public",
+            "Keep the socket open but suppress messages client-side",
+            "Require the client to unsubscribe voluntarily",
           ],
           answerIndex: 1,
           explanation:
@@ -1283,12 +1283,12 @@ export const trackFoundations: Track = {
           prompt:
             "What is the main advantage of WebSockets over polling for a collaborative canvas?",
           choices: [
-            "They remove the need for application-level ordering",
+            "They eliminate application sequence numbers and deduplication",
+            "They guarantee ordered delivery across reconnects",
             "They support low-latency bidirectional messages over one persistent connection",
-            "They guarantee exactly-once delivery",
-            "They require no capacity planning",
+            "They avoid per-connection memory and proxy limits",
           ],
-          answerIndex: 1,
+          answerIndex: 2,
           explanation:
             "Full-duplex persistent channels reduce repeated request overhead and latency for frequent two-way updates.",
         }),
@@ -1298,12 +1298,12 @@ export const trackFoundations: Track = {
           prompt:
             "In the museum-guide story, what does the last message number represent?",
           choices: [
+            "A consumer-group offset for a durable log",
+            "A WebSocket heartbeat timeout",
+            "A cache TTL for an announcement",
             "The SSE event ID used to resume missed announcements",
-            "A database shard key",
-            "A token-bucket capacity",
-            "A Raft election term",
           ],
-          answerIndex: 0,
+          answerIndex: 3,
           explanation:
             "The message number models an event cursor that lets a reconnecting SSE client recover without silently missing updates.",
         }),

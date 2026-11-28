@@ -18,6 +18,13 @@ const LAYER_TABS = [
   { id: "engineer", label: "Engineer", engineer: true },
 ] as const;
 
+// Quiz eligibility is earned by reading, never by merely opening a page. Time
+// only accrues while the tab is visible and the reader is active; see the
+// tracking effect in BlogReader below.
+const READY_READ_MS = 30_000;
+const IDLE_LIMIT_MS = 90_000;
+const READ_TICK_MS = 1_000;
+
 /**
  * One step's reading layers for the blog reader. Story is the default layer;
  * the engineer layer is mounted only on demand (Story/Both) or exclusively in
@@ -141,7 +148,7 @@ function StepLayers({
 }
 
 export function BlogReader({ post }: { post: BlogPost }) {
-  const { activeStep, sectionRefs, goToStep, holdStep } = useScrollySteps(post.steps.length);
+  const { activeStep, sectionRefs, goToStep, holdStep, stepVersion } = useScrollySteps(post.steps.length);
 
   const hydrate = useLearnerPlatformStore((s) => s.hydrate);
   const hydrated = useLearnerPlatformStore((s) => s.hydrated);
@@ -153,12 +160,12 @@ export function BlogReader({ post }: { post: BlogPost }) {
   const setMode = useLearnerPlatformStore((s) => s.setMode);
   const reduce = useReducedMotion();
   const resumeAppliedRef = useRef(false);
+  const finalizeVisitRef = useRef<() => void>(() => {});
   const [resumeReady, setResumeReady] = useState(false);
 
   useEffect(() => {
     hydrate();
-    visitTopic(post.id);
-  }, [hydrate, visitTopic, post.id]);
+  }, [hydrate]);
 
   useEffect(() => {
     if (!hydrated || resumeAppliedRef.current) return;
@@ -179,9 +186,64 @@ export function BlogReader({ post }: { post: BlogPost }) {
     setResume({ kind: "blog", id: post.id, stepIndex: activeStep });
   }, [setResume, hydrated, resumeReady, post.id, activeStep]);
 
+  // Accrue active, visible reading time locally (never in React state). The tab
+  // being hidden or 90s of pointer/keyboard inactivity pauses the clock. The
+  // timer and listeners are torn down on topic change, which also resets the
+  // accumulated time, so navigating to another field note starts from zero.
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    let activeMs = 0;
+    let lastActivity = Date.now();
+    let lastTick = Date.now();
+    let tabVisible = !document.hidden;
+    let done = false;
+
+    const markVisited = () => {
+      if (done) return;
+      done = true;
+      visitTopic(post.id);
+    };
+    finalizeVisitRef.current = markVisited;
+
+    const markActivity = () => {
+      lastActivity = Date.now();
+    };
+    const onVisibility = () => {
+      tabVisible = !document.hidden;
+      lastTick = Date.now();
+    };
+
+    const timer = window.setInterval(() => {
+      if (done) return;
+      const now = Date.now();
+      const delta = Math.min(Math.max(now - lastTick, 0), READ_TICK_MS * 2);
+      lastTick = now;
+      if (tabVisible && now - lastActivity < IDLE_LIMIT_MS) activeMs += delta;
+      if (activeMs >= READY_READ_MS) markVisited();
+    }, READ_TICK_MS);
+
+    window.addEventListener("pointerdown", markActivity, { passive: true });
+    window.addEventListener("pointermove", markActivity, { passive: true });
+    window.addEventListener("keydown", markActivity);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(timer);
+      finalizeVisitRef.current = () => {};
+      window.removeEventListener("pointerdown", markActivity);
+      window.removeEventListener("pointermove", markActivity);
+      window.removeEventListener("keydown", markActivity);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [post.id, visitTopic]);
+
+  // The final step still marks the field note read automatically; the same
+  // milestone also earns quiz eligibility via visitTopic.
   useEffect(() => {
     if (hydrated && resumeReady && activeStep >= post.steps.length - 1) {
       markBlogRead(post.id);
+      finalizeVisitRef.current();
     }
   }, [hydrated, resumeReady, activeStep, post.id, post.steps.length, markBlogRead]);
 
@@ -191,7 +253,7 @@ export function BlogReader({ post }: { post: BlogPost }) {
     .filter((lesson): lesson is NonNullable<typeof lesson> => Boolean(lesson));
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-5 pb-24 pt-10 sm:px-8">
+    <main data-learner-hydrated={hydrated ? "true" : "false"} className="mx-auto w-full max-w-7xl px-5 pb-24 pt-10 sm:px-8">
       <nav className="flex flex-wrap items-center gap-2 text-[12px] text-content-tertiary" aria-label="Breadcrumb">
         <Link href="/blogs" className="transition-colors hover:text-content">Field notes</Link>
         <span aria-hidden="true">/</span>
@@ -226,8 +288,12 @@ export function BlogReader({ post }: { post: BlogPost }) {
         <aside className="order-1 col-span-12 lg:order-2 lg:col-span-5">
           <div className="lg:sticky lg:top-24">
             <figure className="overflow-hidden rounded-2xl border border-line bg-app-raised shadow-card">
-              <div className="aspect-video min-h-[280px] w-full">
-                <TopicVisual visualId={step?.visualId ?? "traffic-flow"} stepIndex={activeStep} />
+              <div key={`visual-${stepVersion}`} className="aspect-video min-h-[280px] w-full">
+                <TopicVisual
+                  visualId={step?.visualId ?? "traffic-flow"}
+                  stepIndex={activeStep}
+                  transitionKey={stepVersion}
+                />
               </div>
               <figcaption className="flex items-start justify-between gap-3 border-t border-line px-5 py-3">
                 <span className="text-[12px] leading-relaxed text-content-tertiary">
@@ -259,10 +325,18 @@ export function BlogReader({ post }: { post: BlogPost }) {
                     onClick={() => goToStep(index)}
                     aria-label={`Go to step ${index + 1}: ${entry.title}`}
                     aria-current={index === activeStep ? "step" : undefined}
-                    className={`h-2.5 rounded-full transition-all duration-300 ${
-                      index === activeStep ? "w-8 bg-brass" : "w-2.5 bg-line-strong hover:w-5 hover:bg-content-tertiary"
-                    }`}
-                  />
+                    className="group relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                  >
+                    {/* 24x24 hit area; the visible dot stays a compact pill. */}
+                    <span
+                      aria-hidden="true"
+                      className={`absolute left-1/2 top-1/2 h-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-300 ${
+                        index === activeStep
+                          ? "w-8 bg-brass"
+                          : "w-2.5 bg-line-strong group-hover:w-5 group-hover:bg-content-tertiary"
+                      }`}
+                    />
+                  </button>
                 </li>
               ))}
             </ol>

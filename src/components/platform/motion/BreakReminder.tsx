@@ -21,6 +21,14 @@ function formatClock(totalSeconds: number): string {
  */
 export default function BreakReminder() {
   const breakMinutes = Number(useLearnerPlatformStore((s) => s.prefs?.breakMinutes ?? 0));
+  const hydrated = useLearnerPlatformStore((s) => s.hydrated);
+
+  // Remount on every preference change so Off → the same interval cannot
+  // revive a reminder or breathing timer owned by the previous setting.
+  return <BreakReminderTimer key={breakMinutes} breakMinutes={breakMinutes} hydrated={hydrated} />;
+}
+
+function BreakReminderTimer({ breakMinutes, hydrated }: { breakMinutes: number; hydrated: boolean }) {
   // Visibility is keyed by the preference it belongs to, so a preference change
   // hides the reminder without a synchronous state reset in the effect.
   const [view, setView] = useState<{ minutes: number; shown: boolean; breathing: boolean } | null>(null);
@@ -33,18 +41,19 @@ export default function BreakReminder() {
   const shownRef = useRef(false);
 
   useEffect(() => {
+    activeMsRef.current = 0;
+    snoozeUntilRef.current = 0;
+    shownRef.current = false;
+
     if (
       typeof window === "undefined" ||
       typeof document === "undefined" ||
+      !hydrated ||
       !Number.isFinite(breakMinutes) ||
       breakMinutes <= 0
     ) {
       return;
     }
-
-    activeMsRef.current = 0;
-    snoozeUntilRef.current = 0;
-    shownRef.current = false;
 
     let lastActivity = Date.now();
     let lastTick = Date.now();
@@ -72,7 +81,9 @@ export default function BreakReminder() {
       const idle = now - lastActivity >= IDLE_LIMIT_MS;
       const muted = !tabVisible || idle || quizActive || now < snoozeUntilRef.current;
       const thresholdMs = breakMinutes * 60_000;
-      if (!muted) {
+      // Once a reminder is open, the completed focus cycle must not arm another
+      // reminder underneath it (or interrupt an in-progress breathing break).
+      if (!muted && !shownRef.current) {
         activeMsRef.current += delta;
         if (activeMsRef.current >= thresholdMs) {
           activeMsRef.current = 0;
@@ -103,7 +114,7 @@ export default function BreakReminder() {
       window.removeEventListener("keydown", markActivity);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [breakMinutes]);
+  }, [breakMinutes, hydrated]);
 
   useEffect(() => {
     if (!breathing || typeof window === "undefined") return;

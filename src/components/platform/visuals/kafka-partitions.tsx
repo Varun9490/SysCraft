@@ -2,16 +2,19 @@
 
 import { Arrow, C, Frame, Panel, useStep, type VisualProps } from './Frame';
 
+// Step 5 (s === 4) is the drained / caught-up final state, not a repeat of step 1.
 const LAGS = [
   [30, 18, 24],
   [20, 28, 12],
   [10, 14, 6],
   [4, 6, 2],
+  [1, 2, 1],
 ];
 
 export function KafkaPartitionsVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
-  const lags = LAGS[s];
+  const lags = LAGS[s] ?? LAGS[0];
+  const final = s === 4;
 
   return (
     <Frame title="kafka partitions" step={s} active={active}>
@@ -30,7 +33,7 @@ export function KafkaPartitionsVisual({ stepIndex, active }: VisualProps) {
               height="46"
               rx="7"
               fill={C.brass}
-              fillOpacity={0.07}
+              fillOpacity="0.07"
               stroke={C.brass}
               strokeWidth="1.2"
             />
@@ -71,6 +74,10 @@ export function KafkaPartitionsVisual({ stepIndex, active }: VisualProps) {
       ))}
       <text x="563" y="236" textAnchor="middle" fontSize="8" fill={C.border}>
         3 consumers
+      </text>
+
+      <text x="320" y="360" textAnchor="middle" fontSize="9" fill={final ? C.healthy : C.border}>
+        {final ? 'lag drained · offsets committed · steady' : 'in-flight lag per partition'}
       </text>
     </Frame>
   );

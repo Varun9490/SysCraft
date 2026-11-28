@@ -104,12 +104,18 @@
 - [x] Optimized ambient rendering to 6fps with a single batched grid path and 1x backing store.
 - [x] Added a 36-check weighted production QA scorecard.
 
+## Audit hardening
+- [x] Hardened learner persistence, backup validation, simulation sanitization, bridge auth, and canvas scene import.
+- [x] Replay arrow-key visual transitions, lazy-load the legacy lesson registry, and keep Story/Engineer content on demand.
+- [x] Added runtime, content, canvas, and master audit reports plus dedicated Playwright suites.
+
 ## Verification
 - [x] `npx tsc --noEmit`
-- [x] `npm test` — 271 tests passing
+- [x] `npm test` — 371 tests passing
 - [x] `npm run wasm:test`
 - [x] `npm run lint` — 0 errors, 0 warnings
 - [x] `npm run build` — 513 static pages generated
 - [x] Desktop/mobile Playwright QA — all checks passed with no console errors
-- [x] Production QA scorecard — 100/100 across 36 checks
-- [x] Steady-state browser frame timing — 22.59ms average, 33.40ms p95 in isolated headless Chromium
+- [x] Local production QA scorecard — 100/100 across 36 checks (17.59ms average, 33.30ms p95)
+- [x] Local canvas/lab QA — 15/15 checks passed
+- [x] Local runtime audit — 38 passed, 0 failed, 1 not verified (reduced-motion ambient wash)

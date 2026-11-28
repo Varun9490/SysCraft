@@ -15,6 +15,9 @@ function xy(angleDeg: number, rad = R): readonly [number, number] {
 export function ConsistentHashVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
   const removed = s === 2 ? 2 : -1;
+  // Final step: virtual nodes smooth ownership into an even spread.
+  const final = s === 4;
+  const vnodes = final ? [-60, 30, 120, 210] : [];
 
   const keys = Array.from({ length: 16 }).map((_, i) => {
     const ang = -90 + i * 22.5;
@@ -51,6 +54,18 @@ export function ConsistentHashVisual({ stepIndex, active }: VisualProps) {
         );
       })}
 
+      {vnodes.map((a, i) => {
+        const [x, y] = xy(a, R * 0.58);
+        return (
+          <g key={`v${i}`}>
+            <circle cx={x} cy={y} r="7" fill={C.focus} fillOpacity="0.22" stroke={C.focus} strokeWidth="1.1" />
+            <text x={x} y={y + 3} textAnchor="middle" fontSize="7" fill={C.focus}>
+              {`v${i + 1}`}
+            </text>
+          </g>
+        );
+      })}
+
       {keys.map((k, i) => {
         const [x, y] = xy(k.ang);
         const [x2, y2] = xy(k.ang2);
@@ -67,8 +82,8 @@ export function ConsistentHashVisual({ stepIndex, active }: VisualProps) {
       <text x={CX} y={CY - 4} textAnchor="middle" fontSize="11" fill="currentColor">
         ring
       </text>
-      <text x={CX} y={CY + 13} textAnchor="middle" fontSize="9" fill={s === 2 ? C.warning : C.focus}>
-        {s === 2 ? 'localized remap' : '4 nodes · 16 keys'}
+      <text x={CX} y={CY + 13} textAnchor="middle" fontSize="9" fill={s === 2 ? C.warning : final ? C.focus : C.focus}>
+        {s === 2 ? 'localized remap' : final ? 'virtual nodes · even spread' : '4 nodes · 16 keys'}
       </text>
     </Frame>
   );

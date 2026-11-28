@@ -4,7 +4,9 @@ import { Arrow, C, Frame, Panel, useStep, type VisualProps } from './Frame';
 
 export function SagaOutboxVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
+  // s === 3 shows retry; s === 4 is the deduplicated, exactly-once final state.
   const retry = s === 3;
+  const final = s === 4;
 
   return (
     <Frame title="saga outbox" step={s} active={active}>
@@ -70,6 +72,29 @@ export function SagaOutboxVisual({ stepIndex, active }: VisualProps) {
           </text>
         </g>
       ) : null}
+
+      {final ? (
+        <g>
+          <rect
+            x="418"
+            y="250"
+            width="120"
+            height="34"
+            rx="6"
+            fill={C.healthy}
+            fillOpacity="0.12"
+            stroke={C.healthy}
+            strokeWidth="1"
+          />
+          <text x="478" y="271" textAnchor="middle" fontSize="9" fill={C.healthy}>
+            idempotency key
+          </text>
+        </g>
+      ) : null}
+
+      <text x="300" y="336" textAnchor="middle" fontSize="9" fill={final ? C.healthy : C.border}>
+        {final ? 'deduplicated · no duplicate effects' : 'intent committed with the business row'}
+      </text>
     </Frame>
   );
 }

@@ -9,7 +9,13 @@ export type VisualId =
   | "attention-kv" | "threat-defense" | "queue-workers" | "replication"
   | "sharding" | "realtime-channels" | "saga-outbox" | "bloom-hll"
   | "deploy-strategies" | "k8s-autoscale" | "agent-loop" | "token-math"
-  | "notation-decoder";
+  | "notation-decoder"
+  // Bespoke, domain-specific visuals added in the visual upgrade pass.
+  | "tokenization" | "lru-lfu" | "pubsub-routing" | "parking-allocation"
+  | "elevator-dispatch" | "linux-namespaces" | "k8s-reconcile"
+  | "transformer-architecture" | "quantization" | "training-stages"
+  | "sql-indexing" | "dns-http-protocols" | "observability-sli"
+  | "expand-contract" | "circuit-breaker" | "search-ranking";
 
 export interface LessonStep {
   id: string;

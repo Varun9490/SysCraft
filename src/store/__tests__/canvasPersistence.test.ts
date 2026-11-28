@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CANVAS_PERSIST_VERSION,
   CANVAS_STORAGE_KEY,
+  MAX_PERSISTED_EDGES,
   MAX_PERSISTED_NODES,
   canvasStorageKeyForScope,
-  flushPendingCanvasWrite,
   createDebouncedCanvasStorage,
+  discardPendingCanvasWrite,
+  flushPendingCanvasWrite,
   migratePersistedCanvas,
   sanitizePersistedCanvas,
 } from "../canvasPersistence";
@@ -103,6 +105,43 @@ describe("sanitizePersistedCanvas", () => {
     expect(out?.edges).toHaveLength(1);
   });
 
+  it("drops duplicate node ids before resolving edge references", () => {
+    const out = sanitizePersistedCanvas({
+      nodes: [
+        { ...VALID_NODE, id: "n_1", data: { ...VALID_NODE.data, label: "first" } },
+        { ...VALID_NODE, id: "n_1", data: { ...VALID_NODE.data, label: "second" } },
+        { ...VALID_NODE, id: "n_2" },
+      ],
+      edges: [{ id: "e_1", source: "n_1", target: "n_2", data: {} }],
+    });
+    expect(out?.nodes.map((node) => node.data.label)).toEqual(["first", "Edge gateway"]);
+    expect(out?.edges).toHaveLength(1);
+  });
+
+  it("rejects non-finite positions and sizes and strips non-finite overrides", () => {
+    const out = sanitizePersistedCanvas({
+      nodes: [
+        VALID_NODE,
+        { ...VALID_NODE, id: "n_nan", position: { x: Number.NaN, y: 0 } },
+        { ...VALID_NODE, id: "n_inf", position: { x: 0, y: Number.POSITIVE_INFINITY } },
+        {
+          ...VALID_NODE,
+          id: "n_2",
+          width: Number.NaN,
+          height: Number.POSITIVE_INFINITY,
+          data: {
+            ...VALID_NODE.data,
+            overrides: { clientRps: Number.NaN, region: "us-east-1", rateLimitRps: Number.POSITIVE_INFINITY },
+          },
+        },
+      ],
+      edges: [],
+    });
+    expect(out?.nodes.map((node) => node.id)).toEqual(["n_1", "n_2"]);
+    expect(out?.nodes[1]?.data.width).toBeUndefined();
+    expect(out?.nodes[1]?.data.overrides).toEqual({ region: "us-east-1" });
+  });
+
   it("caps pathological payloads at the node limit", () => {
     const flood = Array.from({ length: MAX_PERSISTED_NODES + 50 }, (_, i) => ({
       ...VALID_NODE,
@@ -112,15 +151,132 @@ describe("sanitizePersistedCanvas", () => {
     expect(out?.nodes.length).toBe(MAX_PERSISTED_NODES);
   });
 
+  it("caps edges and keeps only unique directed pairs", () => {
+    const nodes = Array.from({ length: MAX_PERSISTED_NODES }, (_, i) => ({ ...VALID_NODE, id: `n_${i}` }));
+    const edges: Array<{ id: string; source: string; target: string; data: Record<string, never> }> = [];
+    for (let source = 0; source < nodes.length; source += 1) {
+      for (let target = 0; target < nodes.length; target += 1) {
+        if (source === target) continue;
+        edges.push({ id: `e_${source}_${target}`, source: `n_${source}`, target: `n_${target}`, data: {} });
+      }
+    }
+
+    const out = sanitizePersistedCanvas({ nodes, edges });
+    expect(out?.edges).toHaveLength(MAX_PERSISTED_EDGES);
+    expect(new Set(out?.edges.map((edge) => `${edge.source}>${edge.target}`)).size).toBe(MAX_PERSISTED_EDGES);
+  });
+
   it("rejects non-objects and missing arrays outright", () => {
     expect(sanitizePersistedCanvas(null)).toBeUndefined();
     expect(sanitizePersistedCanvas("json string")).toBeUndefined();
     expect(sanitizePersistedCanvas({ nodes: [] })).toBeUndefined();
   });
 
+  it("bounds identifiers and user strings before they reach the store", () => {
+    const longKey = `k${"x".repeat(50)}`;
+    const out = sanitizePersistedCanvas({
+      nodes: [
+        VALID_NODE,
+        { ...VALID_NODE, id: "n".repeat(65) },
+        { ...VALID_NODE, id: "n_resource", data: { ...VALID_NODE.data, resourceId: "r".repeat(129) } },
+        {
+          ...VALID_NODE,
+          id: "n_2",
+          data: {
+            ...VALID_NODE.data,
+            label: "L".repeat(100),
+            comment: "C".repeat(2_100),
+            overrides: { region: "R".repeat(250), [longKey]: true },
+          },
+        },
+      ],
+      edges: [
+        { id: "e".repeat(97), source: "n_2", target: "n_1", data: {} },
+        { id: "e_1", source: "n_2", target: "n_1", data: { label: "E".repeat(200) } },
+      ],
+      sceneName: "S".repeat(100),
+    });
+
+    expect(out?.nodes).toHaveLength(2);
+    expect(out?.nodes[0]?.id).toBe("n_1");
+    expect(out?.nodes[1]?.id).toBe("n_2");
+    expect(out?.nodes[1]?.data.label).toHaveLength(80);
+    expect(out?.nodes[1]?.data.comment).toHaveLength(2_000);
+    expect(out?.nodes[1]?.data.overrides).toEqual({ region: "R".repeat(200) });
+    expect(out?.edges).toHaveLength(1);
+    expect(out?.edges[0]?.data?.label).toHaveLength(120);
+    expect(out?.sceneName).toHaveLength(80);
+  });
+
   it("restores the resource renderer type, not React Flow's default node", () => {
     const out = sanitizePersistedCanvas(validState());
     expect(out?.nodes[0]?.type).toBe("resource");
+  });
+
+  it("keeps deterministic fuzz payloads bounded, finite, and reference-safe", () => {
+    let seed = 0x5eed1234;
+    const random = () => {
+      seed = (Math.imul(seed, 1_664_525) + 1_013_904_223) >>> 0;
+      return seed / 0x1_0000_0000;
+    };
+    const int = (max: number) => Math.floor(random() * max);
+    const pick = <T,>(values: readonly T[]): T => values[int(values.length)]!;
+    const scalar = [undefined, null, true, false, 0, -1, Number.NaN, Number.POSITIVE_INFINITY, "", "x".repeat(300)];
+
+    for (let run = 0; run < 40; run += 1) {
+      const nodes: unknown[] = [
+        { ...VALID_NODE, id: "n_1" },
+        { ...VALID_NODE, id: "n_2" },
+      ];
+      for (let i = 0; i < MAX_PERSISTED_NODES + 20; i += 1) {
+        nodes.push({
+          id: pick([`n_${i}`, "n_1", "n".repeat(80), ...scalar]),
+          position: { x: pick([int(1_000), Number.NaN, Number.POSITIVE_INFINITY, ...scalar]), y: int(1_000) },
+          data: {
+            resourceId: pick(["rest_service", "postgres_db", "r".repeat(140), ...scalar]),
+            label: pick(["Node", "L".repeat(100), ...scalar]),
+            overrides: { clientRps: pick([500, Number.NaN, Number.NEGATIVE_INFINITY, ...scalar]), region: pick(["us-east-1", "r".repeat(250), ...scalar]) },
+            width: pick([216, Number.NaN, Number.POSITIVE_INFINITY]),
+            height: pick([104, Number.NaN, Number.NEGATIVE_INFINITY]),
+          },
+        });
+      }
+      const edges: unknown[] = Array.from({ length: MAX_PERSISTED_EDGES + 20 }, (_, i) => ({
+        id: pick([`e_${i}`, "e_0", "e".repeat(110), ...scalar]),
+        source: pick(["n_1", "n_2", "missing", "n".repeat(80), ...scalar]),
+        target: pick(["n_1", "n_2", "missing", "n".repeat(80), ...scalar]),
+        data: { label: pick(["flow", "E".repeat(140), ...scalar]), width: pick([1.6, Number.NaN, Number.POSITIVE_INFINITY]) },
+      }));
+
+      let out: ReturnType<typeof sanitizePersistedCanvas> = undefined;
+      expect(() => {
+        out = sanitizePersistedCanvas({ nodes, edges, sceneName: pick(["Fuzz", "S".repeat(100), ...scalar]) });
+      }).not.toThrow();
+      expect(out).toBeDefined();
+      expect(out!.nodes.length).toBeLessThanOrEqual(MAX_PERSISTED_NODES);
+      expect(out!.edges.length).toBeLessThanOrEqual(MAX_PERSISTED_EDGES);
+      const nodeIds = new Set(out!.nodes.map((node) => node.id));
+      expect(nodeIds.size).toBe(out!.nodes.length);
+      const edgeIds = new Set<string>();
+      const edgePairs = new Set<string>();
+      for (const node of out!.nodes) {
+        expect(node.id.length).toBeLessThanOrEqual(64);
+        expect(Number.isFinite(node.position.x)).toBe(true);
+        expect(Number.isFinite(node.position.y)).toBe(true);
+        expect(node.data.label.length).toBeLessThanOrEqual(80);
+        for (const value of Object.values(node.data.overrides)) {
+          if (typeof value === "number") expect(Number.isFinite(value)).toBe(true);
+        }
+      }
+      for (const edge of out!.edges) {
+        expect(nodeIds.has(edge.source)).toBe(true);
+        expect(nodeIds.has(edge.target)).toBe(true);
+        expect(edgeIds.has(edge.id)).toBe(false);
+        expect(edgePairs.has(`${edge.source}>${edge.target}`)).toBe(false);
+        edgeIds.add(edge.id);
+        edgePairs.add(`${edge.source}>${edge.target}`);
+      }
+    }
   });
 });
 
@@ -195,5 +351,23 @@ describe("debounced canvas storage", () => {
     flushPendingCanvasWrite();
     expect(writes).toBe(1);
     expect(base.get("k")).toContain('"sceneName":"Checkout prod"');
+  });
+
+  it("discards a pending write without touching storage", () => {
+    const storage = createDebouncedCanvasStorage(() => ({
+      getItem: () => null,
+      setItem(name, value) {
+        writes += 1;
+        base.set(name, value);
+      },
+      removeItem: () => {},
+    }));
+
+    storage.setItem("k", persistable(validState()));
+    discardPendingCanvasWrite();
+    vi.advanceTimersByTime(700);
+
+    expect(writes).toBe(0);
+    expect(base.has("k")).toBe(false);
   });
 });

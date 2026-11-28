@@ -38,6 +38,53 @@ interface PathCache {
   ys: number[];
 }
 
+interface ParticleSourceTelemetry {
+  cacheHitPct?: number;
+  errorRate?: number;
+  droppedRps?: number;
+}
+
+function finiteNonNegative(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+function unitFraction(value: number | undefined): number {
+  return Math.min(1, finiteNonNegative(value));
+}
+
+/** Pure condition math shared by the renderer and its scaling regression tests. */
+export function applyEdgeCondition(
+  rps: number,
+  condition: EdgeCondition,
+  source: ParticleSourceTelemetry | undefined,
+  writeRatio = 0.2,
+): number {
+  const safeRps = finiteNonNegative(rps);
+  switch (condition) {
+    case "cache_hit":
+      return safeRps * unitFraction((source?.cacheHitPct ?? 0) / 100);
+    case "cache_miss":
+      return safeRps * (1 - unitFraction((source?.cacheHitPct ?? 0) / 100));
+    case "read":
+      return safeRps * (1 - unitFraction(writeRatio));
+    case "write":
+      return safeRps * unitFraction(writeRatio);
+    case "rate_limited":
+      return finiteNonNegative(source?.droppedRps);
+    case "error":
+      // Simulation telemetry already reports errorRate as a 0–1 fraction.
+      return safeRps * unitFraction(source?.errorRate);
+    default:
+      return safeRps;
+  }
+}
+
+export function particleCountForRps(rps: number, density: number): number {
+  if (!(rps > 0.5)) return 0;
+  const safeDensity = finiteNonNegative(density);
+  return Math.max(1, Math.min(MAX_PARTICLES_PER_EDGE, Math.round((rps / 150) * safeDensity)));
+}
+
 function particleColor(errorRate: number): string {
   if (!Number.isFinite(errorRate) || errorRate <= 0.05) return "56, 189, 248";
   if (errorRate <= 0.2) return "252, 211, 77";
@@ -156,39 +203,14 @@ export function TrafficParticleLayer() {
           const decor = edgeDecorRef.current.get(edgeId);
           if (decor) {
             const sourceTelem = snapshot.nodes[decor.source];
-            const hitRatio = Math.max(0, Math.min(1, (sourceTelem?.cacheHitPct ?? 0) / 100));
-            const errRatio = Math.max(0, Math.min(1, (sourceTelem?.errorRate ?? 0) / 100));
             let writeRatio = 0.2;
             if (decor.condition === "read" || decor.condition === "write") {
               const node = useCanvasStore.getState().nodes.find((n) => n.id === decor.source);
               const overrides = node?.data?.overrides;
               writeRatio = Math.max(0, Math.min(1, Number(overrides?.writeRatio ?? 0.2)));
             }
-            switch (decor.condition) {
-              case "cache_hit":
-                rps *= hitRatio;
-                break;
-              case "cache_miss":
-                rps *= 1 - hitRatio;
-                break;
-              case "read":
-                rps *= 1 - writeRatio;
-                break;
-              case "write":
-                rps *= writeRatio;
-                break;
-              case "rate_limited":
-                rps = sourceTelem?.droppedRps ?? 0;
-                break;
-              case "error":
-                rps *= errRatio;
-                break;
-              case "async":
-                dashed = true;
-                break;
-              default:
-                break;
-            }
+            rps = applyEdgeCondition(rps, decor.condition, sourceTelem, writeRatio);
+            if (decor.condition === "async") dashed = true;
           }
           if (!(rps > 0.5)) continue;
 
@@ -216,7 +238,7 @@ export function TrafficParticleLayer() {
           ctx.stroke();
           if (dashed) ctx.setLineDash([]);
 
-          const count = Math.max(1, Math.min(MAX_PARTICLES_PER_EDGE, Math.round((rps / 150) * density)));
+          const count = particleCountForRps(rps, density);
           const latencyMs = flow?.latencyMs ?? 50;
           const speed = Math.max(0.15, Math.min(2, 600 / (100 + latencyMs)));
           const dotRadius = Math.max(1.2, 2 * vp.zoom);

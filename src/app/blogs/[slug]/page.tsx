@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { SiteChrome } from "@/components/nav/SiteChrome";
 import { BlogReader } from "@/components/platform/player/BlogReader";
 import { BLOGS, getBlog } from "@/content/platform/registry";
+import { canonicalAlternates, routeCanonical } from "@/lib/seo";
 
 export const dynamicParams = false;
 
@@ -13,11 +14,13 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const blog = getBlog(slug);
-  if (!blog) return { title: "Field note not found" };
+  if (!blog) return { title: "Field note not found", robots: { index: false } };
+  const canonical = routeCanonical("blogs", slug);
   return {
     title: blog.title,
     description: blog.dek,
-    openGraph: { title: blog.title, description: blog.dek, type: "article" },
+    ...canonicalAlternates("blogs", slug),
+    openGraph: { title: blog.title, description: blog.dek, type: "article", url: canonical },
   };
 }
 

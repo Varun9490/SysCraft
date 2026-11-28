@@ -6,11 +6,22 @@ export function TrafficFlowVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
   const reduce = useReducedMotion();
   const dots = 2 + s * 2;
+  // s === 4 is the steady, guarded final state: both APIs healthy behind an edge cache.
+  const final = s === 4;
 
   return (
     <Frame title="traffic flow" step={s} active={active}>
       <Panel x={24} y={168} w={92} h={54} label="client" color={C.focus} />
-      <Panel x={170} y={168} w={100} h={54} label="load balancer" color={C.brass} fontSize={11} />
+      <Panel
+        x={170}
+        y={168}
+        w={100}
+        h={54}
+        label="load balancer"
+        sub={final ? 'edge cache' : undefined}
+        color={final ? C.healthy : C.brass}
+        fontSize={11}
+      />
       <Panel
         x={330}
         y={104}
@@ -48,6 +59,10 @@ export function TrafficFlowVisual({ stepIndex, active }: VisualProps) {
           elevated latency
         </text>
       ) : null}
+
+      <text x="320" y="356" textAnchor="middle" fontSize="9" fill={final ? C.healthy : C.border}>
+        {final ? 'steady state · cached at the edge · all healthy' : 'request path through the load balancer'}
+      </text>
     </Frame>
   );
 }

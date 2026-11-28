@@ -4,12 +4,19 @@ import { useEffect, useState } from "react";
 import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
-import { BLOG_ROUTES, STATIC_ROUTES, TRACK_ROUTES, type RouteEntry } from "./platformRoutes";
+import { STATIC_ROUTES, type RouteEntry } from "./platformRoutes";
+import { scorePaletteMatch, SEARCH_GROUPS } from "./searchCatalog";
 
-function RouteItem({ route, onSelect }: { route: RouteEntry; onSelect: (href: string) => void }) {
+type PaletteEntry = RouteEntry & {
+  id?: string;
+  keywords?: readonly string[];
+};
+
+function RouteItem({ route, onSelect }: { route: PaletteEntry; onSelect: (href: string) => void }) {
   return (
     <Command.Item
-      value={`${route.label} ${route.href} ${route.hint ?? ""}`}
+      value={route.id ?? route.href}
+      keywords={[route.label, route.href, route.hint ?? "", ...(route.keywords ?? [])]}
       onSelect={() => onSelect(route.href)}
       className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-[13px] text-content outline-none transition data-[selected=true]:bg-app-overlay data-[selected=true]:text-brass-bright"
     >
@@ -57,6 +64,7 @@ export default function CommandPalette() {
       open={open}
       onOpenChange={setOpen}
       label="Search SysCraft"
+      filter={scorePaletteMatch}
       loop
       overlayClassName="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm"
       contentClassName="fixed left-1/2 top-[12vh] z-[81] w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-line bg-app-raised text-content shadow-lift"
@@ -82,17 +90,13 @@ export default function CommandPalette() {
           ))}
         </Command.Group>
 
-        <Command.Group heading="Paths">
-          {TRACK_ROUTES.map((route) => (
-            <RouteItem key={route.href} route={route} onSelect={go} />
-          ))}
-        </Command.Group>
-
-        <Command.Group heading="Blogs">
-          {BLOG_ROUTES.map((route) => (
-            <RouteItem key={route.href} route={route} onSelect={go} />
-          ))}
-        </Command.Group>
+        {SEARCH_GROUPS.map((group) => (
+          <Command.Group key={group.type} heading={group.heading}>
+            {group.entries.map((route) => (
+              <RouteItem key={route.id} route={route} onSelect={go} />
+            ))}
+          </Command.Group>
+        ))}
       </Command.List>
 
       <div className="border-t border-line px-4 py-2 text-[11px] text-content-tertiary">

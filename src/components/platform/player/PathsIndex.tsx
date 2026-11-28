@@ -1,13 +1,157 @@
 'use client';
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ArrowRight, BookOpen, Clock } from "@/components/ui/icons";
 import { AnimatedCounter } from "@/components/ui/interactive/AnimatedCounter";
 import { ScrollReveal } from "@/components/ui/interactive/ScrollReveal";
-import { TRACKS } from "@/content/platform/registry";
 import { useLearnerPlatformStore } from "@/store/useLearnerPlatformStore";
 import type { Track } from "@/learning/platform/types";
+
+/**
+ * View-only catalog for the paths index.
+ *
+ * `src/content/platform/registry.ts` remains the source of truth for all
+ * curriculum content. This is a deliberately tiny projection of exactly the
+ * fields this screen renders, so the index route no longer bundles every
+ * lesson step, security practice, and quiz question just to show seven cards.
+ * Keep the projection in sync when track metadata or lesson durations change.
+ */
+type IndexTrack = {
+  readonly slug: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly accent: Track["accent"];
+  readonly lessonIds: readonly string[];
+  /** Sum of the track's lesson durations. */
+  readonly minutes: number;
+};
+
+const PATH_CATALOG: readonly IndexTrack[] = [
+  {
+    slug: "foundations",
+    title: "System Design Foundations",
+    summary:
+      "Build a reliable service from one machine to a coordinated system. These lessons connect requests, data, caches, queues, and live connections to the capacity limits and failure modes that appear as traffic grows.",
+    accent: "emerald",
+    lessonIds: [
+      "single-server",
+      "networking-protocols",
+      "load-balancing",
+      "caching-eviction",
+      "sql-modeling",
+      "scaling-databases",
+      "rate-limiting",
+      "queues-jobs",
+      "realtime",
+    ],
+    minutes: 98,
+  },
+  {
+    slug: "distributed",
+    title: "Distributed Systems and Storage Internals",
+    summary:
+      "Learn how independent machines agree on data, distribute load, recover from failure, and preserve useful guarantees under delay. The track connects replication and consensus to sharding, storage engines, event streams, transactions, sketches, and operational measurement.",
+    accent: "indigo",
+    lessonIds: [
+      "replication-consistency",
+      "sharding-hot-keys",
+      "consistent-hashing",
+      "raft-consensus",
+      "locks-circuit-breakers",
+      "storage-engines",
+      "kafka-streaming",
+      "distributed-transactions",
+      "probabilistic-sketches",
+      "observability-slos",
+    ],
+    minutes: 119,
+  },
+  {
+    slug: "case-studies",
+    title: "Real-World HLD and LLD Case Studies",
+    summary:
+      "Twelve production-shaped design walkthroughs that move from capacity assumptions to concrete mechanisms, operational trade-offs, and defensive threat hardening.",
+    accent: "amber",
+    lessonIds: [
+      "url-shortener",
+      "chat-system",
+      "video-streaming",
+      "news-feed",
+      "ride-hailing",
+      "search-engine",
+      "metrics-alerting",
+      "lld-lru-cache",
+      "lld-rate-limiter",
+      "lld-pubsub",
+      "lld-parking-lot",
+      "lld-elevator",
+    ],
+    minutes: 173,
+  },
+  {
+    slug: "ai-engineering",
+    title: "AI Engineering",
+    summary:
+      "Build reliable model-powered products by budgeting context, grounding answers, controlling agent tools, and evaluating security behavior before release.",
+    accent: "cyan",
+    lessonIds: [
+      "tokenization",
+      "embeddings-rag",
+      "agent-loop",
+      "memory-architectures",
+      "evals-guardrails",
+      "ai-security",
+    ],
+    minutes: 72,
+  },
+  {
+    slug: "llm-inference",
+    title: "LLM Inference Engineering and Training Systems",
+    summary:
+      "Reason about transformer memory, KV-cache growth, prefill and decode behavior, quantization, serving budgets, and the training stages behind a model.",
+    accent: "rose",
+    lessonIds: [
+      "transformer-bottlenecks",
+      "kv-cache-paged-attention",
+      "prefill-decode-batching",
+      "quantization",
+      "latency-cost-budgets",
+      "pretraining-posttraining",
+    ],
+    minutes: 74,
+  },
+  {
+    slug: "ml-math",
+    title: "ML Mathematics and the Paper Decoder",
+    summary:
+      "Build geometric, probabilistic, optimization, and attention intuition, then learn to unpack unfamiliar paper equations one symbol at a time.",
+    accent: "indigo",
+    lessonIds: [
+      "linear-algebra",
+      "probability-information",
+      "backprop-optimizers",
+      "attention-scaling-laws",
+      "notation-decoder",
+    ],
+    minutes: 61,
+  },
+  {
+    slug: "backend-cloud",
+    title: "Backend, Cloud and Production Security",
+    summary:
+      "Operate concurrent services, containers, Kubernetes, and safe release systems with backpressure, isolation, autoscaling, and defense-in-depth controls.",
+    accent: "emerald",
+    lessonIds: [
+      "concurrency-event-loops",
+      "linux-docker",
+      "kubernetes",
+      "safe-deployments",
+      "appsec-zero-trust",
+    ],
+    minutes: 62,
+  },
+];
 
 const ACCENT: Record<Track["accent"], { dot: string; text: string; ring: string }> = {
   emerald: { dot: "bg-emerald-400", text: "text-emerald-300", ring: "border-emerald-400/30" },
@@ -25,6 +169,8 @@ export function PathsIndex() {
     hydrate();
   }, [hydrate]);
 
+  const completedSet = useMemo(() => new Set(completedLessons), [completedLessons]);
+
   return (
     <main className="mx-auto w-full max-w-7xl px-5 pb-24 pt-12 sm:px-8">
       <header className="max-w-3xl" data-cursor="read">
@@ -37,15 +183,14 @@ export function PathsIndex() {
       </header>
 
       <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {TRACKS.map((track, index) => {
-          const completed = track.lessons.filter((lesson) => completedLessons.includes(lesson.id)).length;
-          const total = track.lessons.length;
+        {PATH_CATALOG.map((track, index) => {
+          const total = track.lessonIds.length;
+          const completed = track.lessonIds.filter((id) => completedSet.has(id)).length;
           const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-          const minutes = track.lessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
           const accent = ACCENT[track.accent];
 
           return (
-            <ScrollReveal key={track.id} delay={index * 0.04}>
+            <ScrollReveal key={track.slug} delay={index * 0.04}>
               <Link
                 href={`/paths/${track.slug}`}
                 className={`group block h-full rounded-2xl border border-line bg-app-raised p-6 shadow-card transition-colors hover:border-brass/40 ${accent.ring}`}
@@ -63,7 +208,7 @@ export function PathsIndex() {
                 </p>
                 <div className="mt-5 flex flex-wrap items-center gap-4 text-[12px] text-content-tertiary">
                   <span className="inline-flex items-center gap-1.5"><BookOpen size={13} /> {total} lessons</span>
-                  <span className="inline-flex items-center gap-1.5"><Clock size={13} /> {minutes} min</span>
+                  <span className="inline-flex items-center gap-1.5"><Clock size={13} /> {track.minutes} min</span>
                 </div>
                 <div className="mt-5">
                   <div className="flex items-center justify-between text-[11px] text-content-tertiary">

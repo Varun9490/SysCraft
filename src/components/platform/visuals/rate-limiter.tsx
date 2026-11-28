@@ -5,8 +5,10 @@ import { Arrow, C, FlowDot, Frame, Panel, useReducedMotion, useStep, type Visual
 export function RateLimiterVisual({ stepIndex, active }: VisualProps) {
   const s = useStep(stepIndex);
   const reduce = useReducedMotion();
-  const tokens = 4 - s;
-  const denied = s === 3;
+  const tokens = Math.max(0, 4 - s);
+  // s === 4 is the degraded, fail-closed policy state: 429 with Retry-After.
+  const final = s === 4;
+  const denied = s === 3 || final;
 
   return (
     <Frame title="token bucket" step={s} active={active}>
@@ -51,7 +53,15 @@ export function RateLimiterVisual({ stepIndex, active }: VisualProps) {
         {`${tokens} tokens`}
       </text>
 
-      <Panel x={468} y={168} w={132} h={62} label="request" color={denied ? C.danger : C.focus} />
+      <Panel
+        x={468}
+        y={168}
+        w={132}
+        h={62}
+        label="request"
+        sub={final ? '429 + retry-after' : undefined}
+        color={denied ? C.danger : C.focus}
+      />
       <Arrow x1={348} y1={196} x2={466} y2={196} color={denied ? C.danger : C.focus} />
 
       {denied ? (
@@ -59,7 +69,7 @@ export function RateLimiterVisual({ stepIndex, active }: VisualProps) {
           <line x1="500" y1="248" x2="570" y2="316" stroke={C.danger} strokeWidth="2" />
           <line x1="570" y1="248" x2="500" y2="316" stroke={C.danger} strokeWidth="2" />
           <text x="534" y="338" textAnchor="middle" fontSize="9" fill={C.danger}>
-            denied
+            {final ? 'fail closed' : 'denied'}
           </text>
         </g>
       ) : (
@@ -67,6 +77,10 @@ export function RateLimiterVisual({ stepIndex, active }: VisualProps) {
           allowed
         </text>
       )}
+
+      <text x="240" y="342" textAnchor="middle" fontSize="9" fill={final ? C.warning : C.border}>
+        {final ? 'degraded mode · explicit retry policy' : 'burst absorbed by bucket'}
+      </text>
     </Frame>
   );
 }

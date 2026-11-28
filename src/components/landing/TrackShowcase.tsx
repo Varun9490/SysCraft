@@ -154,12 +154,23 @@ export function TrackShowcase() {
         {TRACK_CARDS.map((track, index) => {
           const done = Math.min(track.lessons, completedByTrack?.[track.slug] ?? 0);
           const percent = Math.round((done / track.lessons) * 100);
+          // The last track closes the row as a full-width band instead of
+          // leaving two empty cells in a three-column grid.
+          const wide = index === TRACK_CARDS.length - 1;
           return (
-            <ScrollReveal key={track.slug} delay={index * 0.055} y={20} blur={4}>
+            <ScrollReveal
+              key={track.slug}
+              delay={index * 0.055}
+              y={20}
+              blur={4}
+              className={wide ? "lg:col-span-3" : undefined}
+            >
               <TiltCard className="h-full" intensity={4}>
                 <Link
                   href={`/paths/${track.slug}`}
-                  className="group relative flex h-full min-h-[196px] flex-col overflow-hidden rounded-2xl border border-line/70 bg-ink p-6 transition-colors hover:bg-app/60"
+                  className={`group relative flex h-full min-h-[196px] flex-col overflow-hidden rounded-2xl border border-line/70 bg-ink p-6 transition-colors hover:bg-app/60 ${
+                    wide ? "lg:grid lg:grid-cols-12 lg:items-center lg:gap-x-6 lg:py-5" : ""
+                  }`}
                 >
                   {/* Moving brass border sweep, activated on hover. */}
                   <span aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-focus-visible:opacity-100">
@@ -167,7 +178,7 @@ export function TrackShowcase() {
                   </span>
                   <span aria-hidden="true" className="pointer-events-none absolute inset-px rounded-[15px] bg-ink transition-colors group-hover:bg-app/85" />
 
-                  <div className="relative z-10 flex items-center justify-between gap-3">
+                  <div className={`relative z-10 flex items-center justify-between gap-3 ${wide ? "lg:col-span-3" : ""}`}>
                     <span className="font-mono text-[11px] tabular-nums text-content-tertiary">
                       {String(index + 1).padStart(2, "0")}
                     </span>
@@ -179,10 +190,14 @@ export function TrackShowcase() {
                     </div>
                   </div>
 
-                  <h3 className="relative z-10 mt-5 text-[16px] font-medium tracking-tight text-content">{track.title}</h3>
-                  <p className="relative z-10 mt-2 max-w-xs text-[13px] leading-relaxed text-content-secondary">{track.blurb}</p>
+                  <h3 className={`relative z-10 mt-5 text-[16px] font-medium tracking-tight text-content ${wide ? "lg:col-span-2 lg:mt-0" : ""}`}>
+                    {track.title}
+                  </h3>
+                  <p className={`relative z-10 mt-2 max-w-xs text-[13px] leading-relaxed text-content-secondary ${wide ? "lg:col-span-4 lg:mt-0 lg:max-w-none" : ""}`}>
+                    {track.blurb}
+                  </p>
 
-                  <div className="relative z-10 mt-auto pt-6">
+                  <div className={`relative z-10 mt-auto pt-6 ${wide ? "lg:col-span-3 lg:mt-0 lg:pt-0" : ""}`}>
                     <div className="h-[3px] w-full overflow-hidden rounded-full bg-line/70" aria-hidden="true">
                       <motion.div
                         className="h-full rounded-full bg-brass"

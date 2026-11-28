@@ -21,7 +21,7 @@ import { getBlueprint } from "@/data/blueprints";
 import { canvasHrefWithAdd } from "@/store/canvasDeepLink";
 import { flushPendingCanvasWrite } from "@/store/canvasPersistence";
 import { useCanvasStore } from "@/store/useCanvasStore";
-import { evaluateLessonSandbox } from "@/data/lessonBlogs";
+import { evaluateLessonSandbox } from "@/data/lessonSandbox";
 import type { LessonBlog } from "@/data/lessonBlogs";
 
 interface Props {

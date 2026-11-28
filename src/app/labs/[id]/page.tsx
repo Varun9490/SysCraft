@@ -4,6 +4,7 @@ import { LabBrief } from "@/components/labs/LabBrief";
 import { GUIDED_LABS } from "@/data/guidedLabs";
 import { formatRps, labCleanTitle } from "@/data/labMeta";
 import { labLevel } from "@/data/labLevels";
+import { canonicalAlternates, routeCanonical } from "@/lib/seo";
 
 /**
  * Lab landing page: crawlers and no-JS visitors get the full SSR brief
@@ -22,7 +23,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const lab = GUIDED_LABS.find((entry) => entry.id === id);
-  if (!lab) return { title: "Lab — SysCraft" };
+  if (!lab) return { title: "Lab — SysCraft", robots: { index: false } };
 
   const level = labLevel(lab.difficulty);
   const title = `${labCleanTitle(lab)} — Design lab`;
@@ -33,13 +34,16 @@ export async function generateMetadata({
       .find((line) => line.length > 40) ??
     `Design ${labCleanTitle(lab)} under real load: target ${formatRps(lab.targetRps)}, p99 under ${lab.sloP99Ms} ms, within $${lab.budgetUsdPerHour}/hr.`;
 
+  const canonical = routeCanonical("labs", id);
   return {
     title,
     description,
+    ...canonicalAlternates("labs", id),
     openGraph: {
       title,
       description,
       type: "article",
+      url: canonical,
       section: "Labs",
       tags: [lab.title, level.badge, "system design interview"],
     },

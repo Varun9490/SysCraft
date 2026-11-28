@@ -3,27 +3,23 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, CheckCircle2, Clock, RefreshCw, ShieldCheck } from "@/components/ui/icons";
-import { BLOGS, TRACKS } from "@/content/platform/registry";
-import { selectRecallQuestions } from "@/learning/platform/quizSelect";
+import { findQuizBank } from "@/content/platform/registry";
+import {
+  createQuizSessionSeed,
+  selectRecallQuestions,
+  shuffleQuizChoices,
+} from "@/learning/platform/quizSelect";
 import type { QuizQuestion } from "@/learning/platform/types";
 import { useLearnerPlatformStore } from "@/store/useLearnerPlatformStore";
 
 const DECK_SIZE = 6;
 
-/** Eligibility is enforced here: only lessons and notes already opened locally. */
-function buildDeck(): QuizQuestion[] {
+/** Builds one session from shared eligibility, FSRS ranking, and choice order. */
+function buildDeck(sessionSeed: number): QuizQuestion[] {
   const state = useLearnerPlatformStore.getState();
-  const eligible = new Set<string>([...state.completedLessons, ...state.readBlogs, ...state.visitedTopics]);
-  const bank: QuizQuestion[] = [];
-  for (const track of TRACKS) {
-    for (const lesson of track.lessons) {
-      if (eligible.has(lesson.id)) bank.push(...lesson.quiz);
-    }
-  }
-  for (const post of BLOGS) {
-    if (eligible.has(post.id)) bank.push(...post.quiz);
-  }
-  return selectRecallQuestions(state, bank, DECK_SIZE, Date.now());
+  const bank = findQuizBank(state);
+  return selectRecallQuestions(state, bank, DECK_SIZE, Date.now(), sessionSeed)
+    .map((question) => shuffleQuizChoices(question, sessionSeed));
 }
 
 /**
@@ -33,13 +29,15 @@ function buildDeck(): QuizQuestion[] {
  */
 function QuizDeckReady() {
   const recordAnswer = useLearnerPlatformStore((s) => s.recordAnswer);
-  const [deck, setDeck] = useState<QuizQuestion[]>(buildDeck);
+  // These copies own the displayed choice order for the whole session; the
+  // authored registry questions remain untouched.
+  const [deck, setDeck] = useState<QuizQuestion[]>(() => buildDeck(createQuizSessionSeed()));
   const [index, setIndex] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [finished, setFinished] = useState(false);
 
   const rebuild = useCallback(() => {
-    setDeck(buildDeck());
+    setDeck(buildDeck(createQuizSessionSeed()));
     setIndex(0);
     setPicked(null);
     setFinished(false);

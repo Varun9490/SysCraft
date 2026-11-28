@@ -5,6 +5,7 @@ import {
   errorRate,
   littlesLawConcurrent,
   llmPhysics,
+  MAX_SIM_VALUE,
   nodeLatency,
   parallelAvailability,
   queueMultiplier,
@@ -134,6 +135,133 @@ describe("LLM token-stream physics", () => {
     expect(saturated.kvCachePct).toBeLessThanOrEqual(100);
     expect(saturated.preempted).toBe(true);
     expect(saturated.latencyPenalty).toBe(3.5);
+  });
+});
+
+describe("hostile numeric totality", () => {
+  it("caps overflow in capacity, queueing, CPU, LLM, and replica planning", () => {
+    const max = Number.MAX_VALUE;
+    const capacity = effectiveCapacity(max, max);
+    const queue = updateQueue(max, max, 1, max, max);
+    const latency = nodeLatency({
+      baseP50Ms: max,
+      baseP95Ms: max,
+      baseP99Ms: max,
+      arrivalRps: max,
+      capacityRps: 1,
+      queueDepth: max,
+    });
+    const llm = llmPhysics({
+      baseP50Ms: max,
+      arrivalRps: max,
+      capacityRps: 1,
+      avgPromptTokens: max,
+      avgOutputTokens: max,
+      vramGbPerReplica: Number.MIN_VALUE,
+      replicationFactor: max,
+      activeConcurrentRequests: max,
+    });
+
+    for (const value of [
+      capacity,
+      queue.queueDepth,
+      latency.p50Ms,
+      latency.p95Ms,
+      latency.p99Ms,
+      latency.queueWaitMs,
+      latency.utilization,
+      latency.multiplier,
+      llm.ttftMs,
+      llm.kvCachePct,
+      cpuPercent(max, max, max),
+      requiredReplicas(max, max, max),
+      littlesLawConcurrent(max, max),
+    ]) {
+      expect(Number.isFinite(value)).toBe(true);
+      expect(value).toBeGreaterThanOrEqual(0);
+    }
+    expect(latency.p99Ms).toBeGreaterThan(0);
+    expect(llm.ttftMs).toBeGreaterThan(0);
+    expect(capacity).toBeLessThanOrEqual(MAX_SIM_VALUE);
+    expect(requiredReplicas(max, max, max)).toBeLessThanOrEqual(MAX_SIM_VALUE);
+    expect(cpuPercent(max, max, max)).toBe(100);
+  });
+
+  it("saturates positive Infinity instead of treating overloaded resources as free", () => {
+    const latency = nodeLatency({
+      baseP50Ms: Number.POSITIVE_INFINITY,
+      baseP95Ms: Number.POSITIVE_INFINITY,
+      baseP99Ms: Number.POSITIVE_INFINITY,
+      arrivalRps: Number.POSITIVE_INFINITY,
+      capacityRps: Number.POSITIVE_INFINITY,
+    });
+    expect(latency.p50Ms).toBeGreaterThan(0);
+    expect(latency.p99Ms).toBeGreaterThan(0);
+    expect(effectiveCapacity(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY)).toBe(MAX_SIM_VALUE);
+    expect(cpuPercent(Number.POSITIVE_INFINITY, 0, 1)).toBe(100);
+  });
+
+  it("saturates mixed extreme ratios instead of emitting zero or Infinity", () => {
+    expect(utilization(Number.MAX_VALUE, Number.MIN_VALUE)).toBe(MAX_SIM_VALUE);
+    const llm = llmPhysics({
+      baseP50Ms: Number.MAX_VALUE,
+      arrivalRps: Number.MAX_VALUE,
+      capacityRps: Number.MIN_VALUE,
+      avgPromptTokens: Number.MAX_VALUE,
+      avgOutputTokens: Number.MAX_VALUE,
+      vramGbPerReplica: Number.MIN_VALUE,
+      replicationFactor: 1,
+      activeConcurrentRequests: Number.MAX_VALUE,
+    });
+    expect(llm.ttftMs).toBeGreaterThan(0);
+    expect(llm.kvCachePct).toBe(100);
+    expect(llm.preempted).toBe(true);
+  });
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "uses the documented token defaults for non-finite token counts (%s)",
+    (tokenCount) => {
+      const defaults = llmPhysics({ baseP50Ms: 20, arrivalRps: 10, capacityRps: 1000 });
+      const hostile = llmPhysics({
+        baseP50Ms: 20,
+        arrivalRps: 10,
+        capacityRps: 1000,
+        avgPromptTokens: tokenCount,
+        avgOutputTokens: tokenCount,
+      });
+      expect(hostile).toEqual(defaults);
+    },
+  );
+
+  it("keeps every queueing result finite across a hostile scalar matrix", () => {
+    const hostile = [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, -1, 0, Number.MIN_VALUE, Number.MAX_VALUE];
+    for (const value of hostile) {
+      const queue = updateQueue(value, value, value, value, value, value);
+      const latency = nodeLatency({
+        baseP50Ms: value,
+        baseP95Ms: value,
+        baseP99Ms: value,
+        arrivalRps: value,
+        capacityRps: value,
+        writeRatio: value,
+        elapsedSeconds: value,
+        queueDepth: value,
+      });
+      const llm = llmPhysics({
+        baseP50Ms: value,
+        arrivalRps: value,
+        capacityRps: value,
+        avgPromptTokens: value,
+        avgOutputTokens: value,
+        vramGbPerReplica: value,
+        replicationFactor: value,
+        activeConcurrentRequests: value,
+      });
+      for (const result of [queue.queueDepth, latency.p50Ms, latency.p95Ms, latency.p99Ms, latency.utilization, llm.ttftMs, llm.kvCachePct]) {
+        expect(Number.isFinite(result)).toBe(true);
+        expect(result).toBeGreaterThanOrEqual(0);
+      }
+    }
   });
 });
 

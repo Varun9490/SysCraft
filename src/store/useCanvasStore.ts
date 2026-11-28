@@ -12,7 +12,7 @@ import {
   type OnEdgesChange,
   type OnNodesChange,
 } from "@xyflow/react";
-import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
+import { compressToEncodedURIComponent } from "lz-string";
 import { SEED_RESOURCES } from "@/data/seedResources";
 import type { Blueprint } from "@/data/blueprints";
 import { resolveInstanceSizing } from "@/engine/instanceSizing";
@@ -33,7 +33,9 @@ import {
   CANVAS_STORAGE_KEY,
   CANVAS_PERSIST_VERSION,
   createDebouncedCanvasStorage,
+  decodeAndSanitizeScene,
   migratePersistedCanvas,
+  sanitizePersistedCanvas,
   type PersistedCanvasState,
 } from "./canvasPersistence";
 
@@ -482,51 +484,6 @@ function payloadFromState(nodes: CanvasFlowNode[], edges: CanvasFlowEdge[]): Sce
   };
 }
 
-function topologyFromPayload(payload: ScenePayload): { nodes: CanvasFlowNode[]; edges: CanvasFlowEdge[] } {
-  const nodes: CanvasFlowNode[] = payload.nodes.map((n) => ({
-    id: n.id,
-    type: "resource",
-    position: { x: n.position.x, y: n.position.y },
-    data: {
-      resourceId: n.resourceId,
-      label: n.label,
-      overrides: n.overrides ?? {},
-      semanticZoomLevel: 2,
-      ...(Number.isFinite(n.width) && Number.isFinite(n.height)
-        ? { width: n.width, height: n.height, manualSize: true }
-        : {}),
-      ...(typeof n.accentColor === "string" ? { accentColor: n.accentColor } : {}),
-      ...(typeof n.comment === "string" ? { comment: n.comment } : {}),
-    },
-  }));
-  const nodeIds = new Set(nodes.map((n) => n.id));
-  const edges: CanvasFlowEdge[] = payload.edges
-    .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target) && e.source !== e.target)
-    .map((e) => ({
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      data: {
-        ...(typeof e.label === "string" ? { label: e.label } : {}),
-        ...(e.condition ? { condition: e.condition } : {}),
-        ...(isHexColor(e.color) ? { color: e.color } : {}),
-        ...(e.lineStyle ? { lineStyle: e.lineStyle } : {}),
-        ...(e.width ? { width: e.width } : {}),
-        ...(e.marker ? { marker: e.marker } : {}),
-      },
-    }));
-  const seen = new Set<string>();
-  return {
-    nodes,
-    edges: edges.filter((e) => {
-      const key = `${e.source}->${e.target}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    }),
-  };
-}
-
 export const useCanvasStore = create<CanvasState>()(
   persist(
     temporal(
@@ -919,9 +876,12 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       replaceTopology: (nodes, edges) => {
+        const sanitized = sanitizePersistedCanvas({ nodes, edges });
+        const safeNodes = sanitized?.nodes ?? [];
+        const safeEdges = sanitized?.edges ?? [];
         set((state) => ({
-          nodes,
-          edges: edges.map((edge) => decorateEdge(edge, state.edgeStyle)),
+          nodes: safeNodes.map((node) => ({ ...node, type: "resource" })),
+          edges: safeEdges.map((edge) => decorateEdge(edge, state.edgeStyle)),
           selectedNodeId: null,
           fitViewNonce: state.fitViewNonce + 1,
         }));
@@ -1016,32 +976,15 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       deserializeScene: (hash) => {
-        try {
-          // Accept raw JSON, or a compressed payload from lz-string's
-          // URI-safe alphabet (which can contain "+", "-", "_" and "$").
-          const trimmed = hash.trim();
-          let raw: string | null = null;
-          if (trimmed.startsWith("{")) {
-            raw = trimmed;
-          } else {
-            raw = decompressFromEncodedURIComponent(trimmed);
-          }
-          if (!raw) return false;
-          const parsed = JSON.parse(raw) as ScenePayload;
-          if (parsed.version !== SCENE_VERSION || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
-            return false;
-          }
-          const { nodes, edges } = topologyFromPayload(parsed);
-          set((state) => ({
-            nodes,
-            edges: edges.map((edge) => decorateEdge(edge, state.edgeStyle)),
-            selectedNodeId: null,
-            fitViewNonce: state.fitViewNonce + 1,
-          }));
-          return true;
-        } catch {
-          return false;
-        }
+        const sanitized = decodeAndSanitizeScene(hash, SCENE_VERSION);
+        if (!sanitized) return false;
+        set((state) => ({
+          nodes: sanitized.nodes.map((node) => ({ ...node, type: "resource" })),
+          edges: sanitized.edges.map((edge) => decorateEdge(edge, state.edgeStyle)),
+          selectedNodeId: null,
+          fitViewNonce: state.fitViewNonce + 1,
+        }));
+        return true;
       },
 
       loadBlueprintById: async (id) => {

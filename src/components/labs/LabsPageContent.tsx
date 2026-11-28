@@ -10,6 +10,7 @@ import { GlowCard } from "@/components/ui/GlowCard";
 import { GUIDED_LABS } from "@/data/guidedLabs";
 import { getCompanyBrand } from "@/data/companyBrands";
 import { formatRps, labCleanTitle, labExcerpt } from "@/data/labMeta";
+import type { GuidedLab } from "@/types/challenges";
 import { useLearningStore } from "@/store/useLearningStore";
 import { PLATFORM_LABS } from "@/learning/platform/labCatalog";
 
@@ -24,6 +25,17 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "advanced", label: "Advanced" },
   { id: "staff_plus", label: "Staff+" },
 ];
+
+/** Card copy is prose, so brief markup must never leak into the excerpt. */
+function readableExcerpt(lab: GuidedLab): string {
+  return labExcerpt(lab)
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export function LabsPageContent() {
   const [filter, setFilter] = useState<Filter>("all");
@@ -118,7 +130,7 @@ export function LabsPageContent() {
                     </div>
 
                     <h2 className="mt-3 text-lg font-semibold tracking-tight text-zinc-100">{labCleanTitle(lab)}</h2>
-                    <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-zinc-400">{labExcerpt(lab)}</p>
+                    <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-zinc-400">{readableExcerpt(lab)}</p>
                     {challenge ? (
                       <div className="mt-4 rounded-xl border border-line bg-app/60 p-3">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brass">Challenge focus</p>

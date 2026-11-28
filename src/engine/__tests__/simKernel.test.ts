@@ -65,6 +65,24 @@ const CASES: Case[] = [
     engine: "append_log", writeRatio: 1, elapsed: 60, prevDepth: 100,
     maxConcurrency: 1, replication: 0, prompt: 1, output: 1, vram: 0, llm: true,
   },
+  {
+    capacity: 1000, arrival: 10, baseP50: 20, baseP95: 30, baseP99: 40,
+    engine: "none", writeRatio: 0, elapsed: 0, prevDepth: 0,
+    maxConcurrency: 10, replication: 1, prompt: Number.NaN, output: Number.POSITIVE_INFINITY, vram: 24, llm: true,
+  },
+  {
+    capacity: 1, arrival: Number.MAX_VALUE, baseP50: Number.MAX_VALUE, baseP95: Number.MAX_VALUE, baseP99: Number.MAX_VALUE,
+    engine: "b_tree", writeRatio: Number.MAX_VALUE, elapsed: Number.POSITIVE_INFINITY, prevDepth: Number.MAX_VALUE,
+    maxConcurrency: Number.MAX_VALUE, replication: Number.MAX_VALUE, prompt: Number.MAX_VALUE, output: Number.MAX_VALUE,
+    vram: Number.MIN_VALUE, llm: true,
+  },
+  {
+    capacity: Number.NaN, arrival: Number.POSITIVE_INFINITY, baseP50: Number.NEGATIVE_INFINITY,
+    baseP95: -1, baseP99: Number.MIN_VALUE, engine: "lsm_tree", writeRatio: Number.NaN,
+    elapsed: Number.NEGATIVE_INFINITY, prevDepth: Number.NaN, maxConcurrency: 0,
+    replication: Number.NEGATIVE_INFINITY, prompt: Number.NEGATIVE_INFINITY,
+    output: -1, vram: Number.NaN, llm: true,
+  },
 ];
 
 describe("embedded WASM physics kernel", () => {
@@ -102,6 +120,10 @@ describe("embedded WASM physics kernel", () => {
 
     CASES.forEach((entry, index) => {
       const slot = index * PHYSICS_STRIDE;
+      for (let offset = 0; offset < PHYSICS_STRIDE; offset += 1) {
+        expect(Number.isFinite(output[slot + offset]), `case ${index} slot ${offset}`).toBe(true);
+        expect(output[slot + offset]).toBeGreaterThanOrEqual(0);
+      }
       const queue = updateQueue(entry.prevDepth, entry.arrival, entry.capacity, entry.maxConcurrency, entry.replication);
       const latency = nodeLatency({
         baseP50Ms: entry.baseP50,
@@ -136,10 +158,57 @@ describe("embedded WASM physics kernel", () => {
       expect(output[slot + 7]).toBeCloseTo(latency.multiplier, 10);
       expect(output[slot + 8]).toBeCloseTo(errorRate(entry.arrival, entry.capacity), 10);
       expect(output[slot + 9]).toBeCloseTo(cpuPercent(rho, queue.queueDepth, entry.capacity), 10);
-      expect(output[slot + 10]).toBeCloseTo(entry.llm ? llm.ttftMs : 0, 9);
-      expect(output[slot + 11]).toBeCloseTo(entry.llm ? llm.kvCachePct : 0, 9);
-      expect(output[slot + 12]).toBeCloseTo(entry.llm ? llm.latencyPenalty : 1, 10);
+      expect(output[slot + 10], `case ${index} TTFT`).toBeCloseTo(entry.llm ? llm.ttftMs : 0, 9);
+      expect(output[slot + 11], `case ${index} KV`).toBeCloseTo(entry.llm ? llm.kvCachePct : 0, 9);
+      expect(output[slot + 12], `case ${index} penalty`).toBeCloseTo(entry.llm ? llm.latencyPenalty : 1, 10);
       expect(output[slot + 13]).toBe(entry.llm && llm.preempted ? 1 : 0);
     });
+  });
+
+  it("matches JavaScript token fallback semantics across the hostile matrix", () => {
+    const values = [
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+      -1,
+      0,
+      Number.MIN_VALUE,
+      Number.MAX_VALUE,
+    ];
+    expect(beginPhysicsBatch()).not.toBeNull();
+
+    for (const prompt of values) {
+      for (const outputTokens of values) {
+        writePhysicsNode(
+          0, 1000, 10, 20, 30, 40, CODES.none, 0, 0, 0,
+          10, 1, prompt, outputTokens, 24, true,
+        );
+        const output = commitPhysicsBatch(1);
+        expect(output).not.toBeNull();
+        if (!output) return;
+        const expected = llmPhysics({
+          baseP50Ms: 20,
+          arrivalRps: 10,
+          capacityRps: 1000,
+          avgPromptTokens: prompt,
+          avgOutputTokens: outputTokens,
+          vramGbPerReplica: 24,
+          replicationFactor: 1,
+          activeConcurrentRequests: 10 * (
+            nodeLatency({
+              baseP50Ms: 20,
+              baseP95Ms: 30,
+              baseP99Ms: 40,
+              arrivalRps: 10,
+              capacityRps: 1000,
+            }).p50Ms / 1000
+          ),
+        });
+        expect(output[10]).toBeCloseTo(expected.ttftMs, 9);
+        expect(output[11]).toBeCloseTo(expected.kvCachePct, 9);
+        expect(output[12]).toBeCloseTo(expected.latencyPenalty, 10);
+        expect(output[13]).toBe(expected.preempted ? 1 : 0);
+      }
+    }
   });
 });

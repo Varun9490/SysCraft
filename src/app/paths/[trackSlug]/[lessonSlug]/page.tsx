@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { SiteChrome } from "@/components/nav/SiteChrome";
 import { LessonPlayer } from "@/components/platform/player/LessonPlayer";
 import { getLesson, getTrack, TRACKS } from "@/content/platform/registry";
+import { canonicalAlternates, routeCanonical } from "@/lib/seo";
 
 export const dynamicParams = false;
 
@@ -19,11 +20,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { trackSlug, lessonSlug } = await params;
   const lesson = getLesson(trackSlug, lessonSlug);
-  if (!lesson) return { title: "Lesson not found" };
+  if (!lesson) return { title: "Lesson not found", robots: { index: false } };
+  const canonical = routeCanonical("paths", trackSlug, lessonSlug);
   return {
     title: lesson.title,
     description: lesson.summary,
-    openGraph: { title: lesson.title, description: lesson.summary, type: "article" },
+    ...canonicalAlternates("paths", trackSlug, lessonSlug),
+    openGraph: { title: lesson.title, description: lesson.summary, type: "article", url: canonical },
   };
 }
 
