@@ -1,7 +1,7 @@
 # SysCraft — Step 1 live runtime UI/UX audit
 
-- Generated (UTC): 2026-11-27T16:12:14.906Z
-- BASE_URL: `http://127.0.0.1:4173`
+- Generated (UTC): 2026-11-28T06:39:20.351Z
+- BASE_URL: `https://sys-craft.vercel.app`
 - Browser: Playwright Chromium 156.0.8078.4, headless, isolated context per scenario
 - Evidence screenshots: `C:\Users\varun\AppData\Local\Temp\runtime-audit-shots`
 - Scope: command palette, theme, custom cursor, ambient background, readers (including meaningful-read eligibility and arrow-key visual replay), lazy-loaded bespoke visuals, blogs index, landing closing CTA and bento alignment, labs excerpts, knowledge map, tools, break reminder, quiz, export/import, responsive layout, browser errors. Canvas runtime is owned by another agent and is not duplicated here.
@@ -12,7 +12,7 @@
 | --- | ---: | ---: | ---: | ---: |
 | P0 | 0 | 0 | 0 | 0 |
 | P1 | 29 | 0 | 0 | 29 |
-| P2 | 9 | 0 | 1 | 10 |
+| P2 | 10 | 0 | 0 | 10 |
 
 ## Prioritized findings
 
@@ -42,7 +42,7 @@
 | BLG-01 | Search filters cards, read-time is shown, and read checkmarks sync with progress | /blogs | PASS | total=8; filtered=5; readBadges=1 |
 | BLG-03 | Opening a field note is not a meaningful read; reaching its final step is | /blogs/database-melts-at-10k-rps | PASS | steps=5; onOpen=false; onStep2=false |
 | VIS-01 | Tokenization, Kubernetes and LLD LRU lessons load their titled bespoke visuals | /paths/ai-engineering/tokenization, /paths/backend-cloud/kubernetes, /paths/case-studies/lld-lru-cache | PASS | observations=[{"route":"/paths/ai-engineering/tokenization","title":"tokenization","text":"tokenizationSTEP 1raw text · charactersthe cat'the cat' → 7 characters, but the model never sees characters"},{"route":"/paths/backend-cloud/kubernetes","title":"k8s reconcile","text |
-| LAND-01 | Closing CTA exists and its primary link navigates to /labs | /, /labs | PASS | href=/labs; landed=http://127.0.0.1:4173/labs |
+| LAND-01 | Closing CTA exists and its primary link navigates to /labs | /, /labs | PASS | href=/labs; landed=https://sys-craft.vercel.app/labs |
 | LAND-02 | Bento and closing grids align without overflow at 390 and 1440 | / | PASS | rows=[{"viewport":"390","overflowPx":0,"grids":{"bento":{"cols":1,"cells":3},"closing":{"cols":1,"cells":2}}},{"viewport":"1440","overflowPx":0,"grids":{"bento":{"cols":3,"cells":3},"closing":{"cols":12,"cells":2}}}] |
 | MAP-01 | Zoom, reset, pan, selection, prerequisites and navigation work together | /map | PASS | zoom=["100%","130%","115%","100%"]; panned=true; selected=Distributed Systems |
 | TOOL-01 | Calculators stay finite for zero, huge, negative and empty inputs | /tools | PASS | observations=[{"section":"capacity-title","input":"cap-dau","typed":"0","rows":["0.00","0.00","0.00","0.00"],"bad":[]},{"section":"capacity-title","input":"cap-dau","typed":"1e15","rows":["138888888.89","694444444.44","10512000000.00","8888888.89"],"bad":[]},{"section":"ca; note=empty input normalised to "0" by Number("") |
@@ -50,7 +50,7 @@
 | BRK-02 | An active quiz suppresses the break reminder | /quiz | PASS | quizActive=true; reminderShown=false |
 | QUIZ-01 | Fresh context shows the empty state with no active question | /quiz | PASS | emptyState=true |
 | QUIZ-02 | Seeded read topic yields a question; answer persists after reload | /quiz | PASS | choices=4; historyAfterReload=1 |
-| DAT-01 | Export produces a downloadable, valid SysCraft progress JSON | /settings | PASS | filename=syscraft-progress-2026-11-27.json; bytes=403 |
+| DAT-01 | Export produces a downloadable, valid SysCraft progress JSON | /settings | PASS | filename=syscraft-progress-2026-11-28.json; bytes=403 |
 | DAT-02 | Malformed JSON is rejected with a status message and leaves state untouched | /settings | PASS | unchanged=true |
 | DAT-03 | Valid import replaces state and survives a full reload | /settings, /quiz | PASS | lessons=["url-shortener"]; theme=dark |
 | RSP-01 | No horizontal overflow at 375 / 768 / 1280 / 1440 across audited routes | /paths, /paths/foundations/single-server, /blogs/database-melts-at-10k-rps, /map, /tools, /quiz, /settings | PASS | checked=28; maxOverflowPx=0 |
@@ -62,14 +62,14 @@
 | --- | --- | --- | --- | --- |
 | THM-03 | Default dark theme renders without a stray theme-light class | /paths, /paths/foundations/single-server, /blogs/database-melts-at-10k-rps, /map, /tools, /quiz, /settings | PASS | rows=[{"route":"/paths","themeLight":false,"bodyBg":"rgb(12,11,9)","h1Contrast":16.41,"tertiaryContrast":4.24},{"route":"/paths/foundations/single-server","themeLight":false,"bodyBg":"rgb(12,11,9)","h1Contrast":16.41,"tertiaryContrast":4.24},{"route":"/blogs/databa |
 | AMB-02 | Ambient animation loop pauses while the document is hidden | /paths/foundations/single-server, /blogs/database-melts-at-10k-rps | PASS | supported=true; animatesWhileVisible=true; frozenWhileHidden=true |
-| AMB-03 | Ambient presence on reduced-motion devices is a static wash, not a canvas loop | /paths/foundations/single-server, /blogs/database-melts-at-10k-rps | NOT VERIFIED | codeRefs=src/components/platform/motion/AmbientField.tsx:22-32,162-175 |
+| AMB-03 | Ambient presence on reduced-motion devices is a static wash, not a canvas loop | /paths/foundations/single-server, /blogs/database-melts-at-10k-rps | PASS | observations=[{"route":"/paths/foundations/single-server","reducedMotion":true,"staticWash":true,"backgroundStable":true,"ambientCanvasCount":0},{"route":"/blogs/database-melts-at-10k-rps","reducedMotion":true,"staticWash":true,"backgroundStable":true,"ambientCanvasCount": |
 | RDR-02 | Sticky mode bar stays below the header and above page content after scrolling | /paths/foundations/single-server, /blogs/database-melts-at-10k-rps | PASS | rows=[{"route":"/paths/foundations/single-server","barTop":56,"headerBottom":57,"barZ":30,"headerZ":40,"scrollY":976},{"route":"/blogs/database-melts-at-10k-rps","barTop":56,"headerBottom":57,"barZ":30,"headerZ":40,"scrollY":1400}] |
 | BLG-02 | Blogs index exposes tag/category filters | /blogs | PASS | filterControls=1; screenshot=C:\Users\varun\AppData\Local\Temp\runtime-audit-shots\blogs-no-tag-filters.png |
 | LAB-01 | Labs card excerpts contain no raw Markdown markers | /labs | PASS | checked=16; markers=0 |
 | MAP-02 | Zoom controls clamp to 70%-180% | /map | PASS | minText=70%; maxText=180% |
 | TOOL-02 | Notation decoder returns results by symbol and by plain meaning | /tools | PASS | counts={"p99":2,"quorum":1,"zzzznotathing":0} |
 | RSP-02 | Touch targets on the reader are at least 24px at 375px | /paths/foundations/single-server, /blogs/database-melts-at-10k-rps | PASS | rows=[{"route":"/paths/foundations/single-server","small":[],"total":8,"screenshot":"C:\\Users\\varun\\AppData\\Local\\Temp\\runtime-audit-shots\\touch-lesson.png"},{"route":"/blogs/database-melts-at-10k-rps","small":[],"total":7,"screenshot":"C:\\Users\\varun\\App |
-| RSP-03 | Command palette and utility dock overlay content without clipping | /paths | PASS | palette={"x":16,"y":97.4375,"width":343,"height":532.5}; paletteZ=81; dock={"x":16,"y":419.77252197265625,"width":335.08355712890625,"height":326.53546142578125} |
+| RSP-03 | Command palette and utility dock overlay content without clipping | /paths | PASS | palette={"x":16,"y":97.4375,"width":343,"height":532.5}; paletteZ=81; dock={"x":16,"y":442.1647644042969,"width":317.3966369628906,"height":309.2997741699219} |
 
 ## Reproducible steps
 
@@ -95,9 +95,8 @@
   - Steps: Seed ambient=true; visit lesson/blog, count canvas.fixed.inset-0; disable on /settings and reload.
 - **AMB-02 (P2, PASS)** Ambient animation loop pauses while the document is hidden
   - Steps: Capture canvas data URL, force document.hidden=true + visibilitychange, capture again, then restore visibility.
-- **AMB-03 (P2, NOT VERIFIED)** Ambient presence on reduced-motion devices is a static wash, not a canvas loop
-  - Steps: Code inspection only — see reason.
-  - Reason: Runtime pixel-diff under emulated prefers-reduced-motion was not observable reliably in headless Chromium; code inspection of AmbientField.tsx lines 22-32 and 162-175 shows enabled=false renders a single static radial-gradient div and never starts the rAF loop.
+- **AMB-03 (P2, PASS)** Ambient presence on reduced-motion devices is a static wash, not a canvas loop
+  - Steps: Seed ambient=true with reducedMotion=reduce; verify the media query matches, no ambient canvas mounts, and the radial-gradient wash stays unchanged over 400ms.
 - **RDR-01 (P1, PASS)** Step dots, Next/Previous, arrow keys and manual scroll stay in sync
   - Steps: Open lesson; click dot 3; press Right/Left; scrollIntoView section 2; sample active step repeatedly.
 - **RDR-02 (P2, PASS)** Sticky mode bar stays below the header and above page content after scrolling
@@ -168,7 +167,7 @@
 | CUR-03 | Custom cursor | Touch and reduced-motion contexts disable the custom cursor | P1 | PASS | observations=[{"touch":true,"reducedMotion":false,"hasClass":false,"hasNode":false},{"touch":false,"reducedMotion":true,"hasClass":false,"hasNode":false}] |
 | AMB-01 | Ambient background | Ambient canvas renders on lesson and blog and toggle persists | P1 | PASS | before=[{"route":"/paths/foundations/single-server","canvases":1},{"route":"/blogs/database-melts-at-10k-rps","canvases":1}]; after=0; screenshot=C:\Users\varun\AppData\Local\Temp\runtime-audit-shots\ambient-off-settings.png |
 | AMB-02 | Ambient background | Ambient animation loop pauses while the document is hidden | P2 | PASS | supported=true; animatesWhileVisible=true; frozenWhileHidden=true |
-| AMB-03 | Ambient background | Ambient presence on reduced-motion devices is a static wash, not a canvas loop | P2 | NOT VERIFIED | Runtime pixel-diff under emulated prefers-reduced-motion was not observable reliably in headless Chromium; code inspection of AmbientField.tsx lines 22-32 and 162-175 shows enabled=false renders a single static radial-gradient div and never starts the rAF loop. |
+| AMB-03 | Ambient background | Ambient presence on reduced-motion devices is a static wash, not a canvas loop | P2 | PASS | observations=[{"route":"/paths/foundations/single-server","reducedMotion":true,"staticWash":true,"backgroundStable":true,"ambientCanvasCount":0},{"route":"/blogs/database-melts-at-10k-rps","reducedMotion":true,"staticWash":true,"backgroundStable":true,"ambientCanvasCount": |
 | RDR-01 | Reader | Step dots, Next/Previous, arrow keys and manual scroll stay in sync | P1 | PASS | dot3=3; keyboard=[4,3]; scroll=2 |
 | RDR-02 | Reader | Sticky mode bar stays below the header and above page content after scrolling | P2 | PASS | rows=[{"route":"/paths/foundations/single-server","barTop":56,"headerBottom":57,"barZ":30,"headerZ":40,"scrollY":976},{"route":"/blogs/database-melts-at-10k-rps","barTop":56,"headerBottom":57,"barZ":30,"headerZ":40,"scrollY":1400}] |
 | RDR-03 | Reader | Reading-mode changes hold the active step (no scroll observer snap-back) | P1 | PASS | observations=[{"mode":"Story","step":2},{"mode":"Engineer","step":2},{"mode":"Both","step":2}] |
@@ -178,7 +177,7 @@
 | BLG-02 | Blogs index | Blogs index exposes tag/category filters | P2 | PASS | filterControls=1; screenshot=C:\Users\varun\AppData\Local\Temp\runtime-audit-shots\blogs-no-tag-filters.png |
 | BLG-03 | Blogs index | Opening a field note is not a meaningful read; reaching its final step is | P1 | PASS | steps=5; onOpen=false; onStep2=false |
 | VIS-01 | Bespoke visuals | Tokenization, Kubernetes and LLD LRU lessons load their titled bespoke visuals | P1 | PASS | observations=[{"route":"/paths/ai-engineering/tokenization","title":"tokenization","text":"tokenizationSTEP 1raw text · charactersthe cat'the cat' → 7 characters, but the model never sees characters"},{"route":"/paths/backend-cloud/kubernetes","title":"k8s reconcile","text |
-| LAND-01 | Landing | Closing CTA exists and its primary link navigates to /labs | P1 | PASS | href=/labs; landed=http://127.0.0.1:4173/labs |
+| LAND-01 | Landing | Closing CTA exists and its primary link navigates to /labs | P1 | PASS | href=/labs; landed=https://sys-craft.vercel.app/labs |
 | LAND-02 | Landing | Bento and closing grids align without overflow at 390 and 1440 | P1 | PASS | rows=[{"viewport":"390","overflowPx":0,"grids":{"bento":{"cols":1,"cells":3},"closing":{"cols":1,"cells":2}}},{"viewport":"1440","overflowPx":0,"grids":{"bento":{"cols":3,"cells":3},"closing":{"cols":12,"cells":2}}}] |
 | LAB-01 | Labs | Labs card excerpts contain no raw Markdown markers | P2 | PASS | checked=16; markers=0 |
 | MAP-01 | Knowledge map | Zoom, reset, pan, selection, prerequisites and navigation work together | P1 | PASS | zoom=["100%","130%","115%","100%"]; panned=true; selected=Distributed Systems |
@@ -189,12 +188,12 @@
 | BRK-02 | Break reminder | An active quiz suppresses the break reminder | P1 | PASS | quizActive=true; reminderShown=false |
 | QUIZ-01 | Quiz | Fresh context shows the empty state with no active question | P1 | PASS | emptyState=true |
 | QUIZ-02 | Quiz | Seeded read topic yields a question; answer persists after reload | P1 | PASS | choices=4; historyAfterReload=1 |
-| DAT-01 | Export / import | Export produces a downloadable, valid SysCraft progress JSON | P1 | PASS | filename=syscraft-progress-2026-11-27.json; bytes=403 |
+| DAT-01 | Export / import | Export produces a downloadable, valid SysCraft progress JSON | P1 | PASS | filename=syscraft-progress-2026-11-28.json; bytes=403 |
 | DAT-02 | Export / import | Malformed JSON is rejected with a status message and leaves state untouched | P1 | PASS | unchanged=true |
 | DAT-03 | Export / import | Valid import replaces state and survives a full reload | P1 | PASS | lessons=["url-shortener"]; theme=dark |
 | RSP-01 | Responsive | No horizontal overflow at 375 / 768 / 1280 / 1440 across audited routes | P1 | PASS | checked=28; maxOverflowPx=0 |
 | RSP-02 | Responsive | Touch targets on the reader are at least 24px at 375px | P2 | PASS | rows=[{"route":"/paths/foundations/single-server","small":[],"total":8,"screenshot":"C:\\Users\\varun\\AppData\\Local\\Temp\\runtime-audit-shots\\touch-lesson.png"},{"route":"/blogs/database-melts-at-10k-rps","small":[],"total":7,"screenshot":"C:\\Users\\varun\\App |
-| RSP-03 | Responsive | Command palette and utility dock overlay content without clipping | P2 | PASS | palette={"x":16,"y":97.4375,"width":343,"height":532.5}; paletteZ=81; dock={"x":16,"y":419.77252197265625,"width":335.08355712890625,"height":326.53546142578125} |
+| RSP-03 | Responsive | Command palette and utility dock overlay content without clipping | P2 | PASS | palette={"x":16,"y":97.4375,"width":343,"height":532.5}; paletteZ=81; dock={"x":16,"y":442.1647644042969,"width":317.3966369628906,"height":309.2997741699219} |
 | ERR-01 | Errors | No hydration warnings, uncaught page errors, or same-origin console/HTTP failures | P1 | PASS | hydration=0; pageErrors=0; appConsole=0 |
 
 ## Browser error telemetry
@@ -205,7 +204,7 @@
   "appConsole": 0,
   "appHttp": 0,
   "appNetwork": 0,
-  "abortedByHarness": 1047,
+  "abortedByHarness": 1043,
   "crossOriginNetwork": 0,
   "samples": {
     "hydration": [],
@@ -214,9 +213,9 @@
     "appHttp": [],
     "appNetwork": [],
     "abortedByHarness": [
-      "net::ERR_ABORTED http://127.0.0.1:4173/",
-      "net::ERR_ABORTED http://127.0.0.1:4173/paths",
-      "net::ERR_ABORTED http://127.0.0.1:4173/blogs"
+      "net::ERR_ABORTED https://sys-craft.vercel.app/",
+      "net::ERR_ABORTED https://sys-craft.vercel.app/paths",
+      "net::ERR_ABORTED https://sys-craft.vercel.app/blogs"
     ]
   }
 }

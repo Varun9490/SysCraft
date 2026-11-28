@@ -1,7 +1,7 @@
 # SysCraft production QA scorecard
 
-- Generated (UTC): 2026-11-28T06:02:04.884Z
-- BASE_URL: `http://127.0.0.1:4173`
+- Generated (UTC): 2026-11-28T06:12:51.121Z
+- BASE_URL: `https://sys-craft.vercel.app`
 - Overall score: **100 / 100**
 - Checks: 36/36 passed (0 failed)
 - Critical failures: 0 — run exit status: PASS
@@ -20,7 +20,7 @@
 
 ## Frame timing
 
-- Steady-state 180 rAF frames after fonts and entrance reveals have settled: average **17.59 ms**, p95 **33.30 ms**.
+- Steady-state 180 rAF frames after fonts and entrance reveals have settled: average **16.67 ms**, p95 **16.80 ms**.
 - Thresholds: average <= 34 ms, p95 <= 50 ms (headless vsync is not treated as a hard failure).
 
 ## Failures
@@ -33,7 +33,7 @@
 - Hydration warnings: 0
 - Uncaught page errors: 0
 - HTTP >= 400 (same-origin): 0
-- Failed requests (all origins): 277
+- Failed requests (all origins): 293
 
 ## Check log
 

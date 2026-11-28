@@ -986,14 +986,48 @@ try {
     },
   });
 
-  notVerified({
+  await audit({
     id: "AMB-03",
     area: "Ambient background",
     title: "Ambient presence on reduced-motion devices is a static wash, not a canvas loop",
     severity: "P2",
     routes: [ROUTES.lesson, ROUTES.blog],
-    reason: "Runtime pixel-diff under emulated prefers-reduced-motion was not observable reliably in headless Chromium; code inspection of AmbientField.tsx lines 22-32 and 162-175 shows enabled=false renders a single static radial-gradient div and never starts the rAF loop.",
-    codeRefs: "src/components/platform/motion/AmbientField.tsx:22-32,162-175",
+    steps: "Seed ambient=true with reducedMotion=reduce; verify the media query matches, no ambient canvas mounts, and the radial-gradient wash stays unchanged over 400ms.",
+    fn: async () => {
+      const ctx = await trackedContext({ viewport: VIEWPORTS[3], reducedMotion: "reduce" });
+      await seed(ctx, emptyLearner({ prefs: { mode: "both", theme: "dark", ambient: true, cursor: false, breakMinutes: 0 } }));
+      const page = await newPage(ctx, "ambient-reduced-motion");
+      const observations = [];
+      for (const route of [ROUTES.lesson, ROUTES.blog]) {
+        await goto(page, route);
+        const result = await page.evaluate(async () => {
+          // This is a plain .mjs file: no TypeScript generics here. A written
+          // `querySelectorAll<HTMLElement>(...)` parses as comparisons in JS
+          // and silently returns an empty list, so the selector is untyped.
+          const wash = Array.from(document.querySelectorAll('div.fixed.inset-0[aria-hidden="true"]')).find(
+            (element) => getComputedStyle(element).backgroundImage.includes("radial-gradient"),
+          );
+          const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const ambientCanvasCount = document.querySelectorAll("canvas.fixed.inset-0").length;
+          if (!wash) return { reducedMotion, staticWash: false, backgroundStable: false, ambientCanvasCount };
+          const before = getComputedStyle(wash).backgroundImage;
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          return {
+            reducedMotion,
+            staticWash: true,
+            backgroundStable: before === getComputedStyle(wash).backgroundImage,
+            ambientCanvasCount,
+          };
+        });
+        assert.equal(result.reducedMotion, true, `${route}: reduced-motion media query did not match`);
+        assert.equal(result.staticWash, true, `${route}: static ambient radial-gradient wash was not rendered`);
+        assert.equal(result.ambientCanvasCount, 0, `${route}: ambient canvas mounted despite reduced motion`);
+        assert.equal(result.backgroundStable, true, `${route}: ambient wash changed while reduced motion was active`);
+        observations.push({ route, ...result });
+      }
+      await ctx.close();
+      return { observations };
+    },
   });
 } catch (error) {
   notVerified({

@@ -118,4 +118,7 @@
 - [x] Desktop/mobile Playwright QA — all checks passed with no console errors
 - [x] Local production QA scorecard — 100/100 across 36 checks (17.59ms average, 33.30ms p95)
 - [x] Local canvas/lab QA — 15/15 checks passed
-- [x] Local runtime audit — 38 passed, 0 failed, 1 not verified (reduced-motion ambient wash)
+- [x] Production deployment — `f255298` live on `https://sys-craft.vercel.app`; 12 audited routes return 200
+- [x] Production QA scorecard — 100/100 across 36 checks (16.67ms average, 16.80ms p95)
+- [x] Production canvas/lab QA — 15/15 checks passed (18.15ms average, 33.30ms p95)
+- [x] Production runtime audit — 39 passed, 0 failed, 0 not verified
